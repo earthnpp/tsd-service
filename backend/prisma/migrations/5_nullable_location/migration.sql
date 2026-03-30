@@ -1,0 +1,1 @@
+ALTER TABLE `Ticket` MODIFY COLUMN `location` VARCHAR(191) NULL;

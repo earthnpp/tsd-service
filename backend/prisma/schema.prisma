@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Ticket {
+  id              Int       @id @default(autoincrement())
+  ticketNo        String    @unique
+  lineUserId      String
+  displayName     String?
+  title           String
+  category        String
+  subcategory     String
+  location        String?
+  description     String    @db.Text
+  assetTag        String?
+  imageUrl        String?
+  status          String    @default("pending")   // pending | in_progress | completed
+  priority        String?                          // critical | high | medium | low (nullable — ประเมินก่อน)
+  assignee        String?
+  resolution      String?   @db.Text
+  rating          Int?
+  workStartAt     DateTime?
+  completedAt     DateTime?
+  hasCost         Boolean   @default(false)
+  costDescription String?   @db.Text
+  costAmount      Decimal?  @db.Decimal(10, 2)
+  costVat         Decimal?  @db.Decimal(10, 2)
+  repairVendor    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([lineUserId])
+  @@index([status])
+}
+
+model Assignee {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model UserSession {
+  lineUserId  String    @id
+  state       String    @default("idle")
+  // idle | menu | report_category | report_subcategory | report_title
+  // | report_location | report_asset | report_description | rating
+  tempData    Json?
+  updatedAt   DateTime  @updatedAt
+}
+
+model TicketCounter {
+  id    Int @id @default(1)
+  count Int @default(0)
+}
+
+model Category {
+  id            Int           @id @default(autoincrement())
+  name          String        @unique
+  icon          String        @default("📋")
+  color         String        @default("#457b9d")
+  isActive      Boolean       @default(true)
+  order         Int           @default(0)
+  createdAt     DateTime      @default(now())
+  subcategories Subcategory[]
+}
+
+model Subcategory {
+  id         Int      @id @default(autoincrement())
+  name       String
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  isActive   Boolean  @default(true)
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([categoryId])
+}
+
+model FaqItem {
+  id        Int      @id @default(autoincrement())
+  question  String
+  answer    String   @db.Text
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  viewCount Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model Room {
+  id         Int           @id @default(autoincrement())
+  name       String        @unique
+  calendarId String?
+  bookings   RoomBooking[]
+}
+
+model RoomBooking {
+  id            Int      @id @default(autoincrement())
+  bookingNo     String   @unique
+  roomId        Int
+  room          Room     @relation(fields: [roomId], references: [id])
+  lineUserId    String
+  displayName   String?
+  title         String
+  startAt       DateTime
+  endAt         DateTime
+  status        String   @default("confirmed")
+  googleEventId String?
+  createdAt     DateTime @default(now())
+
+  @@index([roomId])
+  @@index([lineUserId])
+  @@index([startAt])
+}
+
+model BookingCounter {
+  id    Int @id @default(1)
+  count Int @default(0)
+}
