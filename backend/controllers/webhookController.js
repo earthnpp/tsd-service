@@ -163,8 +163,15 @@ async function onPostback(event, userId) {
 
   if (action === "faq") {
     const faqs = await categoryService.getActiveFaqs();
-    categoryService.incrementFaqViews(faqs.map((f) => f.id)).catch(() => {});
-    return client.replyMessage({ replyToken, messages: [buildFaqMessage(faqs)] });
+    return client.replyMessage({ replyToken, messages: [buildFaqListMessage(faqs)] });
+  }
+
+  if (action === "faq_item") {
+    const faqId = Number(params.get("id"));
+    const faq = await categoryService.getFaqById(faqId);
+    if (!faq) return client.replyMessage({ replyToken, messages: [{ type: "text", text: "ไม่พบข้อมูล FAQ" }] });
+    categoryService.incrementFaqViews([faqId]).catch(() => {});
+    return client.replyMessage({ replyToken, messages: [buildFaqAnswerMessage(faq)] });
   }
 
   if (action === "select_category") {
@@ -397,14 +404,118 @@ async function onImage(event, userId) {
   });
 }
 
-function buildFaqMessage(faqs) {
+function buildFaqListMessage(faqs) {
   if (!faqs.length) {
     return { type: "text", text: "ยังไม่มี FAQ ในระบบครับ\nพิมพ์ 'เมนู' เพื่อแจ้งปัญหา" };
   }
-  const lines = ["💡 วิธีแก้ปัญหาเบื้องต้น", ""];
-  faqs.forEach((f) => lines.push(`❓ ${f.question}`, `   ${f.answer}`, ""));
-  lines.push("หากยังไม่ได้ พิมพ์ 'เมนู' เพื่อแจ้งปัญหา");
-  return { type: "text", text: lines.join("\n") };
+  const displayFaqs = faqs.slice(0, 12);
+  return {
+    type: "flex",
+    altText: "💡 FAQ วิธีแก้ปัญหาเบื้องต้น",
+    contents: {
+      type: "bubble",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: "#1a1a2e",
+        paddingAll: "16px",
+        contents: [
+          { type: "text", text: "💡 FAQ", weight: "bold", size: "lg", color: "#ffffff" },
+          { type: "text", text: "กดเลือกคำถามที่ต้องการ", size: "sm", color: "#aaaacc", margin: "xs" },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "sm",
+        paddingAll: "12px",
+        contents: displayFaqs.map((faq, i) => ({
+          type: "box",
+          layout: "horizontal",
+          paddingAll: "10px",
+          backgroundColor: i % 2 === 0 ? "#f5f6ff" : "#ffffff",
+          cornerRadius: "8px",
+          action: {
+            type: "postback",
+            label: faq.question.substring(0, 40),
+            data: `action=faq_item&id=${faq.id}`,
+          },
+          contents: [
+            { type: "text", text: `❓ ${faq.question}`, size: "sm", wrap: true, flex: 1, color: "#1a1a2e" },
+            { type: "text", text: "›", size: "xl", color: "#aaa", align: "end", gravity: "center", flex: 0 },
+          ],
+        })),
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        paddingAll: "12px",
+        contents: [{
+          type: "button",
+          action: { type: "postback", label: "📝 แจ้งปัญหา IT", data: "action=report" },
+          style: "primary",
+          color: "#e63946",
+          height: "sm",
+        }],
+      },
+    },
+  };
+}
+
+function buildFaqAnswerMessage(faq) {
+  return {
+    type: "flex",
+    altText: `💡 ${faq.question}`,
+    contents: {
+      type: "bubble",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: "#1a1a2e",
+        paddingAll: "16px",
+        contents: [
+          { type: "text", text: "💡 วิธีแก้ไข", weight: "bold", size: "md", color: "#ffffff" },
+          { type: "text", text: faq.question, size: "sm", color: "#aaaacc", margin: "xs", wrap: true },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        paddingAll: "16px",
+        contents: [{
+          type: "text",
+          text: faq.answer,
+          wrap: true,
+          size: "sm",
+          color: "#333333",
+          lineSpacing: "6px",
+        }],
+      },
+      footer: {
+        type: "box",
+        layout: "horizontal",
+        spacing: "sm",
+        paddingAll: "12px",
+        contents: [
+          {
+            type: "button",
+            action: { type: "postback", label: "🔙 กลับ FAQ", data: "action=faq" },
+            style: "secondary",
+            height: "sm",
+            flex: 1,
+          },
+          {
+            type: "button",
+            action: { type: "postback", label: "📝 แจ้งปัญหา", data: "action=report" },
+            style: "primary",
+            color: "#e63946",
+            height: "sm",
+            flex: 1,
+          },
+        ],
+      },
+    },
+  };
 }
 
 module.exports = { handleEvents };

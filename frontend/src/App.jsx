@@ -864,12 +864,40 @@ function FaqSettings({ faqs, onReload }) {
     setEditFaq(null); onReload();
   }
 
+  const totalViews = faqs.reduce((s, f) => s + (f.viewCount || 0), 0);
+  const sortedByViews = [...faqs].sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
+
   return (
     <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px #0001" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <strong style={{ fontSize: 16 }}>💡 FAQ / วิธีแก้ปัญหาเบื้องต้น</strong>
         <button onClick={() => setAdding(true)} style={btnStyle("#1a1a2e")}>+ เพิ่ม FAQ</button>
       </div>
+
+      {totalViews > 0 && (
+        <div style={{ background: "#f5f6ff", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+            <strong style={{ fontSize: 13, color: "#1a1a2e" }}>📊 Analytics — FAQ ที่ถูกดูมากสุด</strong>
+            <span style={{ fontSize: 12, color: "#888" }}>รวม {totalViews} ครั้ง</span>
+          </div>
+          {sortedByViews.filter(f => f.viewCount > 0).map(faq => {
+            const pct = Math.round((faq.viewCount / totalViews) * 100);
+            return (
+              <div key={faq.id} style={{ marginBottom: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
+                  <span style={{ color: "#333", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginRight: 8 }}>
+                    {faq.question}
+                  </span>
+                  <span style={{ color: "#555", flexShrink: 0 }}>{faq.viewCount} ครั้ง ({pct}%)</span>
+                </div>
+                <div style={{ height: 6, background: "#e0e0f0", borderRadius: 999, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${pct}%`, background: "#457b9d", borderRadius: 999, transition: "width .4s" }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {adding && (
         <div style={{ border: "1px solid #e0e0e0", borderRadius: 8, padding: 12, marginBottom: 12, background: "#f9f9f9" }}>

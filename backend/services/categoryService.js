@@ -88,6 +88,10 @@ async function deleteFaq(id) {
   return prisma.faqItem.delete({ where: { id: Number(id) } });
 }
 
+async function getFaqById(id) {
+  return prisma.faqItem.findUnique({ where: { id: Number(id) } });
+}
+
 async function incrementFaqViews(ids) {
   if (!ids || !ids.length) return;
   return prisma.faqItem.updateMany({
@@ -99,5 +103,5 @@ async function incrementFaqViews(ids) {
 module.exports = {
   getActiveCategories, getAllCategories, createCategory, updateCategory, deleteCategory,
   createSubcategory, updateSubcategory, deleteSubcategory,
-  getActiveFaqs, getAllFaqs, createFaq, updateFaq, deleteFaq, incrementFaqViews,
+  getActiveFaqs, getAllFaqs, createFaq, updateFaq, deleteFaq, getFaqById, incrementFaqViews,
 };
