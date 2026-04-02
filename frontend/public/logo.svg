@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- Top pill: horizontal, upper area -->
+  <rect x="8" y="10" width="84" height="34" rx="17" ry="17"
+        fill="none" stroke="#111" stroke-width="9"/>
+  <!-- Bottom pill: horizontal, lower area -->
+  <rect x="8" y="56" width="84" height="34" rx="17" ry="17"
+        fill="none" stroke="#111" stroke-width="9"/>
+  <!-- White bridge to create the overlap cutout effect -->
+  <rect x="17" y="38" width="66" height="24" fill="white"/>
+</svg>
