@@ -1280,10 +1280,15 @@ function BookingsPanel() {
                     {dayBkgs.slice(0, 3).map((b, i) => (
                       <div key={i} onClick={e => openPopup(e, b)} style={{
                         background: roomColor[b.roomId] || "#1a73e8", color: "#fff",
-                        borderRadius: 3, fontSize: 10, padding: "1px 4px", cursor: "pointer",
-                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.5,
+                        borderRadius: 3, fontSize: 10, padding: "2px 4px", cursor: "pointer",
+                        overflow: "hidden", lineHeight: 1.4,
                       }}>
-                        {fmtTime(b.startAt)} {b.room?.name || ""}
+                        <div style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {b.room?.name || ""}
+                        </div>
+                        <div style={{ opacity: 0.9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {fmtTime(b.startAt)} {b.title}
+                        </div>
                       </div>
                     ))}
                     {dayBkgs.length > 3 && (

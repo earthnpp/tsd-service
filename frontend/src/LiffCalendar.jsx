@@ -166,11 +166,15 @@ export default function LiffCalendar() {
                     {dayBkgs.slice(0, 2).map((b, i) => (
                       <div key={i} style={{
                         background: roomColorMap[b.roomId] || "#1a73e8",
-                        color:"#fff", borderRadius:3, fontSize:10, padding:"1px 4px",
-                        whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis",
-                        lineHeight:1.5,
+                        color:"#fff", borderRadius:3, fontSize:10, padding:"2px 4px",
+                        overflow:"hidden", lineHeight:1.4,
                       }}>
-                        {fmtTime(b.startAt)} {b.room?.name || ""}
+                        <div style={{ fontWeight:600, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                          {b.room?.name || ""}
+                        </div>
+                        <div style={{ opacity:0.9, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                          {fmtTime(b.startAt)} {b.title}
+                        </div>
                       </div>
                     ))}
                     {dayBkgs.length > 2 && (
