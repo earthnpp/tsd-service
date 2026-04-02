@@ -417,6 +417,8 @@ function TicketDetail({ ticket: t, resolution, setResolution, onAssign, onClose,
             ["สถานที่", t.location],
             ["Asset Tag", t.assetTag || "-"],
             ["ผู้แจ้ง", t.displayName || "-"],
+            ["อีเมล", t.email || "-"],
+            ["ฝ่าย/แผนก", t.department || "-"],
             ["เวลาแจ้ง", new Date(t.createdAt).toLocaleString("th-TH")],
             ["ผู้รับผิดชอบ", t.assignee || "-"],
             t.workStartAt ? ["เริ่มดำเนินการ", new Date(t.workStartAt).toLocaleString("th-TH")] : null,
@@ -1337,6 +1339,8 @@ function BookingsPanel() {
                         <div style={{ fontSize: 12, color: "#70757a" }}>📍 สถานที่ : {b.room?.name}</div>
                         <div style={{ fontSize: 12, color: "#70757a" }}>🕐 เวลา {fmtTime(b.startAt)} – {fmtTime(b.endAt)} น.</div>
                         <div style={{ fontSize: 12, color: "#70757a" }}>👤 ผู้จอง {b.displayName || b.lineUserId}</div>
+                        {b.email && <div style={{ fontSize: 12, color: "#70757a" }}>📧 อีเมล {b.email}</div>}
+                        {b.department && <div style={{ fontSize: 12, color: "#70757a" }}>🏢 ฝ่าย/แผนก {b.department}</div>}
                         <div style={{ fontSize: 11, color: "#aaa", marginTop: 2 }}>📋 หมายเลขการจอง: {b.bookingNo}</div>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
@@ -1387,6 +1391,8 @@ function BookingsPanel() {
               <div style={{ fontSize: 12, color: "#70757a", marginBottom: 3 }}>📍 สถานที่ : {b.room?.name}</div>
               <div style={{ fontSize: 12, color: "#70757a", marginBottom: 3 }}>🕐 เวลา {fmtTime(b.startAt)} – {fmtTime(b.endAt)} น.</div>
               <div style={{ fontSize: 12, color: "#70757a", marginBottom: 3 }}>👤 ผู้จอง {b.displayName || b.lineUserId}</div>
+              {b.email && <div style={{ fontSize: 12, color: "#70757a", marginBottom: 3 }}>📧 อีเมล {b.email}</div>}
+              {b.department && <div style={{ fontSize: 12, color: "#70757a", marginBottom: 3 }}>🏢 ฝ่าย/แผนก {b.department}</div>}
               <div style={{ fontSize: 11, color: "#aaa", marginBottom: 10 }}>📋 หมายเลขการจอง: {b.bookingNo}</div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ background: st.bg, color: st.color, border: `1px solid ${st.color}`,
