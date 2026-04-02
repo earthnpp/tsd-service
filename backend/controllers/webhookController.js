@@ -40,6 +40,25 @@ function releaseLock(userId) {
   userLocks.delete(userId);
 }
 
+// Per-user action dedup — กัน user กดปุ่มซ้ำ
+const actionDedup = new Map();
+function isActionDuplicate(userId, actionKey, windowMs) {
+  const key = `${userId}:${actionKey}`;
+  if (actionDedup.has(key)) return true;
+  actionDedup.set(key, true);
+  setTimeout(() => actionDedup.delete(key), windowMs);
+  return false;
+}
+
+// window สำหรับแต่ละ action (ms)
+const ACTION_WINDOWS = {
+  faq_resolved:    60 * 60 * 1000,  // 1 ชม. — กดยืนยันแก้ได้ครั้งเดียว
+  submit_rating:   24 * 60 * 60 * 1000, // 24 ชม. — ให้คะแนนครั้งเดียว
+  confirm_booking: 30 * 1000,        // 30 วิ — กัน double submit
+  submit_no_image: 30 * 1000,
+  default:          5 * 1000,        // 5 วิ — ปุ่มทั่วไป
+};
+
 
 const client = new line.messagingApi.MessagingApiClient({
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
@@ -193,6 +212,12 @@ async function onPostback(event, userId) {
   const replyToken = event.replyToken;
   const params = new URLSearchParams(event.postback.data);
   const action = params.get("action");
+
+  // ── Action dedup ───────────────────────────────────────────
+  // สร้าง key จาก action + params สำคัญ (เช่น id, ticketId)
+  const dedupKey = `${action}:${params.get("id") || params.get("ticketId") || params.get("rating") || ""}`;
+  const windowMs = ACTION_WINDOWS[action] ?? ACTION_WINDOWS.default;
+  if (isActionDuplicate(userId, dedupKey, windowMs)) return;
 
   // ── Ticket Actions ─────────────────────────────────────────
 
