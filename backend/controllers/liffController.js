@@ -65,10 +65,7 @@ async function createTicket(req, res) {
     // Push confirmation to user in LINE
     client.pushMessage({
       to: userId,
-      messages: [
-        { type: "text", text: `✅ แจ้งเรื่องเรียบร้อยครับ\nหมายเลขรับบริการ: ${ticket.ticketNo}` },
-        ticketConfirm(ticket),
-      ],
+      messages: [ticketConfirm(ticket)],
     }).catch(() => {});
 
     res.json({ success: true, ticketNo: ticket.ticketNo });
