@@ -27,7 +27,11 @@ services:
     build: ./backend
     container_name: helpdesk-backend
     restart: unless-stopped
-    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      LINE_CHANNEL_ACCESS_TOKEN: ${LINE_CHANNEL_ACCESS_TOKEN}
+      LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET}
+      ADMIN_SECRET: ${ADMIN_SECRET}
     ports:
       - "3001:3001"
     depends_on:
