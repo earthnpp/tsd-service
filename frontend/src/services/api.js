@@ -66,6 +66,9 @@ export const api = {
     return request(`/bookings?${q}`);
   },
   getRooms: () => request("/rooms"),
+  createRoom: (name) => request("/rooms", { method: "POST", body: JSON.stringify({ name }) }),
+  updateRoom: (id, data) => request(`/rooms/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteRoom: (id) => request(`/rooms/${id}`, { method: "DELETE" }),
   cancelBooking: (id) => request(`/bookings/${id}/cancel`, { method: "PATCH" }),
   updateRoomCalendar: (id, calendarId) => request(`/rooms/${id}/calendar`, { method: "PATCH", body: JSON.stringify({ calendarId }) }),
 };

@@ -83,6 +83,13 @@ async function getRooms(req, res) {
   res.json(rooms);
 }
 
+async function getRoomSlots(req, res) {
+  const { roomId, date } = req.query;
+  if (!roomId || !date) return res.json([]);
+  const slots = await bookingService.getRoomSlots(roomId, date);
+  res.json(slots);
+}
+
 async function getBookingsCalendar(req, res) {
   const { PrismaClient } = require("@prisma/client");
   const prisma = new PrismaClient();
@@ -145,4 +152,4 @@ async function createBooking(req, res) {
   }
 }
 
-module.exports = { getCategories, createTicket, getRooms, createBooking, getBookingsCalendar };
+module.exports = { getCategories, createTicket, getRooms, getRoomSlots, createBooking, getBookingsCalendar };

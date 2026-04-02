@@ -296,6 +296,35 @@ async function updateRoomCalendar(req, res) {
   }
 }
 
+async function createRoom(req, res) {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: "กรุณาระบุชื่อห้อง" });
+    const room = await bookingService.createRoom(name.trim());
+    res.json(room);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+}
+
+async function updateRoom(req, res) {
+  try {
+    const room = await bookingService.updateRoom(req.params.id, req.body);
+    res.json(room);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+}
+
+async function deleteRoom(req, res) {
+  try {
+    await bookingService.deleteRoom(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+}
+
 // ── Helper ────────────────────────────────────────────────
 
 async function notifyUser(lineUserId, messages) {
@@ -314,4 +343,5 @@ module.exports = {
   listFaqs, createFaq, updateFaq, deleteFaq,
   listAssignees, createAssignee, updateAssignee, deleteAssignee,
   listBookings, listRooms, cancelBookingAdmin, updateRoomCalendar,
+  createRoom, updateRoom, deleteRoom,
 };

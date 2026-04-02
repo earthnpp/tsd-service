@@ -48,6 +48,9 @@ router.delete("/faq/:id", adminController.deleteFaq);
 // Bookings
 router.get("/bookings",                       adminController.listBookings);
 router.get("/rooms",                          adminController.listRooms);
+router.post("/rooms",                         adminController.createRoom);
+router.put("/rooms/:id",                      adminController.updateRoom);
+router.delete("/rooms/:id",                   adminController.deleteRoom);
 router.patch("/bookings/:id/cancel",          adminController.cancelBookingAdmin);
 router.patch("/rooms/:id/calendar",           adminController.updateRoomCalendar);
 

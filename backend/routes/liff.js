@@ -15,6 +15,7 @@ const upload = multer({ storage, limits: { fileSize: 15 * 1024 * 1024 } });
 
 router.get("/categories", liffController.getCategories);
 router.get("/rooms", liffController.getRooms);
+router.get("/room-slots", liffController.getRoomSlots);
 router.get("/bookings-calendar", liffController.getBookingsCalendar);
 router.post("/booking", liffController.createBooking);
 router.post("/ticket", (req, res, next) => {

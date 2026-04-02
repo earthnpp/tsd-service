@@ -139,12 +139,30 @@ async function updateRoomCalendar(roomId, calendarId) {
   });
 }
 
+async function createRoom(name) {
+  return prisma.room.create({ data: { name } });
+}
+
+async function updateRoom(roomId, data) {
+  return prisma.room.update({ where: { id: Number(roomId) }, data });
+}
+
+async function deleteRoom(roomId) {
+  return prisma.room.delete({ where: { id: Number(roomId) } });
+}
+
+async function getRoomSlots(roomId, date) {
+  const start = new Date(`${date}T00:00:00+07:00`);
+  const end   = new Date(`${date}T23:59:59+07:00`);
+  return prisma.roomBooking.findMany({
+    where: { roomId: Number(roomId), status: "confirmed", startAt: { gte: start, lte: end } },
+    orderBy: { startAt: "asc" },
+    select: { startAt: true, endAt: true, title: true, displayName: true },
+  });
+}
+
 module.exports = {
-  getRooms,
-  createBooking,
-  cancelBooking,
-  getBookingsByUser,
-  getAllBookings,
-  adminCancelBooking,
-  updateRoomCalendar,
+  getRooms, createRoom, updateRoom, deleteRoom, getRoomSlots,
+  createBooking, cancelBooking, getBookingsByUser,
+  getAllBookings, adminCancelBooking, updateRoomCalendar,
 };

@@ -708,8 +708,11 @@ function Dashboard({ stats, dateFrom, dateTo, setDateFrom, setDateTo }) {
 // ── Settings Panel ────────────────────────────────────────
 function SettingsPanel({ categories, onReload, assignees, onReloadAssignees }) {
   const [faqs, setFaqs] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const loadFaqs = useCallback(async () => { try { setFaqs(await api.getFaqs()); } catch {} }, []);
+  const loadRooms = useCallback(async () => { try { setRooms(await api.getRooms()); } catch {} }, []);
   useEffect(() => { loadFaqs(); }, [loadFaqs]);
+  useEffect(() => { loadRooms(); }, [loadRooms]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -717,6 +720,91 @@ function SettingsPanel({ categories, onReload, assignees, onReloadAssignees }) {
       <div className="two-col">
         <CategorySettings categories={categories} onReload={onReload} />
         <FaqSettings faqs={faqs} onReload={loadFaqs} />
+      </div>
+      <RoomSettings rooms={rooms} onReload={loadRooms} />
+    </div>
+  );
+}
+
+function RoomSettings({ rooms, onReload }) {
+  const [newName, setNewName] = useState("");
+  const [editId, setEditId] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [editCalId, setEditCalId] = useState(null);
+  const [calInput, setCalInput] = useState("");
+
+  async function addRoom() {
+    if (!newName.trim()) return;
+    await api.createRoom(newName.trim());
+    setNewName(""); onReload();
+  }
+  async function saveEdit(id) {
+    if (!editName.trim()) return;
+    await api.updateRoom(id, { name: editName.trim() });
+    setEditId(null); onReload();
+  }
+  async function saveCalendar(id) {
+    await api.updateRoomCalendar(id, calInput.trim() || null);
+    setEditCalId(null); onReload();
+  }
+  async function removeRoom(id) {
+    if (!confirm("ลบห้องนี้? การจองทั้งหมดของห้องนี้จะถูกลบด้วย")) return;
+    await api.deleteRoom(id); onReload();
+  }
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px #0001" }}>
+      <strong style={{ fontSize: 15, display: "block", marginBottom: 14 }}>🏢 จัดการห้องประชุม</strong>
+      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+        <input value={newName} onChange={e => setNewName(e.target.value)}
+          placeholder="ชื่อห้องใหม่" style={{ ...inputStyle, flex: 1 }}
+          onKeyDown={e => e.key === "Enter" && addRoom()} />
+        <button onClick={addRoom} style={btnStyle("#1a1a2e")}>+ เพิ่ม</button>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {rooms.map(room => (
+          <div key={room.id} style={{ border: "1px solid #eee", borderRadius: 10, padding: "12px 14px" }}>
+            {/* Room name row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+              {editId === room.id ? (
+                <>
+                  <input value={editName} onChange={e => setEditName(e.target.value)}
+                    style={{ ...inputStyle, flex: 1, fontSize: 13 }} autoFocus />
+                  <button onClick={() => saveEdit(room.id)} style={btnStyle("#2a9d8f")}>บันทึก</button>
+                  <button onClick={() => setEditId(null)} style={btnStyle("#999")}>ยกเลิก</button>
+                </>
+              ) : (
+                <>
+                  <span style={{ flex: 1, fontWeight: 600, fontSize: 14 }}>🏢 {room.name}</span>
+                  <button onClick={() => { setEditId(room.id); setEditName(room.name); }} style={smallBtn("#457b9d")}>✏️</button>
+                  <button onClick={() => removeRoom(room.id)} style={smallBtn("#e63946")}>🗑️</button>
+                </>
+              )}
+            </div>
+            {/* Calendar ID row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 11, color: "#888", minWidth: 80 }}>📆 Calendar ID:</span>
+              {editCalId === room.id ? (
+                <>
+                  <input value={calInput} onChange={e => setCalInput(e.target.value)}
+                    placeholder="xxx@group.calendar.google.com"
+                    style={{ ...inputStyle, flex: 1, fontSize: 12 }} />
+                  <button onClick={() => saveCalendar(room.id)} style={btnStyle("#2a9d8f")}>บันทึก</button>
+                  <button onClick={() => setEditCalId(null)} style={btnStyle("#999")}>ยกเลิก</button>
+                </>
+              ) : (
+                <>
+                  <span style={{ flex: 1, fontSize: 12, color: room.calendarId ? "#333" : "#bbb" }}>
+                    {room.calendarId || "(ยังไม่ตั้งค่า)"}
+                  </span>
+                  <button onClick={() => { setEditCalId(room.id); setCalInput(room.calendarId || ""); }}
+                    style={smallBtn("#f4a261")}>✏️ Calendar</button>
+                </>
+              )}
+            </div>
+          </div>
+        ))}
+        {rooms.length === 0 && <p style={{ color: "#aaa", fontSize: 13 }}>ยังไม่มีห้องประชุม</p>}
       </div>
     </div>
   );
