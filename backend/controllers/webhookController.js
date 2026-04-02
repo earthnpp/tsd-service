@@ -197,9 +197,41 @@ async function onPostback(event, userId) {
   // ── Ticket Actions ─────────────────────────────────────────
 
   if (action === "report") {
-    await sessionService.setState(userId, "report_category", {});
-    const categories = await categoryService.getActiveCategories();
-    return client.replyMessage({ replyToken, messages: [categoryMenu(categories)] });
+    const liffUrl = `https://liff.line.me/${process.env.LIFF_ID}`;
+    return client.replyMessage({
+      replyToken,
+      messages: [{
+        type: "flex",
+        altText: "🛠️ แจ้งปัญหา IT",
+        contents: {
+          type: "bubble",
+          header: {
+            type: "box", layout: "vertical", backgroundColor: "#1a1a2e", paddingAll: "16px",
+            contents: [
+              { type: "text", text: "🛠️ แจ้งปัญหา IT", weight: "bold", size: "lg", color: "#ffffff" },
+              { type: "text", text: "กรอกแบบฟอร์มเพื่อแจ้งปัญหา", size: "sm", color: "#aaaacc", margin: "xs" },
+            ],
+          },
+          body: {
+            type: "box", layout: "vertical", paddingAll: "16px",
+            contents: [
+              { type: "text", text: "📋 ระบุหมวดหมู่ปัญหา", size: "sm", color: "#555" },
+              { type: "text", text: "🏷️ หมายเลขครุภัณฑ์ (Asset Tag)", size: "sm", color: "#555", margin: "sm" },
+              { type: "text", text: "📝 อาการเสีย / รายละเอียด", size: "sm", color: "#555", margin: "sm" },
+              { type: "text", text: "📷 แนบรูปภาพ (ถ้ามี)", size: "sm", color: "#555", margin: "sm" },
+            ],
+          },
+          footer: {
+            type: "box", layout: "vertical", paddingAll: "12px",
+            contents: [{
+              type: "button",
+              action: { type: "uri", label: "📝 กรอกแบบฟอร์มแจ้งปัญหา", uri: liffUrl },
+              style: "primary", color: "#e63946",
+            }],
+          },
+        },
+      }],
+    });
   }
 
   if (action === "status") {

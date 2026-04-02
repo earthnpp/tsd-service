@@ -4,6 +4,7 @@ const cors = require("cors");
 
 const webhookRouter = require("./routes/webhook");
 const apiRouter = require("./routes/api");
+const liffRouter = require("./routes/liff");
 
 const app = express();
 
@@ -13,6 +14,12 @@ app.use("/webhook", express.raw({ type: "application/json" }), webhookRouter);
 // REST API for admin dashboard
 app.use(express.json());
 app.use(cors());
+
+// Serve uploaded images (from LIFF form)
+app.use("/uploads", require("express").static("/app/uploads"));
+
+// LIFF public endpoints (no admin auth)
+app.use("/api/liff", liffRouter);
 
 // LINE image proxy — ต้องอยู่ก่อน apiRouter เพราะ apiRouter ต้อง auth
 app.get("/api/line-image/:messageId", async (req, res) => {
