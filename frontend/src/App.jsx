@@ -630,14 +630,17 @@ function Dashboard({ stats, dateFrom, dateTo, setDateFrom, setDateTo }) {
       {/* Date Filter */}
       <div style={{ background: "#fff", borderRadius: 12, padding: "14px 20px", marginBottom: 20, boxShadow: "0 1px 4px #0001", display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: "#555", marginRight: 4 }}>ช่วงเวลา:</span>
-        {presets.map(p => (
-          <button key={p.key} onClick={() => applyPreset(p.key)}
-            style={{ padding: "5px 12px", borderRadius: 20, border: "1px solid #ddd", fontSize: 13, cursor: "pointer",
-              background: (p.key === "all" && !dateFrom) || (p.key !== "all" && false) ? "#1a1a2e" : "#f5f6ff",
-              color: "#333", fontWeight: 500 }}>
-            {p.label}
-          </button>
-        ))}
+        {presets.map(p => {
+          const active = p.key === "all" && !dateFrom && !dateTo;
+          return (
+            <button key={p.key} onClick={() => applyPreset(p.key)}
+              style={{ padding: "5px 12px", borderRadius: 20, border: `1px solid ${active ? "#1a1a2e" : "#ddd"}`, fontSize: 13, cursor: "pointer",
+                background: active ? "#1a1a2e" : "#f5f6ff",
+                color: active ? "#fff" : "#333", fontWeight: 500 }}>
+              {p.label}
+            </button>
+          );
+        })}
         <span style={{ fontSize: 13, color: "#aaa" }}>หรือกำหนดเอง:</span>
         <input type="date" value={dateFrom} max={today} onChange={e => setDateFrom(e.target.value)}
           style={{ padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 }} />
