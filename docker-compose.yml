@@ -53,6 +53,7 @@ services:
       - backend
     networks:
       - helpdesk-net
+      - management_xtech_net
 
 volumes:
   db_data:
@@ -60,3 +61,5 @@ volumes:
 networks:
   helpdesk-net:
     driver: bridge
+  management_xtech_net:
+    external: true
