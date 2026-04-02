@@ -3,6 +3,28 @@ import liff from "@line/liff";
 
 const LIFF_ID = import.meta.env.VITE_LIFF_ID;
 
+function compressImage(file, maxWidth = 1920, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > maxWidth) {
+        height = Math.round(height * maxWidth / width);
+        width = maxWidth;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("compress failed")), "image/jpeg", quality);
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
 export default function LiffApp() {
   const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -32,12 +54,17 @@ export default function LiffApp() {
 
   const subcategories = categories.find(c => c.name === form.category)?.subcategories || [];
 
-  function handleImage(e) {
+  async function handleImage(e) {
     const file = e.target.files[0];
     if (!file) return;
-    setImage(file);
-    const url = URL.createObjectURL(file);
-    setImagePreview(url);
+    try {
+      const compressed = await compressImage(file);
+      setImage(compressed);
+      setImagePreview(URL.createObjectURL(compressed));
+    } catch {
+      setImage(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
   }
 
   function handleRemoveImage() {
