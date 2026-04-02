@@ -393,12 +393,19 @@ async function onPostback(event, userId) {
             ],
           },
           footer: {
-            type: "box", layout: "vertical", paddingAll: "12px",
-            contents: [{
-              type: "button",
-              action: { type: "uri", label: "📅 กรอกแบบฟอร์มจองห้อง", uri: liffUrl },
-              style: "primary", color: "#1a1a2e",
-            }],
+            type: "box", layout: "horizontal", paddingAll: "12px", spacing: "sm",
+            contents: [
+              {
+                type: "button", flex: 2,
+                action: { type: "uri", label: "📅 กรอกแบบฟอร์มจองห้อง", uri: liffUrl },
+                style: "primary", color: "#1a1a2e",
+              },
+              {
+                type: "button", flex: 1,
+                action: { type: "uri", label: "🗓️ ดูปฏิทิน", uri: `https://liff.line.me/${process.env.LIFF_ID}/calendar` },
+                style: "secondary",
+              },
+            ],
           },
         },
       }],
