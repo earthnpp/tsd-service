@@ -396,7 +396,7 @@ async function onPostback(event, userId) {
             type: "box", layout: "horizontal", paddingAll: "12px", spacing: "sm",
             contents: [
               {
-                type: "button", flex: 2,
+                type: "button", flex: 1,
                 action: { type: "uri", label: "📅 จองห้อง", uri: liffUrl },
                 style: "primary", color: "#1a1a2e",
               },

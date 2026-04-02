@@ -134,15 +134,16 @@ export default function LiffBooking() {
       </div>
 
       <div style={s.body}>
-        {/* Title — like Google Cal "Add title" */}
-        <input ref={titleRef} value={title} onChange={e => setTitle(e.target.value)}
-          placeholder="ชื่อการประชุม"
-          style={s.titleInput} />
-
         {/* ข้อมูลผู้จอง */}
         <div style={{ background: "#fff", borderRadius: 12, padding: "14px 16px", marginBottom: 12, boxShadow: "0 1px 4px #0001" }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: "#888", marginBottom: 10 }}>ข้อมูลผู้จอง</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div>
+              <div style={{ fontSize: 12, color: "#555", marginBottom: 4 }}>ชื่อการประชุม <span style={{ color: "#e63946" }}>*</span></div>
+              <input ref={titleRef} value={title} onChange={e => setTitle(e.target.value)}
+                placeholder="ชื่อการประชุม"
+                style={{ width: "100%", padding: "9px 12px", border: "1px solid #ddd", borderRadius: 8, fontSize: 14, boxSizing: "border-box", fontFamily: "inherit" }} />
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#888", marginTop: 2 }}>ข้อมูลผู้จอง</div>
             <div>
               <div style={{ fontSize: 12, color: "#555", marginBottom: 4 }}>ชื่อ-นามสกุล <span style={{ color: "#e63946" }}>*</span></div>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="ชื่อ-นามสกุล"
