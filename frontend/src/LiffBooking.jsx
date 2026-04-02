@@ -19,6 +19,9 @@ export default function LiffBooking() {
   const [profile, setProfile] = useState(null);
   const [rooms, setRooms] = useState([]);
   const [title, setTitle] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [department, setDepartment] = useState("");
   const [date, setDate] = useState(today);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -39,6 +42,7 @@ export default function LiffBooking() {
       if (!liff.isLoggedIn()) { liff.login(); return; }
       const p = await liff.getProfile();
       setProfile(p);
+      setName(p.displayName || "");
       const res = await fetch("/api/liff/rooms");
       const data = await res.json();
       setRooms(data);
@@ -82,6 +86,9 @@ export default function LiffBooking() {
 
   async function handleSubmit() {
     if (!title.trim()) { setError("กรุณาใส่ชื่อการประชุม"); titleRef.current?.focus(); return; }
+    if (!name.trim()) { setError("กรุณาใส่ชื่อ-นามสกุล"); return; }
+    if (!email.trim()) { setError("กรุณาใส่อีเมล"); return; }
+    if (!department.trim()) { setError("กรุณาใส่ฝ่าย/แผนก"); return; }
     if (!date || !startTime || !endTime) { setError("กรุณาเลือกวันและเวลา"); return; }
     if (!roomId) { setError("กรุณาเลือกห้อง"); return; }
     setSubmitting(true); setError("");
@@ -90,7 +97,7 @@ export default function LiffBooking() {
       const res = await fetch("/api/liff/booking", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-line-access-token": token },
-        body: JSON.stringify({ roomId, date, startTime, endTime, title: title.trim() }),
+        body: JSON.stringify({ roomId, date, startTime, endTime, title: title.trim(), name: name.trim(), email: email.trim(), department: department.trim() }),
       });
       if (!res.ok) {
         const b = await res.json().catch(() => ({}));
@@ -131,6 +138,29 @@ export default function LiffBooking() {
         <input ref={titleRef} value={title} onChange={e => setTitle(e.target.value)}
           placeholder="ชื่อการประชุม"
           style={s.titleInput} />
+
+        {/* ข้อมูลผู้จอง */}
+        <div style={{ background: "#fff", borderRadius: 12, padding: "14px 16px", marginBottom: 12, boxShadow: "0 1px 4px #0001" }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#888", marginBottom: 10 }}>ข้อมูลผู้จอง</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div>
+              <div style={{ fontSize: 12, color: "#555", marginBottom: 4 }}>ชื่อ-นามสกุล <span style={{ color: "#e63946" }}>*</span></div>
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="ชื่อ-นามสกุล"
+                style={{ width: "100%", padding: "9px 12px", border: "1px solid #ddd", borderRadius: 8, fontSize: 14, boxSizing: "border-box", fontFamily: "inherit" }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 12, color: "#555", marginBottom: 4 }}>อีเมล <span style={{ color: "#e63946" }}>*</span></div>
+              <input value={email} onChange={e => setEmail(e.target.value)} placeholder="example@thestandard.co"
+                type="email" inputMode="email"
+                style={{ width: "100%", padding: "9px 12px", border: "1px solid #ddd", borderRadius: 8, fontSize: 14, boxSizing: "border-box", fontFamily: "inherit" }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 12, color: "#555", marginBottom: 4 }}>ฝ่าย / แผนก <span style={{ color: "#e63946" }}>*</span></div>
+              <input value={department} onChange={e => setDepartment(e.target.value)} placeholder="เช่น Marketing, Finance"
+                style={{ width: "100%", padding: "9px 12px", border: "1px solid #ddd", borderRadius: 8, fontSize: 14, boxSizing: "border-box", fontFamily: "inherit" }} />
+            </div>
+          </div>
+        </div>
 
         <div style={s.card}>
           {/* Date row */}

@@ -26,6 +26,8 @@ model Ticket {
   rating          Int?
   workStartAt     DateTime?
   completedAt     DateTime?
+  email           String?
+  department      String?
   hasCost         Boolean   @default(false)
   costDescription String?   @db.Text
   costAmount      Decimal?  @db.Decimal(10, 2)
@@ -110,6 +112,8 @@ model RoomBooking {
   title         String
   startAt       DateTime
   endAt         DateTime
+  email         String?
+  department    String?
   status        String   @default("confirmed")
   googleEventId String?
   createdAt     DateTime @default(now())

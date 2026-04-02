@@ -32,7 +32,7 @@ export default function LiffApp() {
   const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState(null);
   const [categories, setCategories] = useState([]);
-  const [form, setForm] = useState({ name: "", category: "", subcategory: "", assetTag: "", description: "" });
+  const [form, setForm] = useState({ name: "", email: "", department: "", category: "", subcategory: "", assetTag: "", description: "" });
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageInputKey, setImageInputKey] = useState(0);
@@ -78,7 +78,7 @@ export default function LiffApp() {
   }
 
   async function handleSubmit() {
-    if (!form.category || !form.subcategory || !form.description.trim()) {
+    if (!form.name.trim() || !form.email.trim() || !form.department.trim() || !form.category || !form.subcategory || !form.description.trim()) {
       setError("กรุณากรอกข้อมูลที่มี * ให้ครบถ้วน"); return;
     }
     setSubmitting(true); setError("");
@@ -86,6 +86,8 @@ export default function LiffApp() {
       const token = liff.getAccessToken();
       const fd = new FormData();
       fd.append("name", form.name);
+      fd.append("email", form.email);
+      fd.append("department", form.department);
       fd.append("category", form.category);
       fd.append("subcategory", form.subcategory);
       fd.append("assetTag", form.assetTag);
@@ -142,9 +144,21 @@ export default function LiffApp() {
       <div style={s.body}>
 
         {/* ชื่อผู้แจ้ง */}
-        <Field label="ชื่อผู้แจ้ง">
+        <Field label="ชื่อ-นามสกุล" required>
           <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-            style={s.input} placeholder="ชื่อของคุณ" />
+            style={s.input} placeholder="ชื่อ-นามสกุล" />
+        </Field>
+
+        {/* อีเมล */}
+        <Field label="อีเมล" required>
+          <input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
+            style={s.input} placeholder="example@thestandard.co" type="email" inputMode="email" />
+        </Field>
+
+        {/* ฝ่าย/แผนก */}
+        <Field label="ฝ่าย / แผนก" required>
+          <input value={form.department} onChange={e => setForm({ ...form, department: e.target.value })}
+            style={s.input} placeholder="เช่น Marketing, Finance" />
         </Field>
 
         {/* หมวดหมู่ */}

@@ -28,13 +28,13 @@ async function checkOverlap(roomId, startAt, endAt, excludeId = null) {
   return count > 0;
 }
 
-async function createBooking({ roomId, lineUserId, displayName, title, startAt, endAt }) {
+async function createBooking({ roomId, lineUserId, displayName, email, department, title, startAt, endAt }) {
   const overlap = await checkOverlap(roomId, startAt, endAt);
   if (overlap) throw new Error("ห้องนี้ถูกจองในช่วงเวลาดังกล่าวแล้วครับ");
 
   const bookingNo = await nextBookingNo();
   const booking = await prisma.roomBooking.create({
-    data: { bookingNo, roomId, lineUserId, displayName, title, startAt, endAt },
+    data: { bookingNo, roomId, lineUserId, displayName, email, department, title, startAt, endAt },
     include: { room: true },
   });
 

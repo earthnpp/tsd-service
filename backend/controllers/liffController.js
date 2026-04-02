@@ -39,9 +39,9 @@ async function createTicket(req, res) {
     await verifyLineToken(accessToken);
     const { userId, displayName } = await getLineUserId(accessToken);
 
-    const { name, category, subcategory, assetTag, description } = req.body;
-    if (!category || !subcategory || !description?.trim()) {
-      return res.status(400).json({ error: "กรุณากรอกข้อมูลให้ครบ" });
+    const { name, email, department, category, subcategory, assetTag, description } = req.body;
+    if (!name?.trim() || !email?.trim() || !department?.trim() || !category || !subcategory || !description?.trim()) {
+      return res.status(400).json({ error: "กรุณากรอกข้อมูลที่จำเป็นให้ครบ" });
     }
 
     const lines = description.trim().split("\n").map(l => l.trim()).filter(Boolean);
@@ -56,6 +56,8 @@ async function createTicket(req, res) {
     const ticket = await ticketService.createTicket({
       lineUserId: userId,
       displayName: name || displayName,
+      email: email.trim(),
+      department: department.trim(),
       title,
       category,
       subcategory,
@@ -120,9 +122,9 @@ async function createBooking(req, res) {
     await verifyLineToken(accessToken);
     const { userId, displayName } = await getLineUserId(accessToken);
 
-    const { roomId, date, startTime, endTime, title } = req.body;
-    if (!roomId || !date || !startTime || !endTime || !title?.trim()) {
-      return res.status(400).json({ error: "กรุณากรอกข้อมูลให้ครบ" });
+    const { roomId, date, startTime, endTime, title, name, email, department } = req.body;
+    if (!roomId || !date || !startTime || !endTime || !title?.trim() || !name?.trim() || !email?.trim() || !department?.trim()) {
+      return res.status(400).json({ error: "กรุณากรอกข้อมูลที่จำเป็นให้ครบ" });
     }
 
     const startAt = new Date(`${date}T${startTime}:00+07:00`);
@@ -134,7 +136,9 @@ async function createBooking(req, res) {
     const booking = await bookingService.createBooking({
       roomId: Number(roomId),
       lineUserId: userId,
-      displayName,
+      displayName: name.trim() || displayName,
+      email: email.trim(),
+      department: department.trim(),
       title: title.trim(),
       startAt,
       endAt,
