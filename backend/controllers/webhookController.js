@@ -215,10 +215,10 @@ async function onPostback(event, userId) {
           body: {
             type: "box", layout: "vertical", paddingAll: "16px",
             contents: [
-              { type: "text", text: "📋 ระบุหมวดหมู่ปัญหา", size: "sm", color: "#555" },
-              { type: "text", text: "🏷️ หมายเลขครุภัณฑ์ (Asset Tag)", size: "sm", color: "#555", margin: "sm" },
-              { type: "text", text: "📝 อาการเสีย / รายละเอียด", size: "sm", color: "#555", margin: "sm" },
-              { type: "text", text: "📷 แนบรูปภาพ (ถ้ามี)", size: "sm", color: "#555", margin: "sm" },
+              { type: "text", text: "📋 ระบุหมวดหมู่ปัญหา", size: "sm", color: "#555555" },
+              { type: "text", text: "🏷️ หมายเลขครุภัณฑ์ (Asset Tag)", size: "sm", color: "#555555", margin: "sm" },
+              { type: "text", text: "📝 อาการเสีย / รายละเอียด", size: "sm", color: "#555555", margin: "sm" },
+              { type: "text", text: "📷 แนบรูปภาพ (ถ้ามี)", size: "sm", color: "#555555", margin: "sm" },
             ],
           },
           footer: {
