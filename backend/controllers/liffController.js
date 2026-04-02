@@ -66,7 +66,7 @@ async function createTicket(req, res) {
     client.pushMessage({
       to: userId,
       messages: [
-        { type: "text", text: "✅ แจ้งรับบริการเรียบร้อยครับ" },
+        { type: "text", text: `✅ แจ้งเรื่องเรียบร้อยครับ\nหมายเลขรับบริการ: ${ticket.ticketNo}` },
         ticketConfirm(ticket),
       ],
     }).catch(() => {});
