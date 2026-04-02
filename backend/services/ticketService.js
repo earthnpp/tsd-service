@@ -9,7 +9,7 @@ async function generateTicketNo() {
   return `HLP-${String(counter.count).padStart(4, "0")}`;
 }
 
-const DAILY_LIMIT = 3;
+const DAILY_LIMIT = parseInt(process.env.DAILY_TICKET_LIMIT || "3");
 
 async function getDailyTicketCount(lineUserId) {
   const start = new Date();
