@@ -119,6 +119,7 @@ async function onText(event, userId) {
     "จองห้อง": "action=book_room",
     "รายการจอง": "action=my_bookings",
     "ติดต่อ it": "action=contact_it",
+    "ปฏิทิน": "action=room_calendar",
   };
   const mapped = richMenuMap[text.toLowerCase()];
   if (mapped) {
@@ -536,6 +537,35 @@ async function onPostback(event, userId) {
         messages: [{ type: "text", text: `❌ ${err.message}` }],
       });
     }
+  }
+
+  if (action === "room_calendar") {
+    const liffUrl = `https://liff.line.me/${process.env.LIFF_ID}/calendar`;
+    return client.replyMessage({
+      replyToken,
+      messages: [{
+        type: "flex",
+        altText: "📅 ปฏิทินห้องประชุม",
+        contents: {
+          type: "bubble",
+          header: {
+            type: "box", layout: "vertical", backgroundColor: "#1a1a2e", paddingAll: "16px",
+            contents: [
+              { type: "text", text: "📅 ปฏิทินห้องประชุม", weight: "bold", size: "lg", color: "#ffffff" },
+              { type: "text", text: "ดูตารางการจองและความพร้อมของห้อง", size: "sm", color: "#aaaacc", margin: "xs" },
+            ],
+          },
+          footer: {
+            type: "box", layout: "vertical", paddingAll: "12px",
+            contents: [{
+              type: "button",
+              action: { type: "uri", label: "📅 เปิดปฏิทินกลาง", uri: liffUrl },
+              style: "primary", color: "#457b9d",
+            }],
+          },
+        },
+      }],
+    });
   }
 
   if (action === "my_bookings") {

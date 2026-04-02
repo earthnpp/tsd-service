@@ -83,6 +83,28 @@ async function getRooms(req, res) {
   res.json(rooms);
 }
 
+async function getBookingsCalendar(req, res) {
+  const { PrismaClient } = require("@prisma/client");
+  const prisma = new PrismaClient();
+  const year  = parseInt(req.query.year)  || new Date().getFullYear();
+  const month = parseInt(req.query.month) || new Date().getMonth() + 1;
+  const start = new Date(year, month - 1, 1);
+  const end   = new Date(year, month, 0, 23, 59, 59, 999);
+
+  const bookings = await prisma.roomBooking.findMany({
+    where: { startAt: { gte: start, lte: end }, status: "confirmed" },
+    include: { room: true },
+    orderBy: { startAt: "asc" },
+  });
+
+  const masterCalId = process.env.MASTER_CALENDAR_ID;
+  const masterCalUrl = masterCalId
+    ? `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(masterCalId)}`
+    : null;
+
+  res.json({ bookings, masterCalUrl });
+}
+
 async function createBooking(req, res) {
   try {
     const accessToken = req.headers["x-line-access-token"];
@@ -123,4 +145,4 @@ async function createBooking(req, res) {
   }
 }
 
-module.exports = { getCategories, createTicket, getRooms, createBooking };
+module.exports = { getCategories, createTicket, getRooms, createBooking, getBookingsCalendar };
