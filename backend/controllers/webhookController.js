@@ -397,12 +397,12 @@ async function onPostback(event, userId) {
             contents: [
               {
                 type: "button", flex: 2,
-                action: { type: "uri", label: "📅 กรอกแบบฟอร์มจองห้อง", uri: liffUrl },
+                action: { type: "uri", label: "📅 จองห้องประชุม", uri: liffUrl },
                 style: "primary", color: "#1a1a2e",
               },
               {
                 type: "button", flex: 1,
-                action: { type: "uri", label: "🗓️ ดูปฏิทิน", uri: `https://liff.line.me/${process.env.LIFF_ID}/calendar` },
+                action: { type: "uri", label: "🗓️ ดูปฏิทินการจอง", uri: `https://liff.line.me/${process.env.LIFF_ID}/calendar` },
                 style: "secondary",
               },
             ],
