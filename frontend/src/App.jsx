@@ -427,6 +427,21 @@ function TicketDetail({ ticket: t, resolution, setResolution, onAssign, onClose,
           <p style={{ margin: "6px 0 0" }}>{t.description}</p>
         </div>
 
+        {/* Image attachment */}
+        {t.imageUrl && (
+          <div style={{ marginTop: 12 }}>
+            <strong style={{ fontSize: 13, color: "#555" }}>📷 รูปภาพที่แนบมา:</strong>
+            <div style={{ marginTop: 8 }}>
+              <a href={t.imageUrl} target="_blank" rel="noreferrer">
+                <img src={t.imageUrl} alt="ticket attachment"
+                  style={{ maxWidth: "100%", maxHeight: 320, borderRadius: 8, border: "1px solid #eee", cursor: "pointer" }}
+                  onError={(e) => { e.target.style.display = "none"; e.target.nextSibling.style.display = "block"; }} />
+                <span style={{ display: "none", color: "#e63946", fontSize: 13 }}>⚠️ รูปภาพหมดอายุแล้ว (LINE เก็บรูปได้ 30 วัน)</span>
+              </a>
+            </div>
+          </div>
+        )}
+
         {/* Resolution (completed) */}
         {t.status === "completed" && t.resolution && (
           <div style={{ marginTop: 12, background: "#e8f5e9", borderRadius: 8, padding: 14, fontSize: 14 }}>

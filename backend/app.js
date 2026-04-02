@@ -13,9 +13,8 @@ app.use("/webhook", express.raw({ type: "application/json" }), webhookRouter);
 // REST API for admin dashboard
 app.use(express.json());
 app.use(cors());
-app.use("/api", apiRouter);
 
-// LINE image proxy — ให้ admin ดูรูปที่ user แนบมาใน ticket
+// LINE image proxy — ต้องอยู่ก่อน apiRouter เพราะ apiRouter ต้อง auth
 app.get("/api/line-image/:messageId", async (req, res) => {
   try {
     const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
@@ -31,6 +30,8 @@ app.get("/api/line-image/:messageId", async (req, res) => {
     res.status(500).send("Error fetching image");
   }
 });
+
+app.use("/api", apiRouter);
 
 // Health check
 app.get("/health", (req, res) => res.json({ status: "ok" }));
