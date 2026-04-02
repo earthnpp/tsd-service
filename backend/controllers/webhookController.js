@@ -92,6 +92,22 @@ async function onText(event, userId) {
     return client.replyMessage({ replyToken, messages: [mainMenu(profile?.displayName)] });
   }
 
+  // ── Rich Menu Text Triggers ────────────────────────────────
+  const richMenuMap = {
+    "faq": "action=faq",
+    "แจ้งปัญหา": "action=report",
+    "ดูสถานะ": "action=status",
+    "จองห้อง": "action=book_room",
+    "รายการจอง": "action=my_bookings",
+    "ติดต่อ it": "action=contact_it",
+  };
+  const mapped = richMenuMap[text.toLowerCase()];
+  if (mapped) {
+    await sessionService.clearSession(userId);
+    const fakeEvent = { ...event, postback: { data: mapped } };
+    return onPostback(fakeEvent, userId);
+  }
+
   // ── Ticket Flow ────────────────────────────────────────────
 
   if (state === "report_describe") {
