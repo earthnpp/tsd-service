@@ -458,7 +458,7 @@ function buildFaqListMessage(faqs) {
           },
           contents: [
             { type: "text", text: `❓ ${faq.question}`, size: "sm", wrap: true, flex: 1, color: "#1a1a2e" },
-            { type: "text", text: "›", size: "xl", color: "#aaa", align: "end", gravity: "center", flex: 0 },
+            { type: "text", text: "›", size: "xl", color: "#aaaaaa", align: "end", gravity: "center", flex: 0 },
           ],
         })),
       },
