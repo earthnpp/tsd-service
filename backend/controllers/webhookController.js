@@ -110,6 +110,16 @@ async function onText(event, userId) {
 
   // ── Ticket Flow ────────────────────────────────────────────
 
+  if (state === "report_asset") {
+    const isSkip = ["ข้าม", "skip", "-"].includes(text.trim().toLowerCase());
+    const data = isSkip ? { ...tempData } : { ...tempData, assetTag: text.trim().toUpperCase() };
+    await sessionService.setState(userId, "report_describe", data);
+    return client.replyMessage({
+      replyToken,
+      messages: [{ type: "text", text: `📝 อธิบายปัญหาได้เลยครับ\n\nพิมพ์บรรทัดแรก = หัวข้อ\nบรรทัดถัดไป = รายละเอียดเพิ่มเติม\n\nหรือจะแนบรูปภาพมาก็ได้ครับ 📷` }],
+    });
+  }
+
   if (state === "report_describe") {
     // บรรทัดแรก = หัวข้อ, ที่เหลือ = รายละเอียด
     const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -122,6 +132,7 @@ async function onText(event, userId) {
       title,
       category: tempData.category,
       subcategory: tempData.subcategory,
+      assetTag: tempData.assetTag || null,
       description,
     });
     await sessionService.clearSession(userId);
@@ -202,13 +213,28 @@ async function onPostback(event, userId) {
     const subcategory = decodeURIComponent(params.get("subcategory"));
     const session = await sessionService.getSession(userId);
     const data = { ...(session.tempData || {}), subcategory };
-    await sessionService.setState(userId, "report_describe", data);
+    await sessionService.setState(userId, "report_asset", data);
     return client.replyMessage({
       replyToken,
       messages: [{
         type: "text",
-        text: `📝 อธิบายปัญหาได้เลยครับ\n\nพิมพ์บรรทัดแรก = หัวข้อ\nบรรทัดถัดไป = รายละเอียดเพิ่มเติม\n\nหรือจะแนบรูปภาพมาก็ได้ครับ 📷`,
+        text: `🏷️ กรุณาระบุหมายเลขครุภัณฑ์ (Asset Tag)\n\nหมายเลขอยู่บนสติกเกอร์ ใต้เครื่องหรือหลังเครื่อง\nเช่น TSDMB001, TSDIMAC001\n\n(ไม่ทราบ กดปุ่ม "ข้าม" ได้เลย)`,
+        quickReply: {
+          items: [{
+            type: "action",
+            action: { type: "message", label: "⏭️ ข้าม", text: "ข้าม" },
+          }],
+        },
       }],
+    });
+  }
+
+  if (action === "skip_asset") {
+    const session = await sessionService.getSession(userId);
+    await sessionService.setState(userId, "report_describe", session.tempData || {});
+    return client.replyMessage({
+      replyToken,
+      messages: [{ type: "text", text: `📝 อธิบายปัญหาได้เลยครับ\n\nพิมพ์บรรทัดแรก = หัวข้อ\nบรรทัดถัดไป = รายละเอียดเพิ่มเติม\n\nหรือจะแนบรูปภาพมาก็ได้ครับ 📷` }],
     });
   }
 
