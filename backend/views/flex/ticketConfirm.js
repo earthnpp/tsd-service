@@ -22,10 +22,10 @@ function ticketConfirm(ticket) {
         contents: [
           { type: "text", text: ticket.ticketNo, weight: "bold", size: "xl", color: "#1a1a2e" },
           { type: "separator", margin: "md" },
-          row("หัวข้อ", ticket.title),
+          row("หัวข้อ", ticket.title || "-"),
           row("หมวด", `${ticket.category} › ${ticket.subcategory}`),
-          row("สถานที่", ticket.location),
-          row("Asset", ticket.assetTag || "-"),
+          ...(ticket.location ? [row("สถานที่", ticket.location)] : []),
+          ...(ticket.assetTag ? [row("Asset", ticket.assetTag)] : []),
           row("สถานะ", `${statusIcon[ticket.status]} รอดำเนินการ`),
           { type: "separator", margin: "md" },
           {
