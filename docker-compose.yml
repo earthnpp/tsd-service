@@ -33,6 +33,7 @@ services:
       LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET}
       ADMIN_SECRET: ${ADMIN_SECRET}
       LIFF_ID: ${LIFF_ID}
+      DAILY_TICKET_LIMIT: ${DAILY_TICKET_LIMIT:-3}
     volumes:
       - uploads_data:/app/uploads
     ports:
