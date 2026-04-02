@@ -10,6 +10,7 @@ export default function LiffApp() {
   const [form, setForm] = useState({ name: "", category: "", subcategory: "", assetTag: "", description: "" });
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [imageInputKey, setImageInputKey] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
@@ -35,7 +36,15 @@ export default function LiffApp() {
     const file = e.target.files[0];
     if (!file) return;
     setImage(file);
-    setImagePreview(URL.createObjectURL(file));
+    const url = URL.createObjectURL(file);
+    setImagePreview(url);
+  }
+
+  function handleRemoveImage() {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImage(null);
+    setImagePreview(null);
+    setImageInputKey(k => k + 1); // reset file input
   }
 
   async function handleSubmit() {
@@ -148,16 +157,21 @@ export default function LiffApp() {
 
         {/* แนบรูป */}
         <Field label="แนบรูปภาพ (ถ้ามี)">
-          <label style={s.imageBox}>
-            <input type="file" accept="image/*" onChange={handleImage} style={{ display: "none" }} />
-            {imagePreview
-              ? <img src={imagePreview} alt="preview" style={{ width: "100%", maxHeight: 220, objectFit: "cover", borderRadius: 8 }} />
-              : <div style={{ color: "#aaa", textAlign: "center", padding: "24px 0", fontSize: 14 }}>
-                  <div style={{ fontSize: 36 }}>📷</div>
-                  แตะเพื่อเลือกรูปภาพ
-                </div>
-            }
-          </label>
+          {imagePreview ? (
+            <div style={{ position: "relative" }}>
+              <img src={imagePreview} alt="preview"
+                style={{ width: "100%", maxHeight: 200, objectFit: "contain", borderRadius: 8, background: "#f0f0f0", display: "block" }} />
+              <button onClick={handleRemoveImage} style={s.removeBtn} type="button">✕ ลบรูป</button>
+            </div>
+          ) : (
+            <label style={s.imageBox}>
+              <input key={imageInputKey} type="file" accept="image/*" onChange={handleImage} style={{ display: "none" }} />
+              <div style={{ color: "#aaa", textAlign: "center", padding: "24px 0", fontSize: 14 }}>
+                <div style={{ fontSize: 36 }}>📷</div>
+                แตะเพื่อเลือกหรือถ่ายรูป
+              </div>
+            </label>
+          )}
         </Field>
 
         {error && <p style={{ color: "#e63946", fontSize: 13, margin: "4px 0 0" }}>{error}</p>}
@@ -183,13 +197,14 @@ function Field({ label, required, children }) {
 }
 
 const s = {
-  page: { fontFamily: "'Noto Sans Thai', sans-serif", minHeight: "100vh", background: "#f5f6ff", paddingBottom: 32 },
+  page: { fontFamily: "'Noto Sans Thai', sans-serif", minHeight: "100vh", background: "#f5f6ff", paddingBottom: 48 },
   header: { background: "#1a1a2e", padding: "16px" },
   avatar: { width: 36, height: 36, borderRadius: "50%", border: "2px solid #aaaacc" },
   body: { padding: "16px" },
   input: { width: "100%", padding: "10px 12px", border: "1px solid #ddd", borderRadius: 8, fontSize: 14, boxSizing: "border-box", fontFamily: "inherit", background: "#fff" },
   hint: { margin: "4px 0 0", fontSize: 11, color: "#aaa" },
   imageBox: { display: "block", border: "2px dashed #ccc", borderRadius: 8, overflow: "hidden", cursor: "pointer", background: "#fafafa" },
+  removeBtn: { display: "block", width: "100%", marginTop: 6, padding: "8px", background: "#fff", border: "1px solid #e63946", borderRadius: 8, color: "#e63946", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" },
   btn: { width: "100%", padding: "15px", background: "#2a9d8f", color: "#fff", border: "none", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: "pointer", marginTop: 8 },
   center: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", fontFamily: "sans-serif", textAlign: "center", padding: 24 },
   spinner: { width: 40, height: 40, border: "4px solid #e0e0f0", borderTop: "4px solid #2a9d8f", borderRadius: "50%", animation: "spin 1s linear infinite" },
