@@ -265,6 +265,8 @@ async function onPostback(event, userId) {
   }
 
   if (action === "faq_resolved") {
+    const faqId = Number(params.get("id"));
+    if (faqId) categoryService.incrementFaqResolved(faqId).catch(() => {});
     return client.replyMessage({
       replyToken,
       messages: [{ type: "text", text: "ยินดีด้วยครับ! 🎉\nหากมีปัญหาอื่นสามารถแจ้งได้ตลอดเวลานะครับ 😊" }],

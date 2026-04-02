@@ -1,0 +1,1 @@
+ALTER TABLE `FaqItem` ADD COLUMN `resolvedCount` INT NOT NULL DEFAULT 0;

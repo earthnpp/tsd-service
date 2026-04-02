@@ -121,7 +121,8 @@ async function closeTicket(req, res) {
 }
 
 async function getStats(req, res) {
-  const stats = await ticketService.getStats();
+  const { dateFrom, dateTo } = req.query;
+  const stats = await ticketService.getStats({ dateFrom, dateTo });
   res.json(stats);
 }
 

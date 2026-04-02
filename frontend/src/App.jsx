@@ -71,11 +71,16 @@ export default function App() {
     setLoading(false);
   }, [filterStatus, filterCategory, search, page, pageSize]);
 
-  const loadStats      = useCallback(async () => { try { setStats(await api.getStats()); } catch {} }, []);
+  const [statDateFrom, setStatDateFrom] = useState("");
+  const [statDateTo,   setStatDateTo]   = useState("");
+
+  const loadStats = useCallback(async (from, to) => {
+    try { setStats(await api.getStats({ dateFrom: from, dateTo: to })); } catch {}
+  }, []);
   const loadCategories = useCallback(async () => { try { setCategories(await api.getCategories()); } catch {} }, []);
 
   useEffect(() => { loadTickets(); }, [loadTickets]);
-  useEffect(() => { if (tab === "dashboard") loadStats(); }, [tab, loadStats]);
+  useEffect(() => { if (tab === "dashboard") loadStats(statDateFrom, statDateTo); }, [tab, loadStats, statDateFrom, statDateTo]);
   useEffect(() => { loadCategories(); }, [loadCategories]);
 
   // Reset page when filters change
@@ -154,7 +159,7 @@ export default function App() {
             onRefresh={async () => { const t = await api.getTicket(selectedTicket.id); setSelectedTicket(t); }} />
         )}
         {tab === "bookings"  && <BookingsPanel />}
-        {tab === "dashboard" && <Dashboard stats={stats} />}
+        {tab === "dashboard" && <Dashboard stats={stats} dateFrom={statDateFrom} dateTo={statDateTo} setDateFrom={setStatDateFrom} setDateTo={setStatDateTo} />}
         {tab === "settings"  && <SettingsPanel categories={categories} onReload={loadCategories} assignees={assignees} onReloadAssignees={loadAssignees} />}
         {tab === "export"    && <ExportPanel total={total} onExport={exportCSV} />}
       </div>
@@ -583,7 +588,34 @@ function TicketDetail({ ticket: t, resolution, setResolution, onAssign, onClose,
 }
 
 // ── Dashboard ─────────────────────────────────────────────
-function Dashboard({ stats }) {
+function Dashboard({ stats, dateFrom, dateTo, setDateFrom, setDateTo }) {
+  const today = new Date().toISOString().slice(0, 10);
+
+  function applyPreset(preset) {
+    const now = new Date();
+    if (preset === "today") {
+      setDateFrom(today); setDateTo(today);
+    } else if (preset === "week") {
+      const d = new Date(now); d.setDate(d.getDate() - 6);
+      setDateFrom(d.toISOString().slice(0, 10)); setDateTo(today);
+    } else if (preset === "month") {
+      setDateFrom(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`);
+      setDateTo(today);
+    } else if (preset === "year") {
+      setDateFrom(`${now.getFullYear()}-01-01`); setDateTo(today);
+    } else {
+      setDateFrom(""); setDateTo("");
+    }
+  }
+
+  const presets = [
+    { key: "all", label: "ทั้งหมด" },
+    { key: "today", label: "วันนี้" },
+    { key: "week", label: "7 วัน" },
+    { key: "month", label: "เดือนนี้" },
+    { key: "year", label: "ปีนี้" },
+  ];
+
   if (!stats) return <p>⏳ กำลังโหลด...</p>;
   const cards = [
     { label: "Ticket ทั้งหมด", value: stats.total, color: "#1a1a2e" },
@@ -591,15 +623,42 @@ function Dashboard({ stats }) {
     { label: "🔵 กำลังดำเนินการ", value: stats.inProgress, color: "#457b9d" },
     { label: "🟢 เสร็จสิ้น", value: stats.completed, color: "#2a9d8f" },
     { label: "💡 FAQ เข้าถึง", value: stats.faqViews || 0, color: "#f4a261" },
+    { label: "✅ แก้เองได้", value: `${stats.faqSelfResolveRate || 0}%`, color: "#2a9d8f", sub: `${stats.faqResolved || 0} / ${stats.faqViews || 0} ครั้ง` },
   ];
   return (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 16, marginBottom: 24 }}>
+      {/* Date Filter */}
+      <div style={{ background: "#fff", borderRadius: 12, padding: "14px 20px", marginBottom: 20, boxShadow: "0 1px 4px #0001", display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "#555", marginRight: 4 }}>ช่วงเวลา:</span>
+        {presets.map(p => (
+          <button key={p.key} onClick={() => applyPreset(p.key)}
+            style={{ padding: "5px 12px", borderRadius: 20, border: "1px solid #ddd", fontSize: 13, cursor: "pointer",
+              background: (p.key === "all" && !dateFrom) || (p.key !== "all" && false) ? "#1a1a2e" : "#f5f6ff",
+              color: "#333", fontWeight: 500 }}>
+            {p.label}
+          </button>
+        ))}
+        <span style={{ fontSize: 13, color: "#aaa" }}>หรือกำหนดเอง:</span>
+        <input type="date" value={dateFrom} max={today} onChange={e => setDateFrom(e.target.value)}
+          style={{ padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 }} />
+        <span style={{ fontSize: 13 }}>ถึง</span>
+        <input type="date" value={dateTo} max={today} onChange={e => setDateTo(e.target.value)}
+          style={{ padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 }} />
+        {(dateFrom || dateTo) && (
+          <button onClick={() => applyPreset("all")}
+            style={{ padding: "5px 10px", borderRadius: 20, border: "1px solid #e63946", fontSize: 12, cursor: "pointer", color: "#e63946", background: "#fff" }}>
+            ✕ ล้าง
+          </button>
+        )}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 16, marginBottom: 24 }}>
         {cards.map((c) => (
           <div key={c.label} style={{ background: "#fff", borderRadius: 12, padding: "20px 24px",
             borderTop: `4px solid ${c.color}`, boxShadow: "0 1px 4px #0001" }}>
             <div style={{ fontSize: 32, fontWeight: 800, color: c.color }}>{c.value}</div>
             <div style={{ fontSize: 14, color: "#666", marginTop: 4 }}>{c.label}</div>
+            {c.sub && <div style={{ fontSize: 11, color: "#aaa", marginTop: 2 }}>{c.sub}</div>}
           </div>
         ))}
       </div>

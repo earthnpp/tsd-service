@@ -88,17 +88,29 @@ async function updateTicket(id, data) {
   });
 }
 
-async function getStats() {
-  const [total, pending, inProgress, completed, ratings, faqViewsRaw] = await Promise.all([
-    prisma.ticket.count(),
-    prisma.ticket.count({ where: { status: "pending" } }),
-    prisma.ticket.count({ where: { status: "in_progress" } }),
-    prisma.ticket.count({ where: { status: "completed" } }),
+async function getStats({ dateFrom, dateTo } = {}) {
+  const dateFilter = {};
+  if (dateFrom || dateTo) {
+    dateFilter.createdAt = {};
+    if (dateFrom) dateFilter.createdAt.gte = new Date(dateFrom);
+    if (dateTo) {
+      const end = new Date(dateTo);
+      end.setHours(23, 59, 59, 999);
+      dateFilter.createdAt.lte = end;
+    }
+  }
+
+  const [total, pending, inProgress, completed, ratings, faqRaw, activeAssignees] = await Promise.all([
+    prisma.ticket.count({ where: dateFilter }),
+    prisma.ticket.count({ where: { ...dateFilter, status: "pending" } }),
+    prisma.ticket.count({ where: { ...dateFilter, status: "in_progress" } }),
+    prisma.ticket.count({ where: { ...dateFilter, status: "completed" } }),
     prisma.ticket.findMany({
-      where: { rating: { not: null } },
+      where: { ...dateFilter, rating: { not: null } },
       select: { rating: true },
     }),
-    prisma.faqItem.aggregate({ _sum: { viewCount: true } }),
+    prisma.faqItem.aggregate({ _sum: { viewCount: true, resolvedCount: true } }),
+    prisma.assignee.findMany({ where: { isActive: true }, select: { name: true } }),
   ]);
 
   const avgRating =
@@ -106,9 +118,12 @@ async function getStats() {
       ? (ratings.reduce((s, r) => s + r.rating, 0) / ratings.length).toFixed(1)
       : null;
 
+  const activeNames = activeAssignees.map((a) => a.name);
+
   // Category breakdown
   const categoryRaw = await prisma.ticket.groupBy({
     by: ["category"],
+    where: dateFilter,
     _count: { id: true },
   });
   const byCategory = categoryRaw.map((r) => ({
@@ -116,10 +131,10 @@ async function getStats() {
     count: r._count.id,
   }));
 
-  // Assignee workload
+  // Assignee workload — only active staff
   const assigneeRaw = await prisma.ticket.groupBy({
     by: ["assignee"],
-    where: { assignee: { not: null } },
+    where: { ...dateFilter, assignee: { not: null, in: activeNames } },
     _count: { id: true },
     _avg: { rating: true },
   });
@@ -129,8 +144,11 @@ async function getStats() {
     avgRating: r._avg.rating ? Number(r._avg.rating).toFixed(1) : null,
   }));
 
-  const faqViews = faqViewsRaw._sum.viewCount || 0;
-  return { total, pending, inProgress, completed, avgRating, byCategory, byAssignee, faqViews };
+  const faqViews = faqRaw._sum.viewCount || 0;
+  const faqResolved = faqRaw._sum.resolvedCount || 0;
+  const faqSelfResolveRate = faqViews > 0 ? Math.round((faqResolved / faqViews) * 100) : 0;
+
+  return { total, pending, inProgress, completed, avgRating, byCategory, byAssignee, faqViews, faqResolved, faqSelfResolveRate };
 }
 
 module.exports = {

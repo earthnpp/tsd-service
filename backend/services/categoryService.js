@@ -100,8 +100,16 @@ async function incrementFaqViews(ids) {
   });
 }
 
+async function incrementFaqResolved(id) {
+  return prisma.faqItem.update({
+    where: { id: Number(id) },
+    data: { resolvedCount: { increment: 1 } },
+  });
+}
+
 module.exports = {
   getActiveCategories, getAllCategories, createCategory, updateCategory, deleteCategory,
   createSubcategory, updateSubcategory, deleteSubcategory,
-  getActiveFaqs, getAllFaqs, createFaq, updateFaq, deleteFaq, getFaqById, incrementFaqViews,
+  getActiveFaqs, getAllFaqs, createFaq, updateFaq, deleteFaq, getFaqById,
+  incrementFaqViews, incrementFaqResolved,
 };

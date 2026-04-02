@@ -88,8 +88,9 @@ model FaqItem {
   answer    String   @db.Text
   isActive  Boolean  @default(true)
   order     Int      @default(0)
-  viewCount Int      @default(0)
-  createdAt DateTime @default(now())
+  viewCount     Int      @default(0)
+  resolvedCount Int      @default(0)
+  createdAt     DateTime @default(now())
 }
 
 model Room {

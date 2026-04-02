@@ -31,7 +31,12 @@ export const api = {
   updateTicketStatus: (id, data) => request(`/tickets/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }),
   updateTicketCost: (id, data) => request(`/tickets/${id}/cost`, { method: "PATCH", body: JSON.stringify(data) }),
   closeWithCost: (id, data) => request(`/tickets/${id}/close-cost`, { method: "PATCH", body: JSON.stringify(data) }),
-  getStats: () => request("/stats"),
+  getStats: (params = {}) => {
+    const q = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => { if (v) q.set(k, v); });
+    const qs = q.toString();
+    return request(`/stats${qs ? "?" + qs : ""}`);
+  },
 
   // Assignees
   getAssignees: () => request("/assignees"),
