@@ -15,6 +15,23 @@ app.use(express.json());
 app.use(cors());
 app.use("/api", apiRouter);
 
+// LINE image proxy — ให้ admin ดูรูปที่ user แนบมาใน ticket
+app.get("/api/line-image/:messageId", async (req, res) => {
+  try {
+    const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+    const response = await fetch(
+      `https://api-data.line.me/v2/bot/message/${req.params.messageId}/content`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!response.ok) return res.status(404).send("Image not found");
+    res.set("Content-Type", response.headers.get("content-type") || "image/jpeg");
+    const buffer = await response.arrayBuffer();
+    res.send(Buffer.from(buffer));
+  } catch {
+    res.status(500).send("Error fetching image");
+  }
+});
+
 // Health check
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 

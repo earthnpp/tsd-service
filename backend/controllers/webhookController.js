@@ -152,10 +152,7 @@ async function onText(event, userId) {
 
   return client.replyMessage({
     replyToken,
-    messages: [
-      { type: "text", text: "พิมพ์ 'เมนู' หรือแตะปุ่มด้านล่างเพื่อเริ่มต้นครับ 😊" },
-      mainMenu(),
-    ],
+    messages: [{ type: "text", text: "กรุณาใช้เมนูด้านล่างเพื่อเริ่มต้นครับ 😊" }],
   });
 }
 
@@ -398,7 +395,7 @@ async function onImage(event, userId) {
   const session = await sessionService.getSession(userId);
 
   if (session.state === "report_describe") {
-    const imageUrl = `line://image/${event.message.id}`;
+    const imageUrl = `/api/line-image/${event.message.id}`;
     const data = session.tempData || {};
     const profile = await client.getProfile(userId).catch(() => null);
     const ticket = await ticketService.createTicket({
@@ -416,7 +413,7 @@ async function onImage(event, userId) {
 
   return client.replyMessage({
     replyToken,
-    messages: [{ type: "text", text: "ได้รับรูปภาพแล้วครับ 📷\nพิมพ์ 'เมนู' เพื่อเริ่มต้นใช้งาน" }],
+    messages: [{ type: "text", text: "ได้รับรูปภาพแล้วครับ 📷\nกรุณาใช้เมนูด้านล่างเพื่อดำเนินการต่อ" }],
   });
 }
 
