@@ -1334,9 +1334,9 @@ function BookingsPanel() {
                     }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 600, fontSize: 14, color: "#3c4043", marginBottom: 4 }}>{b.title}</div>
-                        <div style={{ fontSize: 12, color: "#70757a" }}>สถานที่ : {b.room?.name}</div>
-                        <div style={{ fontSize: 12, color: "#70757a" }}>เวลา {fmtTime(b.startAt)} – {fmtTime(b.endAt)} น.</div>
-                        <div style={{ fontSize: 12, color: "#70757a" }}>ผู้จอง {b.displayName || b.lineUserId}</div>
+                        <div style={{ fontSize: 12, color: "#70757a" }}>📍 สถานที่ : {b.room?.name}</div>
+                        <div style={{ fontSize: 12, color: "#70757a" }}>🕐 เวลา {fmtTime(b.startAt)} – {fmtTime(b.endAt)} น.</div>
+                        <div style={{ fontSize: 12, color: "#70757a" }}>👤 ผู้จอง {b.displayName || b.lineUserId}</div>
                         <div style={{ fontSize: 11, color: "#aaa", marginTop: 2 }}>📋 หมายเลขการจอง: {b.bookingNo}</div>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
@@ -1384,9 +1384,9 @@ function BookingsPanel() {
                   style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: "#70757a", padding: 0 }}>✕</button>
               </div>
               <div style={{ fontSize: 14, fontWeight: 600, color: "#3c4043", marginBottom: 8 }}>{b.title}</div>
-              <div style={{ fontSize: 12, color: "#70757a", marginBottom: 3 }}>สถานที่ : {b.room?.name}</div>
-              <div style={{ fontSize: 12, color: "#70757a", marginBottom: 3 }}>เวลา {fmtTime(b.startAt)} – {fmtTime(b.endAt)} น.</div>
-              <div style={{ fontSize: 12, color: "#70757a", marginBottom: 3 }}>ผู้จอง {b.displayName || b.lineUserId}</div>
+              <div style={{ fontSize: 12, color: "#70757a", marginBottom: 3 }}>📍 สถานที่ : {b.room?.name}</div>
+              <div style={{ fontSize: 12, color: "#70757a", marginBottom: 3 }}>🕐 เวลา {fmtTime(b.startAt)} – {fmtTime(b.endAt)} น.</div>
+              <div style={{ fontSize: 12, color: "#70757a", marginBottom: 3 }}>👤 ผู้จอง {b.displayName || b.lineUserId}</div>
               <div style={{ fontSize: 11, color: "#aaa", marginBottom: 10 }}>📋 หมายเลขการจอง: {b.bookingNo}</div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ background: st.bg, color: st.color, border: `1px solid ${st.color}`,

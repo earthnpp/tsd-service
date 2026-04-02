@@ -208,9 +208,9 @@ export default function LiffCalendar() {
                     background: roomColorMap[b.roomId] || "#1a73e8" }} />
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontSize:13, fontWeight:600, color:"#3c4043", marginBottom:4 }}>{b.title}</div>
-                    <div style={{ fontSize:12, color:"#70757a" }}>สถานที่ : {b.room?.name}</div>
-                    <div style={{ fontSize:12, color:"#70757a" }}>เวลา {fmtTime(b.startAt)} – {fmtTime(b.endAt)} น.</div>
-                    {b.displayName && <div style={{ fontSize:12, color:"#70757a" }}>ผู้จอง {b.displayName}</div>}
+                    <div style={{ fontSize:12, color:"#70757a" }}>📍 สถานที่ : {b.room?.name}</div>
+                    <div style={{ fontSize:12, color:"#70757a" }}>🕐 เวลา {fmtTime(b.startAt)} – {fmtTime(b.endAt)} น.</div>
+                    {b.displayName && <div style={{ fontSize:12, color:"#70757a" }}>👤 ผู้จอง {b.displayName}</div>}
                     {b.bookingNo && <div style={{ fontSize:11, color:"#aaa", marginTop:2 }}>📋 หมายเลขการจอง: {b.bookingNo}</div>}
                   </div>
                 </div>
