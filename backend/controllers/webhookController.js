@@ -155,7 +155,10 @@ async function onText(event, userId) {
       description: tempData.description,
     });
     await sessionService.clearSession(userId);
-    return client.replyMessage({ replyToken, messages: [ticketConfirm(ticket)] });
+    return client.replyMessage({ replyToken, messages: [
+  { type: "text", text: "✅ ได้รับเรื่องแล้วครับ ทีม IT จะรีบดำเนินการให้เร็วที่สุด 🙏" },
+  ticketConfirm(ticket),
+] });
   }
 
   if (state === "rating_pending") {
@@ -223,7 +226,10 @@ async function onPostback(event, userId) {
       description: d.description,
     });
     await sessionService.clearSession(userId);
-    return client.replyMessage({ replyToken, messages: [ticketConfirm(ticket)] });
+    return client.replyMessage({ replyToken, messages: [
+  { type: "text", text: "✅ ได้รับเรื่องแล้วครับ ทีม IT จะรีบดำเนินการให้เร็วที่สุด 🙏" },
+  ticketConfirm(ticket),
+] });
   }
 
   if (action === "faq_item") {
@@ -473,7 +479,10 @@ async function onImage(event, userId) {
       imageUrl,
     });
     await sessionService.clearSession(userId);
-    return client.replyMessage({ replyToken, messages: [ticketConfirm(ticket)] });
+    return client.replyMessage({ replyToken, messages: [
+  { type: "text", text: "✅ ได้รับเรื่องแล้วครับ ทีม IT จะรีบดำเนินการให้เร็วที่สุด 🙏" },
+  ticketConfirm(ticket),
+] });
   }
 
   return client.replyMessage({
