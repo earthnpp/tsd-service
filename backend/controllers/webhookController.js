@@ -264,6 +264,13 @@ async function onPostback(event, userId) {
 ] });
   }
 
+  if (action === "faq_resolved") {
+    return client.replyMessage({
+      replyToken,
+      messages: [{ type: "text", text: "ยินดีด้วยครับ! 🎉\nหากมีปัญหาอื่นสามารถแจ้งได้ตลอดเวลานะครับ 😊" }],
+    });
+  }
+
   if (action === "faq_item") {
     const faqId = Number(params.get("id"));
     const faq = await categoryService.getFaqById(faqId);
@@ -565,18 +572,6 @@ function buildFaqListMessage(faqs) {
           ],
         })),
       },
-      footer: {
-        type: "box",
-        layout: "vertical",
-        paddingAll: "12px",
-        contents: [{
-          type: "button",
-          action: { type: "postback", label: "📝 แจ้งปัญหา IT", data: "action=report" },
-          style: "primary",
-          color: "#e63946",
-          height: "sm",
-        }],
-      },
     },
   };
 }
@@ -612,24 +607,22 @@ function buildFaqAnswerMessage(faq) {
       },
       footer: {
         type: "box",
-        layout: "horizontal",
+        layout: "vertical",
         spacing: "sm",
         paddingAll: "12px",
         contents: [
           {
             type: "button",
-            action: { type: "postback", label: "🔙 กลับ FAQ", data: "action=faq" },
-            style: "secondary",
+            action: { type: "postback", label: "✅ แก้ปัญหาได้แล้ว", data: `action=faq_resolved&id=${faq.id}` },
+            style: "primary",
+            color: "#2a9d8f",
             height: "sm",
-            flex: 1,
           },
           {
             type: "button",
-            action: { type: "postback", label: "📝 แจ้งปัญหา", data: "action=report" },
-            style: "primary",
-            color: "#e63946",
+            action: { type: "postback", label: "📝 ยังไม่ได้ แจ้งปัญหา", data: "action=report" },
+            style: "secondary",
             height: "sm",
-            flex: 1,
           },
         ],
       },
