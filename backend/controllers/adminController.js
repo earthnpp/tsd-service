@@ -35,7 +35,7 @@ async function assignTicket(req, res) {
   const ticket = await ticketService.updateTicket(req.params.id, { status: "in_progress", assignee });
   await notifyUser(ticket.lineUserId, [{
     type: "text",
-    text: `📋 ${ticket.ticketNo} ได้รับมอบหมายให้ ${assignee} แล้วครับ\nสถานะ: 🔵 กำลังดำเนินการ`,
+    text: `🔵 ได้รับงานแล้วครับ!\n\n📋 ${ticket.ticketNo}\n📌 ${ticket.title}\n👷 ผู้รับผิดชอบ: ${assignee}\n\nกำลังดำเนินการแก้ไขให้ครับ 🙏`,
   }]);
   res.json(ticket);
 }
@@ -52,7 +52,7 @@ async function updateTicketStatus(req, res) {
   if (status === "in_progress") {
     await notifyUser(ticket.lineUserId, [{
       type: "text",
-      text: `🔵 ${ticket.ticketNo} กำลังดำเนินการแก้ไขแล้วครับ\n👷 ผู้รับผิดชอบ: ${ticket.assignee || "-"}`,
+      text: `🔵 ได้รับงานแล้วครับ!\n\n📋 ${ticket.ticketNo}\n📌 ${ticket.title}\n👷 ผู้รับผิดชอบ: ${ticket.assignee || "ทีม IT"}\n\nกำลังดำเนินการแก้ไขให้ครับ 🙏`,
     }]);
   } else if (status === "completed") {
     const ratingMenu = require("../views/flex/ratingMenu");

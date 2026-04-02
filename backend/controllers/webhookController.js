@@ -125,15 +125,34 @@ async function onText(event, userId) {
     const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
     const title = lines[0] || text;
     const description = lines.length > 1 ? lines.slice(1).join("\n") : text;
+    const data = { ...tempData, title, description };
+    await sessionService.setState(userId, "report_image_optional", data);
+    return client.replyMessage({
+      replyToken,
+      messages: [{
+        type: "text",
+        text: `📷 ต้องการแนบรูปภาพประกอบด้วยไหมครับ?\n\nส่งรูปมาได้เลย หรือกด "ส่งได้เลย" ถ้าไม่มีรูป`,
+        quickReply: {
+          items: [{
+            type: "action",
+            action: { type: "postback", label: "✅ ส่งได้เลย", data: "action=submit_no_image" },
+          }],
+        },
+      }],
+    });
+  }
+
+  if (state === "report_image_optional") {
+    // user พิมพ์ข้อความในขั้นตอนนี้ → ข้ามไปสร้าง ticket เลย
     const profile = await client.getProfile(userId).catch(() => null);
     const ticket = await ticketService.createTicket({
       lineUserId: userId,
       displayName: profile?.displayName || null,
-      title,
+      title: tempData.title,
       category: tempData.category,
       subcategory: tempData.subcategory,
       assetTag: tempData.assetTag || null,
-      description,
+      description: tempData.description,
     });
     await sessionService.clearSession(userId);
     return client.replyMessage({ replyToken, messages: [ticketConfirm(ticket)] });
@@ -188,6 +207,23 @@ async function onPostback(event, userId) {
   if (action === "faq") {
     const faqs = await categoryService.getActiveFaqs();
     return client.replyMessage({ replyToken, messages: [buildFaqListMessage(faqs)] });
+  }
+
+  if (action === "submit_no_image") {
+    const session = await sessionService.getSession(userId);
+    const d = session.tempData || {};
+    const profile = await client.getProfile(userId).catch(() => null);
+    const ticket = await ticketService.createTicket({
+      lineUserId: userId,
+      displayName: profile?.displayName || null,
+      title: d.title,
+      category: d.category,
+      subcategory: d.subcategory,
+      assetTag: d.assetTag || null,
+      description: d.description,
+    });
+    await sessionService.clearSession(userId);
+    return client.replyMessage({ replyToken, messages: [ticketConfirm(ticket)] });
   }
 
   if (action === "faq_item") {
@@ -420,17 +456,20 @@ async function onImage(event, userId) {
   const replyToken = event.replyToken;
   const session = await sessionService.getSession(userId);
 
-  if (session.state === "report_describe") {
+  const imageStates = ["report_describe", "report_image_optional"];
+  if (imageStates.includes(session.state)) {
     const imageUrl = `/api/line-image/${event.message.id}`;
     const data = session.tempData || {};
     const profile = await client.getProfile(userId).catch(() => null);
+    const hasText = data.title && data.description;
     const ticket = await ticketService.createTicket({
       lineUserId: userId,
       displayName: profile?.displayName || null,
-      title: `${data.subcategory || "ปัญหา"} - แนบรูปภาพ`,
+      title: hasText ? data.title : `${data.subcategory || "ปัญหา"} - แนบรูปภาพ`,
       category: data.category,
       subcategory: data.subcategory,
-      description: "(แนบรูปภาพ)",
+      assetTag: data.assetTag || null,
+      description: hasText ? data.description : "(แนบรูปภาพ)",
       imageUrl,
     });
     await sessionService.clearSession(userId);
