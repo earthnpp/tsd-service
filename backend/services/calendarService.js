@@ -3,11 +3,30 @@ const fs = require("fs");
 
 const CREDENTIALS_PATH = path.join(__dirname, "../config/google-credentials.json");
 
+function getCredentials() {
+  // 1) Environment variable (สำหรับ Docker/Portainer)
+  if (process.env.GOOGLE_CREDENTIALS) {
+    try {
+      return JSON.parse(process.env.GOOGLE_CREDENTIALS);
+    } catch {
+      // อาจเป็น base64
+      try {
+        return JSON.parse(Buffer.from(process.env.GOOGLE_CREDENTIALS, "base64").toString());
+      } catch {}
+    }
+  }
+  // 2) File fallback (local dev)
+  if (fs.existsSync(CREDENTIALS_PATH)) {
+    try { return JSON.parse(fs.readFileSync(CREDENTIALS_PATH, "utf-8")); } catch {}
+  }
+  return null;
+}
+
 function getCalendar() {
-  if (!fs.existsSync(CREDENTIALS_PATH)) return null;
+  const credentials = getCredentials();
+  if (!credentials) return null;
   try {
     const { google } = require("googleapis");
-    const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, "utf-8"));
     const auth = new google.auth.GoogleAuth({
       credentials,
       scopes: ["https://www.googleapis.com/auth/calendar"],
