@@ -38,6 +38,24 @@ function getCalendar() {
   }
 }
 
+async function createOwnCalendar(name) {
+  const calendar = getCalendar();
+  if (!calendar) throw new Error("ไม่พบ Google credentials");
+  const res = await calendar.calendars.insert({
+    requestBody: { summary: name, timeZone: "Asia/Bangkok" },
+  });
+  return res.data.id; // calendarId ที่ service account เป็นเจ้าของ
+}
+
+async function shareCalendar(calendarId, email) {
+  const calendar = getCalendar();
+  if (!calendar) return;
+  await calendar.acl.insert({
+    calendarId,
+    requestBody: { role: "reader", scope: { type: "user", value: email } },
+  });
+}
+
 async function createEvent(calendarId, { summary, description, startAt, endAt }) {
   const calendar = getCalendar();
   if (!calendar) return null;
@@ -68,4 +86,4 @@ async function deleteEvent(calendarId, eventId) {
   }
 }
 
-module.exports = { createEvent, deleteEvent };
+module.exports = { createOwnCalendar, shareCalendar, createEvent, deleteEvent };

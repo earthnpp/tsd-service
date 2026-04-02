@@ -46,6 +46,7 @@ router.put("/faq/:id",    adminController.updateFaq);
 router.delete("/faq/:id", adminController.deleteFaq);
 
 // Bookings
+router.get("/bookings/month",                 adminController.listBookingsMonth);
 router.get("/bookings",                       adminController.listBookings);
 router.get("/rooms",                          adminController.listRooms);
 router.post("/rooms",                         adminController.createRoom);
@@ -53,5 +54,6 @@ router.put("/rooms/:id",                      adminController.updateRoom);
 router.delete("/rooms/:id",                   adminController.deleteRoom);
 router.patch("/bookings/:id/cancel",          adminController.cancelBookingAdmin);
 router.patch("/rooms/:id/calendar",           adminController.updateRoomCalendar);
+router.post("/rooms/:id/create-calendar",     adminController.createRoomCalendar);
 
 module.exports = router;

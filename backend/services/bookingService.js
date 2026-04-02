@@ -123,6 +123,7 @@ async function adminCancelBooking(bookingId) {
   const updated = await prisma.roomBooking.update({
     where: { id: Number(bookingId) },
     data: { status: "cancelled" },
+    include: { room: true },
   });
 
   if (booking.googleEventId && booking.room.calendarId) {
@@ -161,8 +162,19 @@ async function getRoomSlots(roomId, date) {
   });
 }
 
+async function getBookingsForMonth(year, month) {
+  const start = new Date(year, month - 1, 1);
+  const end   = new Date(year, month, 1);
+  return prisma.roomBooking.findMany({
+    where: { startAt: { gte: start, lt: end } },
+    include: { room: true },
+    orderBy: { startAt: "asc" },
+  });
+}
+
 module.exports = {
   getRooms, createRoom, updateRoom, deleteRoom, getRoomSlots,
   createBooking, cancelBooking, getBookingsByUser,
   getAllBookings, adminCancelBooking, updateRoomCalendar,
+  getBookingsForMonth,
 };

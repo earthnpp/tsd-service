@@ -1,6 +1,8 @@
 const ticketService = require("../services/ticketService");
 const categoryService = require("../services/categoryService");
 const bookingService = require("../services/bookingService");
+const calendarService = require("../services/calendarService");
+
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const line = require("@line/bot-sdk");
@@ -267,6 +269,12 @@ async function listBookings(req, res) {
   res.json(result);
 }
 
+async function listBookingsMonth(req, res) {
+  const { year, month } = req.query;
+  const bookings = await bookingService.getBookingsForMonth(Number(year), Number(month));
+  res.json(bookings);
+}
+
 async function listRooms(req, res) {
   const rooms = await bookingService.getRooms();
   res.json(rooms);
@@ -275,10 +283,12 @@ async function listRooms(req, res) {
 async function cancelBookingAdmin(req, res) {
   try {
     const booking = await bookingService.adminCancelBooking(req.params.id);
-    // Notify user
+    const fmt = (dt) => new Date(dt).toLocaleString("th-TH", {
+      timeZone: "Asia/Bangkok", dateStyle: "short", timeStyle: "short",
+    });
     await notifyUser(booking.lineUserId, [{
       type: "text",
-      text: `📢 การจองของคุณถูกยกเลิกโดยผู้ดูแลระบบครับ\n🏢 ห้อง: กรุณาตรวจสอบในระบบ`,
+      text: `📢 การจองของคุณถูกยกเลิกโดยผู้ดูแลระบบครับ\n\n📋 ${booking.bookingNo}\n🏢 ห้อง: ${booking.room?.name || "-"}\n📝 ${booking.title}\n🕐 ${fmt(booking.startAt)} – ${fmt(booking.endAt)}\n\nหากมีข้อสงสัยกรุณาติดต่อเจ้าหน้าที่ครับ 🙏`,
     }]);
     res.json(booking);
   } catch (err) {
@@ -325,6 +335,19 @@ async function deleteRoom(req, res) {
   }
 }
 
+async function createRoomCalendar(req, res) {
+  try {
+    const rooms = await bookingService.getRooms();
+    const room = rooms.find(r => r.id === Number(req.params.id));
+    if (!room) return res.status(404).json({ error: "Room not found" });
+    const calendarId = await calendarService.createOwnCalendar(`[TSD] ${room.name}`);
+    const updated = await bookingService.updateRoomCalendar(req.params.id, calendarId);
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
 // ── Helper ────────────────────────────────────────────────
 
 async function notifyUser(lineUserId, messages) {
@@ -342,6 +365,6 @@ module.exports = {
   createSubcategory, updateSubcategory, deleteSubcategory,
   listFaqs, createFaq, updateFaq, deleteFaq,
   listAssignees, createAssignee, updateAssignee, deleteAssignee,
-  listBookings, listRooms, cancelBookingAdmin, updateRoomCalendar,
-  createRoom, updateRoom, deleteRoom,
+  listBookings, listBookingsMonth, listRooms, cancelBookingAdmin, updateRoomCalendar,
+  createRoom, updateRoom, deleteRoom, createRoomCalendar,
 };

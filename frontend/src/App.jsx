@@ -747,6 +747,16 @@ function RoomSettings({ rooms, onReload }) {
     await api.updateRoomCalendar(id, calInput.trim() || null);
     setEditCalId(null); onReload();
   }
+  async function autoCreateCalendar(id, name) {
+    if (!confirm(`สร้าง Google Calendar ใหม่สำหรับ "${name}" อัตโนมัติ?`)) return;
+    try {
+      await api.createRoomCalendar(id);
+      onReload();
+      alert("สร้าง Calendar สำเร็จ! ปฏิทินจะถูกเชื่อมกับห้องนี้อัตโนมัติ");
+    } catch (err) {
+      alert("เกิดข้อผิดพลาด: " + (err.message || "ไม่สามารถสร้าง Calendar ได้"));
+    }
+  }
   async function removeRoom(id) {
     if (!confirm("ลบห้องนี้? การจองทั้งหมดของห้องนี้จะถูกลบด้วย")) return;
     await api.deleteRoom(id); onReload();
@@ -798,7 +808,11 @@ function RoomSettings({ rooms, onReload }) {
                     {room.calendarId || "(ยังไม่ตั้งค่า)"}
                   </span>
                   <button onClick={() => { setEditCalId(room.id); setCalInput(room.calendarId || ""); }}
-                    style={smallBtn("#f4a261")}>✏️ Calendar</button>
+                    style={smallBtn("#f4a261")}>✏️</button>
+                  {!room.calendarId && (
+                    <button onClick={() => autoCreateCalendar(room.id, room.name)}
+                      style={smallBtn("#2a9d8f")}>🗓️ สร้างอัตโนมัติ</button>
+                  )}
                 </>
               )}
             </div>
@@ -1124,92 +1138,212 @@ function FaqSettings({ faqs, onReload }) {
 }
 
 // ── Bookings Panel ────────────────────────────────────────
+const ROOM_COLORS = ["#4361ee","#f72585","#4cc9f0","#7209b7","#fb8500","#2a9d8f","#e63946","#457b9d"];
+
 function BookingsPanel() {
-  const [bookings, setBookings] = useState([]);
+  const now = new Date();
+  const [viewYear,  setViewYear]  = useState(now.getFullYear());
+  const [viewMonth, setViewMonth] = useState(now.getMonth() + 1);
+  const [monthBookings, setMonthBookings] = useState([]);
   const [rooms, setRooms] = useState([]);
-  const [total, setTotal] = useState(0);
+  const [selectedDay, setSelectedDay] = useState(null);   // "YYYY-MM-DD"
+  const [detailBooking, setDetailBooking] = useState(null);
+
+  // list view state
+  const [bookings, setBookings]   = useState([]);
+  const [total, setTotal]         = useState(0);
   const [filterStatus, setFilterStatus] = useState("all");
-  const [filterRoom, setFilterRoom] = useState("all");
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [editCalendar, setEditCalendar] = useState(null);
-  const [calendarInput, setCalendarInput] = useState("");
+  const [filterRoom,   setFilterRoom]   = useState("all");
+  const [page, setPage]           = useState(1);
+  const [loading, setLoading]     = useState(false);
   const limit = 20;
 
-  const loadBookings = useCallback(async () => {
+  const loadRooms = useCallback(async () => { try { setRooms(await api.getRooms()); } catch {} }, []);
+  const loadMonth = useCallback(async () => {
+    try { setMonthBookings(await api.getBookingsMonth(viewYear, viewMonth)); } catch {}
+  }, [viewYear, viewMonth]);
+  const loadList = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await api.getBookings({ status: filterStatus, roomId: filterRoom, page, limit });
-      setBookings(result.bookings);
-      setTotal(result.total);
-    } catch { /* silent */ }
+      const r = await api.getBookings({ status: filterStatus, roomId: filterRoom, page, limit });
+      setBookings(r.bookings); setTotal(r.total);
+    } catch {}
     setLoading(false);
   }, [filterStatus, filterRoom, page]);
 
-  const loadRooms = useCallback(async () => { try { setRooms(await api.getRooms()); } catch {} }, []);
-
-  useEffect(() => { loadBookings(); }, [loadBookings]);
   useEffect(() => { loadRooms(); }, [loadRooms]);
-  useEffect(() => { setPage(1); }, [filterStatus, filterRoom]);
+  useEffect(() => { loadMonth(); }, [loadMonth]);
+  useEffect(() => { loadList();  }, [loadList]);
+  useEffect(() => { setPage(1);  }, [filterStatus, filterRoom]);
 
   async function handleCancel(id) {
     if (!confirm("ยืนยันการยกเลิกการจองนี้?")) return;
     await api.cancelBooking(id);
-    loadBookings();
+    setDetailBooking(null);
+    loadMonth(); loadList();
   }
 
-  async function saveCalendar(roomId) {
-    await api.updateRoomCalendar(roomId, calendarInput.trim() || null);
-    setEditCalendar(null);
-    setCalendarInput("");
-    loadRooms();
+  // room → color map
+  const roomColor = {};
+  rooms.forEach((r, i) => { roomColor[r.id] = ROOM_COLORS[i % ROOM_COLORS.length]; });
+
+  // calendar grid helpers
+  function daysInMonth(y, m) { return new Date(y, m, 0).getDate(); }
+  function firstDow(y, m)    { return new Date(y, m - 1, 1).getDay(); } // 0=Sun
+
+  function prevMonth() {
+    if (viewMonth === 1) { setViewYear(y => y - 1); setViewMonth(12); }
+    else setViewMonth(m => m - 1);
+    setSelectedDay(null);
+  }
+  function nextMonth() {
+    if (viewMonth === 12) { setViewYear(y => y + 1); setViewMonth(1); }
+    else setViewMonth(m => m + 1);
+    setSelectedDay(null);
   }
 
-  const totalPages = Math.max(1, Math.ceil(total / limit));
+  function dayKey(y, m, d) {
+    return `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+  }
+  function bookingsOnDay(dk) {
+    return monthBookings.filter(b => {
+      const d = new Date(b.startAt);
+      return dayKey(d.getFullYear(), d.getMonth()+1, d.getDate()) === dk;
+    });
+  }
 
   function fmtDT(dt) {
     return new Date(dt).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" });
   }
+  function fmtTime(dt) {
+    return new Date(dt).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+  }
 
   const BOOKING_STATUS = {
-    confirmed: { label: "✅ ยืนยัน",   color: "#2a9d8f", bg: "#e8f5e9" },
-    cancelled: { label: "❌ ยกเลิก",   color: "#e63946", bg: "#fff0f0" },
+    confirmed: { label: "✅ ยืนยัน", color: "#2a9d8f", bg: "#e8f5e9" },
+    cancelled: { label: "❌ ยกเลิก", color: "#e63946", bg: "#fff0f0" },
   };
+
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const days = daysInMonth(viewYear, viewMonth);
+  const startDow = firstDow(viewYear, viewMonth);
+  const todayKey = dayKey(now.getFullYear(), now.getMonth()+1, now.getDate());
+  const selectedDayBookings = selectedDay ? bookingsOnDay(selectedDay) : [];
+
+  const thMonths = ["","ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
 
   return (
     <div>
-      {/* Room Calendar Settings */}
+      {/* ── Calendar ── */}
       <div style={{ background: "#fff", borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: "0 1px 4px #0001" }}>
-        <strong style={{ fontSize: 15, display: "block", marginBottom: 12 }}>🗓️ Google Calendar ID ของแต่ละห้อง</strong>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {rooms.map((room) => (
-            <div key={room.id} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <span style={{ minWidth: 110, fontWeight: 600, fontSize: 14 }}>{room.name}</span>
-              {editCalendar === room.id ? (
-                <>
-                  <input value={calendarInput} onChange={(e) => setCalendarInput(e.target.value)}
-                    placeholder="Calendar ID เช่น xxx@group.calendar.google.com"
-                    style={{ flex: 1, ...inputStyle, fontSize: 13 }} />
-                  <button onClick={() => saveCalendar(room.id)} style={btnStyle("#2a9d8f")}>บันทึก</button>
-                  <button onClick={() => { setEditCalendar(null); setCalendarInput(""); }} style={btnStyle("#999")}>ยกเลิก</button>
-                </>
-              ) : (
-                <>
-                  <span style={{ flex: 1, fontSize: 13, color: room.calendarId ? "#333" : "#bbb" }}>
-                    {room.calendarId || "(ยังไม่ได้ตั้งค่า)"}
-                  </span>
-                  <button onClick={() => { setEditCalendar(room.id); setCalendarInput(room.calendarId || ""); }}
-                    style={smallBtn("#457b9d")}>✏️ แก้ไข</button>
-                </>
-              )}
-            </div>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+          <button onClick={prevMonth} style={{ ...smallBtn("#888"), padding: "4px 10px" }}>‹</button>
+          <strong style={{ fontSize: 16, flex: 1, textAlign: "center" }}>
+            📅 {thMonths[viewMonth]} {viewYear + 543}
+          </strong>
+          <button onClick={nextMonth} style={{ ...smallBtn("#888"), padding: "4px 10px" }}>›</button>
+        </div>
+
+        {/* DOW headers */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2, marginBottom: 4 }}>
+          {["อา","จ","อ","พ","พฤ","ศ","ส"].map(d => (
+            <div key={d} style={{ textAlign: "center", fontSize: 11, fontWeight: 700, color: "#888", padding: "2px 0" }}>{d}</div>
           ))}
         </div>
+
+        {/* Day cells */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3 }}>
+          {Array.from({ length: startDow }).map((_, i) => <div key={`e${i}`} />)}
+          {Array.from({ length: days }, (_, i) => i + 1).map(d => {
+            const dk = dayKey(viewYear, viewMonth, d);
+            const dayBkgs = bookingsOnDay(dk);
+            const isToday = dk === todayKey;
+            const isSelected = dk === selectedDay;
+            const confirmedRooms = [...new Set(dayBkgs.filter(b => b.status === "confirmed").map(b => b.roomId))];
+            return (
+              <div key={d} onClick={() => setSelectedDay(isSelected ? null : dk)}
+                style={{
+                  minHeight: 52, borderRadius: 8, padding: "4px 5px", cursor: "pointer",
+                  background: isSelected ? "#1a1a2e" : isToday ? "#e8f0fe" : "#fafafa",
+                  border: isSelected ? "2px solid #1a1a2e" : isToday ? "2px solid #4361ee" : "1px solid #eee",
+                  transition: "all .15s",
+                }}>
+                <div style={{ fontSize: 12, fontWeight: isToday ? 700 : 400,
+                  color: isSelected ? "#fff" : isToday ? "#4361ee" : "#333", marginBottom: 3 }}>{d}</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+                  {confirmedRooms.map(rid => (
+                    <div key={rid} style={{ width: 8, height: 8, borderRadius: "50%",
+                      background: roomColor[rid] || "#999" }} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Room color legend */}
+        {rooms.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 12, paddingTop: 10, borderTop: "1px solid #eee" }}>
+            {rooms.map(r => (
+              <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12 }}>
+                <div style={{ width: 10, height: 10, borderRadius: "50%", background: roomColor[r.id] || "#999" }} />
+                {r.name}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Selected day panel */}
+        {selectedDay && (
+          <div style={{ marginTop: 14, borderTop: "1px solid #eee", paddingTop: 14 }}>
+            <strong style={{ fontSize: 14 }}>
+              {new Date(selectedDay + "T12:00:00").toLocaleDateString("th-TH", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+            </strong>
+            {selectedDayBookings.length === 0
+              ? <p style={{ color: "#aaa", fontSize: 13, marginTop: 8 }}>ไม่มีการจองในวันนี้</p>
+              : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
+                  {selectedDayBookings.map(b => {
+                    const st = BOOKING_STATUS[b.status] || { label: b.status, color: "#999", bg: "#eee" };
+                    return (
+                      <div key={b.id} style={{
+                        display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+                        background: b.status === "cancelled" ? "#fafafa" : "#f8fffe",
+                        border: `1px solid ${st.color}33`, borderLeft: `4px solid ${roomColor[b.roomId] || st.color}`,
+                        borderRadius: 8, padding: "10px 12px", opacity: b.status === "cancelled" ? 0.6 : 1,
+                      }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 14 }}>{b.room?.name}</div>
+                          <div style={{ fontSize: 13, color: "#444", marginTop: 1 }}>{b.title}</div>
+                          <div style={{ fontSize: 12, color: "#888", marginTop: 1 }}>
+                            {fmtTime(b.startAt)} – {fmtTime(b.endAt)} · {b.displayName || b.lineUserId}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#aaa" }}>{b.bookingNo}</div>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
+                          <span style={{ background: st.bg, color: st.color, border: `1px solid ${st.color}`,
+                            borderRadius: 999, padding: "2px 8px", fontSize: 11, fontWeight: 600 }}>{st.label}</span>
+                          {b.status === "confirmed" && (
+                            <button onClick={() => handleCancel(b.id)}
+                              style={{ ...smallBtn("#e63946"), padding: "3px 8px", fontSize: 11 }}>
+                              🗑️ ยกเลิก
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )
+            }
+          </div>
+        )}
       </div>
 
-      {/* Filters */}
+      {/* ── List filters ── */}
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-        {["all", "confirmed", "cancelled"].map((s) => (
+        {["all","confirmed","cancelled"].map(s => (
           <button key={s} onClick={() => setFilterStatus(s)}
             style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", fontWeight: 600, fontSize: 13,
               background: filterStatus === s ? "#1a1a2e" : "#fff",
@@ -1217,20 +1351,20 @@ function BookingsPanel() {
             {{ all: "ทั้งหมด", confirmed: "✅ ยืนยัน", cancelled: "❌ ยกเลิก" }[s]}
           </button>
         ))}
-        <select value={filterRoom} onChange={(e) => setFilterRoom(e.target.value)}
+        <select value={filterRoom} onChange={e => setFilterRoom(e.target.value)}
           style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13, background: "#fff" }}>
           <option value="all">🏢 ทุกห้อง</option>
-          {rooms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+          {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
         </select>
         <span style={{ marginLeft: "auto", fontSize: 13, color: "#888" }}>
           ทั้งหมด <strong>{total}</strong> รายการ
         </span>
       </div>
 
-      {/* Booking list */}
+      {/* ── Booking list ── */}
       {loading ? <p style={{ textAlign: "center", color: "#888" }}>⏳ กำลังโหลด...</p> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {bookings.map((b) => {
+          {bookings.map(b => {
             const st = BOOKING_STATUS[b.status] || { label: b.status, color: "#999", bg: "#eee" };
             return (
               <div key={b.id} style={{ background: "#fff", borderRadius: 10, padding: "12px 16px",
@@ -1242,9 +1376,7 @@ function BookingsPanel() {
                   <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
                     {fmtDT(b.startAt)} → {fmtDT(b.endAt)}
                   </div>
-                  <div style={{ fontSize: 12, color: "#aaa", marginTop: 2 }}>
-                    {b.displayName || b.lineUserId}
-                  </div>
+                  <div style={{ fontSize: 12, color: "#aaa", marginTop: 2 }}>{b.displayName || b.lineUserId}</div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
                   <span style={{ background: st.bg, color: st.color, border: `1px solid ${st.color}`,
@@ -1268,9 +1400,9 @@ function BookingsPanel() {
       {/* Pagination */}
       {total > 0 && (
         <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 16 }}>
-          <button onClick={() => setPage(page - 1)} disabled={page === 1} style={pageBtnStyle(page === 1)}>‹</button>
+          <button onClick={() => setPage(page-1)} disabled={page===1} style={pageBtnStyle(page===1)}>‹</button>
           <span style={{ padding: "5px 12px", fontSize: 13 }}>หน้า {page}/{totalPages}</span>
-          <button onClick={() => setPage(page + 1)} disabled={page >= totalPages} style={pageBtnStyle(page >= totalPages)}>›</button>
+          <button onClick={() => setPage(page+1)} disabled={page>=totalPages} style={pageBtnStyle(page>=totalPages)}>›</button>
         </div>
       )}
     </div>

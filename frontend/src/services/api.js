@@ -71,4 +71,6 @@ export const api = {
   deleteRoom: (id) => request(`/rooms/${id}`, { method: "DELETE" }),
   cancelBooking: (id) => request(`/bookings/${id}/cancel`, { method: "PATCH" }),
   updateRoomCalendar: (id, calendarId) => request(`/rooms/${id}/calendar`, { method: "PATCH", body: JSON.stringify({ calendarId }) }),
+  createRoomCalendar: (id) => request(`/rooms/${id}/create-calendar`, { method: "POST" }),
+  getBookingsMonth: (year, month) => request(`/bookings/month?year=${year}&month=${month}`),
 };
