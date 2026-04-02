@@ -368,8 +368,40 @@ async function onPostback(event, userId) {
 
   if (action === "book_room") {
     await sessionService.clearSession(userId);
-    const rooms = await bookingService.getRooms();
-    return client.replyMessage({ replyToken, messages: [roomQuickReply(rooms)] });
+    const liffUrl = `https://liff.line.me/${process.env.LIFF_ID}/booking`;
+    return client.replyMessage({
+      replyToken,
+      messages: [{
+        type: "flex",
+        altText: "🗓️ จองห้องประชุม",
+        contents: {
+          type: "bubble",
+          header: {
+            type: "box", layout: "vertical", backgroundColor: "#1a1a2e", paddingAll: "16px",
+            contents: [
+              { type: "text", text: "🗓️ จองห้องประชุม", weight: "bold", size: "lg", color: "#ffffff" },
+              { type: "text", text: "กรอกแบบฟอร์มเพื่อจองห้อง", size: "sm", color: "#aaaacc", margin: "xs" },
+            ],
+          },
+          body: {
+            type: "box", layout: "vertical", paddingAll: "16px",
+            contents: [
+              { type: "text", text: "🏢 เลือกห้องประชุม", size: "sm", color: "#555555" },
+              { type: "text", text: "📅 เลือกวันและเวลา", size: "sm", color: "#555555", margin: "sm" },
+              { type: "text", text: "📝 ระบุหัวข้อการประชุม", size: "sm", color: "#555555", margin: "sm" },
+            ],
+          },
+          footer: {
+            type: "box", layout: "vertical", paddingAll: "12px",
+            contents: [{
+              type: "button",
+              action: { type: "uri", label: "📅 กรอกแบบฟอร์มจองห้อง", uri: liffUrl },
+              style: "primary", color: "#1a1a2e",
+            }],
+          },
+        },
+      }],
+    });
   }
 
   if (action === "select_room") {

@@ -2,7 +2,9 @@ const { PrismaClient } = require("@prisma/client");
 const line = require("@line/bot-sdk");
 const ticketService = require("../services/ticketService");
 const categoryService = require("../services/categoryService");
+const bookingService = require("../services/bookingService");
 const ticketConfirm = require("../views/flex/ticketConfirm");
+const { bookingSuccess } = require("../views/flex/bookingViews");
 
 const prisma = new PrismaClient();
 const client = new line.messagingApi.MessagingApiClient({
@@ -76,4 +78,49 @@ async function createTicket(req, res) {
   }
 }
 
-module.exports = { getCategories, createTicket };
+async function getRooms(req, res) {
+  const rooms = await bookingService.getRooms();
+  res.json(rooms);
+}
+
+async function createBooking(req, res) {
+  try {
+    const accessToken = req.headers["x-line-access-token"];
+    if (!accessToken) return res.status(401).json({ error: "No LINE token" });
+
+    await verifyLineToken(accessToken);
+    const { userId, displayName } = await getLineUserId(accessToken);
+
+    const { roomId, date, startTime, endTime, title } = req.body;
+    if (!roomId || !date || !startTime || !endTime || !title?.trim()) {
+      return res.status(400).json({ error: "กรุณากรอกข้อมูลให้ครบ" });
+    }
+
+    const startAt = new Date(`${date}T${startTime}:00+07:00`);
+    const endAt   = new Date(`${date}T${endTime}:00+07:00`);
+    if (endAt <= startAt) {
+      return res.status(400).json({ error: "เวลาสิ้นสุดต้องหลังจากเวลาเริ่มต้น" });
+    }
+
+    const booking = await bookingService.createBooking({
+      roomId: Number(roomId),
+      lineUserId: userId,
+      displayName,
+      title: title.trim(),
+      startAt,
+      endAt,
+    });
+
+    client.pushMessage({
+      to: userId,
+      messages: [bookingSuccess(booking)],
+    }).catch(() => {});
+
+    res.json({ success: true, bookingNo: booking.bookingNo });
+  } catch (err) {
+    console.error("LIFF createBooking error:", err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+module.exports = { getCategories, createTicket, getRooms, createBooking };
