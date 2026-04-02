@@ -218,7 +218,7 @@ function TicketList({ tickets, loading, total, filterStatus, setFilterStatus,
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: 15 }}>{t.ticketNo} — {t.title}</div>
                 <div style={{ fontSize: 13, color: "#666", marginTop: 2 }}>
-                  {t.category} › {t.subcategory} · {t.location}
+                  {t.category} › {t.subcategory}{t.location ? ` · ${t.location}` : ""}
                 </div>
                 <div style={{ fontSize: 12, color: "#aaa", marginTop: 2 }}>
                   {t.displayName} · {new Date(t.createdAt).toLocaleString("th-TH")}
@@ -226,7 +226,7 @@ function TicketList({ tickets, loading, total, filterStatus, setFilterStatus,
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
                 <Badge map={STATUS} value={t.status} />
-                <Badge map={PRIORITY} value={t.priority} />
+                {t.priority && <Badge map={PRIORITY} value={t.priority} />}
               </div>
             </div>
           ))}
