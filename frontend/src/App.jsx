@@ -1148,6 +1148,7 @@ function BookingsPanel() {
   const [monthBookings, setMonthBookings] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [selectedDay, setSelectedDay] = useState(now.getDate());
+  const [popup, setPopup] = useState(null); // { booking, x, y }
 
   const loadRooms = useCallback(async () => { try { setRooms(await api.getRooms()); } catch {} }, []);
   const loadMonth = useCallback(async () => {
@@ -1156,11 +1157,23 @@ function BookingsPanel() {
 
   useEffect(() => { loadRooms(); }, [loadRooms]);
   useEffect(() => { loadMonth(); }, [loadMonth]);
+  useEffect(() => {
+    function close(e) { if (!e.target.closest("[data-popup]")) setPopup(null); }
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
 
   async function handleCancel(id) {
     if (!confirm("ยืนยันการยกเลิกจองนี้?")) return;
     await api.cancelBooking(id);
+    setPopup(null);
     loadMonth();
+  }
+
+  function openPopup(e, booking) {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setPopup({ booking, x: rect.left, y: rect.bottom + 6 });
   }
 
   const roomColor = {};
@@ -1265,9 +1278,9 @@ function BookingsPanel() {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 1, padding: "0 1px" }}>
                     {dayBkgs.slice(0, 3).map((b, i) => (
-                      <div key={i} style={{
+                      <div key={i} onClick={e => openPopup(e, b)} style={{
                         background: roomColor[b.roomId] || "#1a73e8", color: "#fff",
-                        borderRadius: 3, fontSize: 10, padding: "1px 4px",
+                        borderRadius: 3, fontSize: 10, padding: "1px 4px", cursor: "pointer",
                         whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.5,
                       }}>
                         {fmtTime(b.startAt)} {b.room?.name || ""}
@@ -1347,6 +1360,58 @@ function BookingsPanel() {
           }
         </div>
       )}
+
+      {/* ── Popup ── */}
+      {popup && (() => {
+        const b  = popup.booking;
+        const st = bookingStatus(b);
+        const isPast = new Date(b.endAt) < now;
+        // clamp x so popup doesn't overflow viewport
+        const popW = 260;
+        const clampedX = Math.min(popup.x, window.innerWidth - popW - 12);
+        return (
+          <div data-popup="1" style={{
+            position: "fixed", top: popup.y, left: Math.max(8, clampedX),
+            width: popW, background: "#fff", borderRadius: 10,
+            boxShadow: "0 4px 24px #0003, 0 1px 6px #0002",
+            zIndex: 9999, overflow: "hidden",
+          }}>
+            {/* color bar */}
+            <div style={{ height: 6, background: roomColor[b.roomId] || "#1a73e8" }} />
+            <div style={{ padding: "12px 14px" }}>
+              {/* close */}
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
+                <button onClick={() => setPopup(null)}
+                  style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: "#70757a", padding: 0 }}>✕</button>
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#3c4043", marginBottom: 6 }}>{b.title}</div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
+                <div style={{ width: 10, height: 10, borderRadius: "50%", flexShrink: 0, background: roomColor[b.roomId] || "#1a73e8" }} />
+                <span style={{ fontSize: 13, color: "#3c4043" }}>{b.room?.name}</span>
+              </div>
+              <div style={{ fontSize: 12, color: "#70757a", marginBottom: 2 }}>
+                🕐 {fmtTime(b.startAt)} – {fmtTime(b.endAt)} น.
+              </div>
+              <div style={{ fontSize: 12, color: "#70757a", marginBottom: 2 }}>
+                👤 {b.displayName || b.lineUserId}
+              </div>
+              <div style={{ fontSize: 11, color: "#aaa", marginBottom: 10 }}>{b.bookingNo}</div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ background: st.bg, color: st.color, border: `1px solid ${st.color}`,
+                  borderRadius: 999, padding: "2px 8px", fontSize: 11, fontWeight: 500 }}>
+                  {st.label}
+                </span>
+                {b.status === "confirmed" && !isPast && (
+                  <button onClick={() => handleCancel(b.id)}
+                    style={{ ...smallBtn("#d50000"), padding: "4px 10px", fontSize: 12 }}>
+                    🗑️ ยกเลิกจอง
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
