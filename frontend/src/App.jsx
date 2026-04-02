@@ -1138,7 +1138,8 @@ function FaqSettings({ faqs, onReload }) {
 }
 
 // ── Bookings Panel ────────────────────────────────────────
-const ROOM_COLORS = ["#4361ee","#f72585","#4cc9f0","#7209b7","#fb8500","#2a9d8f","#e63946","#457b9d"];
+const ROOM_COLORS = ["#1a73e8","#d50000","#33b679","#f4511e","#8e24aa","#0b8043","#e67c73","#039be5"];
+const MONTH_TH_LONG = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 
 function BookingsPanel() {
   const now = new Date();
@@ -1146,7 +1147,7 @@ function BookingsPanel() {
   const [viewMonth, setViewMonth] = useState(now.getMonth() + 1);
   const [monthBookings, setMonthBookings] = useState([]);
   const [rooms, setRooms] = useState([]);
-  const [selectedDay, setSelectedDay] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(now.getDate());
 
   const loadRooms = useCallback(async () => { try { setRooms(await api.getRooms()); } catch {} }, []);
   const loadMonth = useCallback(async () => {
@@ -1162,162 +1163,190 @@ function BookingsPanel() {
     loadMonth();
   }
 
-  // room → color map
   const roomColor = {};
   rooms.forEach((r, i) => { roomColor[r.id] = ROOM_COLORS[i % ROOM_COLORS.length]; });
 
-  // calendar grid helpers
-  function daysInMonth(y, m) { return new Date(y, m, 0).getDate(); }
-  function firstDow(y, m)    { return new Date(y, m - 1, 1).getDay(); } // 0=Sun
+  const firstDow    = new Date(viewYear, viewMonth - 1, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth, 0).getDate();
+  const cells = Array(firstDow).fill(null).concat(
+    Array.from({ length: daysInMonth }, (_, i) => i + 1)
+  );
+  while (cells.length % 7 !== 0) cells.push(null);
 
   function prevMonth() {
-    if (viewMonth === 1) { setViewYear(y => y - 1); setViewMonth(12); }
-    else setViewMonth(m => m - 1);
+    if (viewMonth === 1) { setViewYear(y => y - 1); setViewMonth(12); } else setViewMonth(m => m - 1);
     setSelectedDay(null);
   }
   function nextMonth() {
-    if (viewMonth === 12) { setViewYear(y => y + 1); setViewMonth(1); }
-    else setViewMonth(m => m + 1);
+    if (viewMonth === 12) { setViewYear(y => y + 1); setViewMonth(1); } else setViewMonth(m => m + 1);
     setSelectedDay(null);
   }
+  function goToday() {
+    setViewYear(now.getFullYear()); setViewMonth(now.getMonth() + 1); setSelectedDay(now.getDate());
+  }
 
-  function dayKey(y, m, d) {
-    return `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-  }
-  function bookingsOnDay(dk) {
-    return monthBookings.filter(b => {
-      const d = new Date(b.startAt);
-      return dayKey(d.getFullYear(), d.getMonth()+1, d.getDate()) === dk;
-    });
-  }
+  // bookings by day number
+  const byDay = {};
+  monthBookings.filter(b => b.status !== "cancelled").forEach(b => {
+    const d = new Date(b.startAt).getDate();
+    if (!byDay[d]) byDay[d] = [];
+    byDay[d].push(b);
+  });
 
   function fmtTime(dt) {
-    return new Date(dt).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+    const d = new Date(dt);
+    return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
   }
-
   function bookingStatus(b) {
     if (b.status === "cancelled") return { label: "ยกเลิกคำขอ", color: "#e63946", bg: "#fff0f0" };
     if (new Date(b.endAt) < now)  return { label: "ห้องประชุมปิดแล้ว", color: "#999", bg: "#f0f0f0" };
-    return { label: "จองสำเร็จ", color: "#2a9d8f", bg: "#e8f5e9" };
+    return { label: "จองสำเร็จ", color: "#1a73e8", bg: "#e8f0fe" };
   }
 
-  const days = daysInMonth(viewYear, viewMonth);
-  const startDow = firstDow(viewYear, viewMonth);
-  const todayKey = dayKey(now.getFullYear(), now.getMonth()+1, now.getDate());
-  const selectedDayBookings = selectedDay ? bookingsOnDay(selectedDay) : [];
-
-  const thMonths = ["","ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+  const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth() + 1;
+  const todayDate = isCurrentMonth ? now.getDate() : null;
+  const selBookings = selectedDay ? (byDay[selectedDay] || []) : [];
 
   return (
-    <div>
-      {/* ── Calendar ── */}
-      <div style={{ background: "#fff", borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: "0 1px 4px #0001" }}>
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-          <button onClick={prevMonth} style={{ ...smallBtn("#888"), padding: "4px 10px" }}>‹</button>
-          <strong style={{ fontSize: 16, flex: 1, textAlign: "center" }}>
-            📅 {thMonths[viewMonth]} {viewYear + 543}
-          </strong>
-          <button onClick={nextMonth} style={{ ...smallBtn("#888"), padding: "4px 10px" }}>›</button>
-        </div>
+    <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 4px #0001", overflow: "hidden" }}>
 
-        {/* DOW headers */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2, marginBottom: 4 }}>
-          {["อา","จ","อ","พ","พฤ","ศ","ส"].map(d => (
-            <div key={d} style={{ textAlign: "center", fontSize: 11, fontWeight: 700, color: "#888", padding: "2px 0" }}>{d}</div>
-          ))}
-        </div>
-
-        {/* Day cells */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3 }}>
-          {Array.from({ length: startDow }).map((_, i) => <div key={`e${i}`} />)}
-          {Array.from({ length: days }, (_, i) => i + 1).map(d => {
-            const dk = dayKey(viewYear, viewMonth, d);
-            const dayBkgs = bookingsOnDay(dk);
-            const isToday = dk === todayKey;
-            const isSelected = dk === selectedDay;
-            const confirmedRooms = [...new Set(dayBkgs.filter(b => b.status === "confirmed").map(b => b.roomId))];
-            return (
-              <div key={d} onClick={() => setSelectedDay(isSelected ? null : dk)}
-                style={{
-                  minHeight: 52, borderRadius: 8, padding: "4px 5px", cursor: "pointer",
-                  background: isSelected ? "#1a1a2e" : isToday ? "#e8f0fe" : "#fafafa",
-                  border: isSelected ? "2px solid #1a1a2e" : isToday ? "2px solid #4361ee" : "1px solid #eee",
-                  transition: "all .15s",
-                }}>
-                <div style={{ fontSize: 12, fontWeight: isToday ? 700 : 400,
-                  color: isSelected ? "#fff" : isToday ? "#4361ee" : "#333", marginBottom: 3 }}>{d}</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
-                  {confirmedRooms.map(rid => (
-                    <div key={rid} style={{ width: 8, height: 8, borderRadius: "50%",
-                      background: roomColor[rid] || "#999" }} />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Room color legend */}
-        {rooms.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 12, paddingTop: 10, borderTop: "1px solid #eee" }}>
-            {rooms.map(r => (
-              <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12 }}>
-                <div style={{ width: 10, height: 10, borderRadius: "50%", background: roomColor[r.id] || "#999" }} />
-                {r.name}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Selected day panel */}
-        {selectedDay && (
-          <div style={{ marginTop: 14, borderTop: "1px solid #eee", paddingTop: 14 }}>
-            <strong style={{ fontSize: 14 }}>
-              {new Date(selectedDay + "T12:00:00").toLocaleDateString("th-TH", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-            </strong>
-            {selectedDayBookings.length === 0
-              ? <p style={{ color: "#aaa", fontSize: 13, marginTop: 8 }}>ไม่มีการจองในวันนี้</p>
-              : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
-                  {selectedDayBookings.map(b => {
-                    const st = bookingStatus(b);
-                    const isPast = new Date(b.endAt) < now;
-                    return (
-                      <div key={b.id} style={{
-                        display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-                        background: b.status === "cancelled" ? "#fafafa" : "#f8fffe",
-                        border: `1px solid ${st.color}33`, borderLeft: `4px solid ${roomColor[b.roomId] || st.color}`,
-                        borderRadius: 8, padding: "10px 12px", opacity: (b.status === "cancelled" || isPast) ? 0.6 : 1,
-                      }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: 14 }}>{b.room?.name}</div>
-                          <div style={{ fontSize: 13, color: "#444", marginTop: 1 }}>{b.title}</div>
-                          <div style={{ fontSize: 12, color: "#888", marginTop: 1 }}>
-                            {fmtTime(b.startAt)} – {fmtTime(b.endAt)} · {b.displayName || b.lineUserId}
-                          </div>
-                          <div style={{ fontSize: 11, color: "#aaa" }}>{b.bookingNo}</div>
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
-                          <span style={{ background: st.bg, color: st.color, border: `1px solid ${st.color}`,
-                            borderRadius: 999, padding: "2px 8px", fontSize: 11, fontWeight: 600 }}>{st.label}</span>
-                          {b.status === "confirmed" && !isPast && (
-                            <button onClick={() => handleCancel(b.id)}
-                              style={{ ...smallBtn("#e63946"), padding: "3px 8px", fontSize: 11 }}>
-                              🗑️ ยกเลิกจอง
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )
-            }
-          </div>
-        )}
+      {/* ── Header ── */}
+      <div style={{ padding: "10px 16px 8px", borderBottom: "1px solid #e8eaed", display: "flex", alignItems: "center", gap: 8 }}>
+        <button onClick={goToday}
+          style={{ border: "1px solid #dadce0", background: "#fff", borderRadius: 4, padding: "5px 12px",
+            fontSize: 13, fontWeight: 500, cursor: "pointer", color: "#3c4043" }}>
+          วันนี้
+        </button>
+        <button onClick={prevMonth}
+          style={{ border: "none", background: "none", cursor: "pointer", borderRadius: "50%",
+            width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 18, color: "#3c4043" }}>‹</button>
+        <button onClick={nextMonth}
+          style={{ border: "none", background: "none", cursor: "pointer", borderRadius: "50%",
+            width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 18, color: "#3c4043" }}>›</button>
+        <span style={{ fontSize: 17, fontWeight: 400, color: "#3c4043", flex: 1 }}>
+          {MONTH_TH_LONG[viewMonth - 1]} {viewYear + 543}
+        </span>
       </div>
 
+      {/* ── DOW headers ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", borderBottom: "1px solid #e8eaed" }}>
+        {["อา","จ","อ","พ","พฤ","ศ","ส"].map((d, i) => (
+          <div key={d} style={{ textAlign: "center", padding: "6px 0", fontSize: 11, fontWeight: 500,
+            color: i === 0 ? "#d50000" : i === 6 ? "#1a73e8" : "#70757a" }}>{d}</div>
+        ))}
+      </div>
+
+      {/* ── Grid ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", borderLeft: "1px solid #e8eaed" }}>
+        {cells.map((day, idx) => {
+          const dayBkgs  = day ? (byDay[day] || []) : [];
+          const isToday  = day === todayDate;
+          const isSel    = day === selectedDay;
+          const isSun    = idx % 7 === 0;
+          const isSat    = idx % 7 === 6;
+          return (
+            <div key={idx} onClick={() => day && setSelectedDay(isSel ? null : day)}
+              style={{
+                minHeight: 80, borderRight: "1px solid #e8eaed", borderBottom: "1px solid #e8eaed",
+                padding: "4px 2px", cursor: day ? "pointer" : "default",
+                background: isSel ? "#e8f0fe" : "#fff",
+              }}>
+              {day && (
+                <>
+                  <div style={{ display: "flex", justifyContent: "center", marginBottom: 2 }}>
+                    <span style={{
+                      width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center",
+                      borderRadius: "50%", fontSize: 12, fontWeight: isToday ? 500 : 400,
+                      background: isToday ? "#1a73e8" : "transparent",
+                      color: isToday ? "#fff" : isSun ? "#d50000" : isSat ? "#1a73e8" : "#3c4043",
+                    }}>{day}</span>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 1, padding: "0 1px" }}>
+                    {dayBkgs.slice(0, 3).map((b, i) => (
+                      <div key={i} style={{
+                        background: roomColor[b.roomId] || "#1a73e8", color: "#fff",
+                        borderRadius: 3, fontSize: 10, padding: "1px 4px",
+                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.5,
+                      }}>
+                        {fmtTime(b.startAt)} {b.room?.name || ""}
+                      </div>
+                    ))}
+                    {dayBkgs.length > 3 && (
+                      <div style={{ fontSize: 10, color: "#70757a", padding: "0 3px" }}>+{dayBkgs.length - 3} รายการ</div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Room legend ── */}
+      {rooms.length > 0 && (
+        <div style={{ borderTop: "1px solid #e8eaed", padding: "8px 16px", display: "flex", flexWrap: "wrap", gap: 10 }}>
+          {rooms.map((r, i) => (
+            <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#3c4043" }}>
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: ROOM_COLORS[i % ROOM_COLORS.length] }} />
+              {r.name}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Selected day detail ── */}
+      {selectedDay && (
+        <div style={{ borderTop: "1px solid #e8eaed", padding: "14px 16px" }}>
+          <div style={{ fontSize: 13, fontWeight: 500, color: "#3c4043", marginBottom: 10 }}>
+            {new Date(viewYear, viewMonth - 1, selectedDay)
+              .toLocaleDateString("th-TH", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+            {selBookings.length === 0 && <span style={{ color: "#aaa", fontWeight: 400 }}> — ว่าง</span>}
+          </div>
+          {selBookings.length === 0
+            ? <p style={{ color: "#aaa", fontSize: 13, margin: 0 }}>ไม่มีการจองในวันนี้</p>
+            : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {selBookings.map(b => {
+                  const st = bookingStatus(b);
+                  const isPast = new Date(b.endAt) < now;
+                  return (
+                    <div key={b.id} style={{
+                      display: "flex", gap: 10, alignItems: "flex-start",
+                      padding: "10px 12px", borderRadius: 8,
+                      borderLeft: `4px solid ${roomColor[b.roomId] || "#1a73e8"}`,
+                      background: "#f8f9fa",
+                      opacity: isPast ? 0.65 : 1,
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: 14, color: "#3c4043" }}>{b.room?.name}</div>
+                        <div style={{ fontSize: 13, color: "#3c4043" }}>{b.title}</div>
+                        <div style={{ fontSize: 12, color: "#70757a", marginTop: 2 }}>
+                          {fmtTime(b.startAt)} – {fmtTime(b.endAt)} น. · {b.displayName || b.lineUserId}
+                        </div>
+                        <div style={{ fontSize: 11, color: "#aaa" }}>{b.bookingNo}</div>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
+                        <span style={{ background: st.bg, color: st.color, border: `1px solid ${st.color}`,
+                          borderRadius: 999, padding: "2px 8px", fontSize: 11, fontWeight: 500, whiteSpace: "nowrap" }}>
+                          {st.label}
+                        </span>
+                        {b.status === "confirmed" && !isPast && (
+                          <button onClick={() => handleCancel(b.id)}
+                            style={{ ...smallBtn("#d50000"), padding: "3px 10px", fontSize: 11 }}>
+                            🗑️ ยกเลิกจอง
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          }
+        </div>
+      )}
     </div>
   );
 }
