@@ -1146,41 +1146,20 @@ function BookingsPanel() {
   const [viewMonth, setViewMonth] = useState(now.getMonth() + 1);
   const [monthBookings, setMonthBookings] = useState([]);
   const [rooms, setRooms] = useState([]);
-  const [selectedDay, setSelectedDay] = useState(null);   // "YYYY-MM-DD"
-  const [detailBooking, setDetailBooking] = useState(null);
-
-  // list view state
-  const [bookings, setBookings]   = useState([]);
-  const [total, setTotal]         = useState(0);
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [filterRoom,   setFilterRoom]   = useState("all");
-  const [page, setPage]           = useState(1);
-  const [loading, setLoading]     = useState(false);
-  const limit = 20;
+  const [selectedDay, setSelectedDay] = useState(null);
 
   const loadRooms = useCallback(async () => { try { setRooms(await api.getRooms()); } catch {} }, []);
   const loadMonth = useCallback(async () => {
     try { setMonthBookings(await api.getBookingsMonth(viewYear, viewMonth)); } catch {}
   }, [viewYear, viewMonth]);
-  const loadList = useCallback(async () => {
-    setLoading(true);
-    try {
-      const r = await api.getBookings({ status: filterStatus, roomId: filterRoom, page, limit });
-      setBookings(r.bookings); setTotal(r.total);
-    } catch {}
-    setLoading(false);
-  }, [filterStatus, filterRoom, page]);
 
   useEffect(() => { loadRooms(); }, [loadRooms]);
   useEffect(() => { loadMonth(); }, [loadMonth]);
-  useEffect(() => { loadList();  }, [loadList]);
-  useEffect(() => { setPage(1);  }, [filterStatus, filterRoom]);
 
   async function handleCancel(id) {
-    if (!confirm("ยืนยันการยกเลิกการจองนี้?")) return;
+    if (!confirm("ยืนยันการยกเลิกจองนี้?")) return;
     await api.cancelBooking(id);
-    setDetailBooking(null);
-    loadMonth(); loadList();
+    loadMonth();
   }
 
   // room → color map
@@ -1212,19 +1191,16 @@ function BookingsPanel() {
     });
   }
 
-  function fmtDT(dt) {
-    return new Date(dt).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" });
-  }
   function fmtTime(dt) {
     return new Date(dt).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
   }
 
-  const BOOKING_STATUS = {
-    confirmed: { label: "✅ ยืนยัน", color: "#2a9d8f", bg: "#e8f5e9" },
-    cancelled: { label: "❌ ยกเลิก", color: "#e63946", bg: "#fff0f0" },
-  };
+  function bookingStatus(b) {
+    if (b.status === "cancelled") return { label: "ยกเลิกคำขอ", color: "#e63946", bg: "#fff0f0" };
+    if (new Date(b.endAt) < now)  return { label: "ห้องประชุมปิดแล้ว", color: "#999", bg: "#f0f0f0" };
+    return { label: "จองสำเร็จ", color: "#2a9d8f", bg: "#e8f5e9" };
+  }
 
-  const totalPages = Math.max(1, Math.ceil(total / limit));
   const days = daysInMonth(viewYear, viewMonth);
   const startDow = firstDow(viewYear, viewMonth);
   const todayKey = dayKey(now.getFullYear(), now.getMonth()+1, now.getDate());
@@ -1305,13 +1281,14 @@ function BookingsPanel() {
               : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
                   {selectedDayBookings.map(b => {
-                    const st = BOOKING_STATUS[b.status] || { label: b.status, color: "#999", bg: "#eee" };
+                    const st = bookingStatus(b);
+                    const isPast = new Date(b.endAt) < now;
                     return (
                       <div key={b.id} style={{
                         display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
                         background: b.status === "cancelled" ? "#fafafa" : "#f8fffe",
                         border: `1px solid ${st.color}33`, borderLeft: `4px solid ${roomColor[b.roomId] || st.color}`,
-                        borderRadius: 8, padding: "10px 12px", opacity: b.status === "cancelled" ? 0.6 : 1,
+                        borderRadius: 8, padding: "10px 12px", opacity: (b.status === "cancelled" || isPast) ? 0.6 : 1,
                       }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 700, fontSize: 14 }}>{b.room?.name}</div>
@@ -1324,10 +1301,10 @@ function BookingsPanel() {
                         <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
                           <span style={{ background: st.bg, color: st.color, border: `1px solid ${st.color}`,
                             borderRadius: 999, padding: "2px 8px", fontSize: 11, fontWeight: 600 }}>{st.label}</span>
-                          {b.status === "confirmed" && (
+                          {b.status === "confirmed" && !isPast && (
                             <button onClick={() => handleCancel(b.id)}
                               style={{ ...smallBtn("#e63946"), padding: "3px 8px", fontSize: 11 }}>
-                              🗑️ ยกเลิก
+                              🗑️ ยกเลิกจอง
                             </button>
                           )}
                         </div>
@@ -1341,70 +1318,6 @@ function BookingsPanel() {
         )}
       </div>
 
-      {/* ── List filters ── */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-        {["all","confirmed","cancelled"].map(s => (
-          <button key={s} onClick={() => setFilterStatus(s)}
-            style={{ padding: "6px 14px", borderRadius: 999, cursor: "pointer", fontWeight: 600, fontSize: 13,
-              background: filterStatus === s ? "#1a1a2e" : "#fff",
-              color: filterStatus === s ? "#fff" : "#333", border: "1px solid #ddd" }}>
-            {{ all: "ทั้งหมด", confirmed: "✅ ยืนยัน", cancelled: "❌ ยกเลิก" }[s]}
-          </button>
-        ))}
-        <select value={filterRoom} onChange={e => setFilterRoom(e.target.value)}
-          style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid #ddd", fontSize: 13, background: "#fff" }}>
-          <option value="all">🏢 ทุกห้อง</option>
-          {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-        </select>
-        <span style={{ marginLeft: "auto", fontSize: 13, color: "#888" }}>
-          ทั้งหมด <strong>{total}</strong> รายการ
-        </span>
-      </div>
-
-      {/* ── Booking list ── */}
-      {loading ? <p style={{ textAlign: "center", color: "#888" }}>⏳ กำลังโหลด...</p> : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {bookings.map(b => {
-            const st = BOOKING_STATUS[b.status] || { label: b.status, color: "#999", bg: "#eee" };
-            return (
-              <div key={b.id} style={{ background: "#fff", borderRadius: 10, padding: "12px 16px",
-                boxShadow: "0 1px 4px #0001", borderLeft: `4px solid ${st.color}`,
-                display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>{b.bookingNo} — {b.room.name}</div>
-                  <div style={{ fontSize: 14, color: "#444", marginTop: 2 }}>{b.title}</div>
-                  <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-                    {fmtDT(b.startAt)} → {fmtDT(b.endAt)}
-                  </div>
-                  <div style={{ fontSize: 12, color: "#aaa", marginTop: 2 }}>{b.displayName || b.lineUserId}</div>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
-                  <span style={{ background: st.bg, color: st.color, border: `1px solid ${st.color}`,
-                    borderRadius: 999, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>
-                    {st.label}
-                  </span>
-                  {b.status === "confirmed" && (
-                    <button onClick={() => handleCancel(b.id)}
-                      style={{ ...smallBtn("#e63946"), padding: "4px 10px", fontSize: 12 }}>
-                      🗑️ ยกเลิก
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-          {bookings.length === 0 && <p style={{ color: "#999", textAlign: "center", padding: 32 }}>ไม่มีรายการจอง</p>}
-        </div>
-      )}
-
-      {/* Pagination */}
-      {total > 0 && (
-        <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 16 }}>
-          <button onClick={() => setPage(page-1)} disabled={page===1} style={pageBtnStyle(page===1)}>‹</button>
-          <span style={{ padding: "5px 12px", fontSize: 13 }}>หน้า {page}/{totalPages}</span>
-          <button onClick={() => setPage(page+1)} disabled={page>=totalPages} style={pageBtnStyle(page>=totalPages)}>›</button>
-        </div>
-      )}
     </div>
   );
 }
