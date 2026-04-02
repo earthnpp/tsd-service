@@ -57,7 +57,10 @@ export default function LiffApp() {
         headers: { "x-line-access-token": token },
         body: fd,
       });
-      if (!res.ok) throw new Error("ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่");
+      }
       setDone(true);
       setTimeout(() => { try { liff.closeWindow(); } catch {} }, 2500);
     } catch (err) {

@@ -9,7 +9,27 @@ async function generateTicketNo() {
   return `HLP-${String(counter.count).padStart(4, "0")}`;
 }
 
+const DAILY_LIMIT = 3;
+
+async function getDailyTicketCount(lineUserId) {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+  return prisma.ticket.count({
+    where: { lineUserId, createdAt: { gte: start, lte: end } },
+  });
+}
+
 async function createTicket(data) {
+  if (data.lineUserId) {
+    const count = await getDailyTicketCount(data.lineUserId);
+    if (count >= DAILY_LIMIT) {
+      const err = new Error(`เกินจำนวนการแจ้งปัญหาต่อวัน (สูงสุด ${DAILY_LIMIT} ครั้ง/วัน)`);
+      err.code = "RATE_LIMIT";
+      throw err;
+    }
+  }
   const ticketNo = await generateTicketNo();
   return prisma.ticket.create({
     data: { ...data, ticketNo },

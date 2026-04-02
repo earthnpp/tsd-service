@@ -74,7 +74,8 @@ async function createTicket(req, res) {
     res.json({ success: true, ticketNo: ticket.ticketNo });
   } catch (err) {
     console.error("LIFF createTicket error:", err);
-    res.status(500).json({ error: err.message });
+    const status = err.code === "RATE_LIMIT" ? 429 : 500;
+    res.status(status).json({ error: err.message });
   }
 }
 
