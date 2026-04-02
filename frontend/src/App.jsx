@@ -125,7 +125,7 @@ export default function App() {
     <div style={{ fontFamily: "system-ui,sans-serif", minHeight: "100vh", background: "#f4f4f8" }}>
       <div className="nav-header" style={{ background: "#1a1a2e", color: "#fff", padding: "16px 24px",
         display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontWeight: 700, fontSize: 20 }}>🖥️ IT Helpdesk Admin</span>
+        <span style={{ fontWeight: 700, fontSize: 20 }}>🖥️ Standard Service Admin Console</span>
         <div className="nav-tabs">
           {TABS.map(({ key, label }) => (
             <button key={key} onClick={() => setTab(key)}
