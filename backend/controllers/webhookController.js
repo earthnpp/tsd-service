@@ -156,7 +156,7 @@ async function onText(event, userId) {
     });
     await sessionService.clearSession(userId);
     return client.replyMessage({ replyToken, messages: [
-  { type: "text", text: "✅ ได้รับเรื่องแล้วครับ ทีม IT จะรีบดำเนินการให้เร็วที่สุด 🙏" },
+  { type: "text", text: "✅ แจ้งรับบริการเรียบร้อยครับ" },
   ticketConfirm(ticket),
 ] });
   }
@@ -227,7 +227,7 @@ async function onPostback(event, userId) {
     });
     await sessionService.clearSession(userId);
     return client.replyMessage({ replyToken, messages: [
-  { type: "text", text: "✅ ได้รับเรื่องแล้วครับ ทีม IT จะรีบดำเนินการให้เร็วที่สุด 🙏" },
+  { type: "text", text: "✅ แจ้งรับบริการเรียบร้อยครับ" },
   ticketConfirm(ticket),
 ] });
   }
@@ -480,7 +480,7 @@ async function onImage(event, userId) {
     });
     await sessionService.clearSession(userId);
     return client.replyMessage({ replyToken, messages: [
-  { type: "text", text: "✅ ได้รับเรื่องแล้วครับ ทีม IT จะรีบดำเนินการให้เร็วที่สุด 🙏" },
+  { type: "text", text: "✅ แจ้งรับบริการเรียบร้อยครับ" },
   ticketConfirm(ticket),
 ] });
   }
