@@ -1338,7 +1338,7 @@ function BookingsPanel() {
                         <div style={{ fontSize: 12, color: "#70757a", marginTop: 2 }}>
                           {fmtTime(b.startAt)} – {fmtTime(b.endAt)} น. · {b.displayName || b.lineUserId}
                         </div>
-                        <div style={{ fontSize: 11, color: "#aaa" }}>{b.bookingNo}</div>
+                        <div style={{ fontSize: 11, color: "#aaa" }}>📋 หมายเลขการจอง: {b.bookingNo}</div>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
                         <span style={{ background: st.bg, color: st.color, border: `1px solid ${st.color}`,
@@ -1395,7 +1395,7 @@ function BookingsPanel() {
               <div style={{ fontSize: 12, color: "#70757a", marginBottom: 2 }}>
                 👤 {b.displayName || b.lineUserId}
               </div>
-              <div style={{ fontSize: 11, color: "#aaa", marginBottom: 10 }}>{b.bookingNo}</div>
+              <div style={{ fontSize: 11, color: "#aaa", marginBottom: 10 }}>📋 หมายเลขการจอง: {b.bookingNo}</div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ background: st.bg, color: st.color, border: `1px solid ${st.color}`,
                   borderRadius: 999, padding: "2px 8px", fontSize: 11, fontWeight: 500 }}>
