@@ -90,6 +90,7 @@ export default function LiffBooking() {
             <div style={{ fontSize: 12, color: "#aaaacc" }}>{profile?.displayName}</div>
           </div>
         </div>
+        <a href="/liff/calendar" style={s.calBtn}>📅 ปฏิทิน</a>
       </div>
 
       <div style={s.body}>
@@ -167,7 +168,8 @@ function Field({ label, required, children }) {
 
 const s = {
   page: { fontFamily: "'Noto Sans Thai', sans-serif", minHeight: "100vh", background: "#f5f6ff", paddingBottom: 48 },
-  header: { background: "#1a1a2e", padding: "16px" },
+  header: { background: "#1a1a2e", padding: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" },
+  calBtn: { fontSize: 12, color: "#aaddff", textDecoration: "none", background: "rgba(255,255,255,0.1)", padding: "6px 12px", borderRadius: 20 },
   avatar: { width: 36, height: 36, borderRadius: "50%", border: "2px solid #aaaacc" },
   body: { padding: "16px" },
   input: { width: "100%", padding: "10px 12px", border: "1px solid #ddd", borderRadius: 8, fontSize: 14, boxSizing: "border-box", fontFamily: "inherit", background: "#fff" },
