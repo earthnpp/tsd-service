@@ -1,14 +1,31 @@
 const express = require("express");
+const jwt = require("jsonwebtoken");
 const adminController = require("../controllers/adminController");
 
 const router = express.Router();
 
 function adminAuth(req, res, next) {
   const token = req.headers["x-admin-token"];
-  if (token !== process.env.ADMIN_SECRET) {
-    return res.status(401).json({ error: "Unauthorized" });
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+
+  // รองรับ JWT token (จาก Google login)
+  if (token.startsWith("eyJ")) {
+    try {
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      req.adminUser = payload;
+      return next();
+    } catch {
+      return res.status(401).json({ error: "Token หมดอายุหรือไม่ถูกต้อง" });
+    }
   }
-  next();
+
+  // Fallback: ADMIN_SECRET (สำหรับ internal/script use)
+  if (token === process.env.ADMIN_SECRET) {
+    req.adminUser = { email: "system" };
+    return next();
+  }
+
+  res.status(401).json({ error: "Unauthorized" });
 }
 
 router.use(adminAuth);
@@ -55,5 +72,10 @@ router.delete("/rooms/:id",                   adminController.deleteRoom);
 router.patch("/bookings/:id/cancel",          adminController.cancelBookingAdmin);
 router.patch("/rooms/:id/calendar",           adminController.updateRoomCalendar);
 router.post("/rooms/:id/create-calendar",     adminController.createRoomCalendar);
+
+// Allowed Users
+router.get("/allowed-users",         adminController.listAllowedUsers);
+router.post("/allowed-users",        adminController.createAllowedUser);
+router.delete("/allowed-users/:id",  adminController.deleteAllowedUser);
 
 module.exports = router;

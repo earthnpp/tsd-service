@@ -5,6 +5,7 @@ const cors = require("cors");
 const webhookRouter = require("./routes/webhook");
 const apiRouter = require("./routes/api");
 const liffRouter = require("./routes/liff");
+const authRouter = require("./routes/auth");
 
 const app = express();
 
@@ -20,6 +21,9 @@ app.use("/uploads", require("express").static("/app/uploads"));
 
 // LIFF public endpoints (no admin auth)
 app.use("/api/liff", liffRouter);
+
+// Auth endpoints (public)
+app.use("/api/auth", authRouter);
 
 // LINE image proxy — ต้องอยู่ก่อน apiRouter เพราะ apiRouter ต้อง auth
 app.get("/api/line-image/:messageId", async (req, res) => {

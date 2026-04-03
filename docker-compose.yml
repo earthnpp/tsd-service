@@ -36,6 +36,9 @@ services:
       DAILY_TICKET_LIMIT: ${DAILY_TICKET_LIMIT:-3}
       MASTER_CALENDAR_ID: ${MASTER_CALENDAR_ID:-}
       GOOGLE_CREDENTIALS: ${GOOGLE_CREDENTIALS:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      JWT_SECRET: ${JWT_SECRET}
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-}
     volumes:
       - uploads_data:/app/uploads
     ports:
@@ -50,8 +53,8 @@ services:
     build:
       context: ./frontend
       args:
-        - VITE_ADMIN_TOKEN=${ADMIN_SECRET}
         - VITE_LIFF_ID=${LIFF_ID}
+        - VITE_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
     container_name: helpdesk-frontend
     restart: unless-stopped
     ports:

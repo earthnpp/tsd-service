@@ -1,14 +1,23 @@
-const ADMIN_TOKEN = import.meta.env.VITE_ADMIN_TOKEN || "";
+function getToken() {
+  return localStorage.getItem("admin_token") || "";
+}
 
 async function request(path, options = {}) {
   const res = await fetch(`/api${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      "x-admin-token": ADMIN_TOKEN,
+      "x-admin-token": getToken(),
       ...(options.headers || {}),
     },
   });
+  if (res.status === 401) {
+    localStorage.removeItem("admin_token");
+    localStorage.removeItem("admin_email");
+    localStorage.removeItem("admin_name");
+    window.location.reload();
+    throw new Error("Unauthorized");
+  }
   if (!res.ok) throw new Error(`API error ${res.status}`);
   return res.json();
 }
@@ -73,4 +82,9 @@ export const api = {
   updateRoomCalendar: (id, calendarId) => request(`/rooms/${id}/calendar`, { method: "PATCH", body: JSON.stringify({ calendarId }) }),
   createRoomCalendar: (id) => request(`/rooms/${id}/create-calendar`, { method: "POST" }),
   getBookingsMonth: (year, month) => request(`/bookings/month?year=${year}&month=${month}`),
+
+  // Allowed Users
+  getAllowedUsers: () => request("/allowed-users"),
+  createAllowedUser: (email, name) => request("/allowed-users", { method: "POST", body: JSON.stringify({ email, name }) }),
+  deleteAllowedUser: (id) => request(`/allowed-users/${id}`, { method: "DELETE" }),
 };

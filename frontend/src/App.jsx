@@ -28,7 +28,7 @@ function Stars({ value }) {
   return <span style={{ color: "#f4a261", fontSize: 16 }}>{"⭐".repeat(value || 0)}</span>;
 }
 
-export default function App() {
+export default function App({ user, onLogout }) {
   const [tab, setTab] = useState("tickets");
   const [tickets, setTickets] = useState([]);
   const [total, setTotal] = useState(0);
@@ -118,6 +118,7 @@ export default function App() {
     { key: "bookings",  label: "🏢 ห้องประชุม" },
     { key: "dashboard", label: "📊 Dashboard" },
     { key: "settings",  label: "⚙️ Settings" },
+    { key: "users",     label: "👥 Users" },
     { key: "export",    label: "📥 Export" },
   ];
 
@@ -126,7 +127,7 @@ export default function App() {
       <div className="nav-header" style={{ background: "#1a1a2e", color: "#fff", padding: "16px 24px",
         display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={{ fontWeight: 700, fontSize: 20 }}>🖥️ Standard Service Admin Console</span>
-        <div className="nav-tabs">
+        <div className="nav-tabs" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           {TABS.map(({ key, label }) => (
             <button key={key} onClick={() => setTab(key)}
               style={{ background: tab === key ? "#e63946" : "transparent", color: "#fff",
@@ -135,6 +136,15 @@ export default function App() {
               {label}
             </button>
           ))}
+          <div style={{ width: 1, height: 24, background: "#fff3", margin: "0 4px" }} />
+          <span style={{ fontSize: 13, color: "#ccc", whiteSpace: "nowrap" }}>
+            {user?.name || user?.email}
+          </span>
+          <button onClick={onLogout}
+            style={{ background: "transparent", color: "#f4a261", border: "1px solid #f4a26155",
+              borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 13 }}>
+            ออกจากระบบ
+          </button>
         </div>
       </div>
 
@@ -161,6 +171,7 @@ export default function App() {
         {tab === "bookings"  && <BookingsPanel />}
         {tab === "dashboard" && <Dashboard stats={stats} dateFrom={statDateFrom} dateTo={statDateTo} setDateFrom={setStatDateFrom} setDateTo={setStatDateTo} />}
         {tab === "settings"  && <SettingsPanel categories={categories} onReload={loadCategories} assignees={assignees} onReloadAssignees={loadAssignees} />}
+        {tab === "users"     && <UsersPanel />}
         {tab === "export"    && <ExportPanel total={total} onExport={exportCSV} />}
       </div>
     </div>
@@ -1448,4 +1459,87 @@ function smallBtn(bg, tiny = false) {
     background: bg, color: "#fff", border: "none", borderRadius: 4,
     padding: tiny ? "2px 6px" : "4px 8px", cursor: "pointer", fontSize: 11, whiteSpace: "nowrap",
   };
+}
+
+// ── Users Panel ───────────────────────────────────────────
+function UsersPanel() {
+  const [users, setUsers] = useState([]);
+  const [email, setEmail] = useState("");
+  const [name, setName]   = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    try { setUsers(await api.getAllowedUsers()); } catch {}
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function addUser() {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      alert("รูปแบบอีเมลไม่ถูกต้อง"); return;
+    }
+    setLoading(true);
+    try {
+      await api.createAllowedUser(trimmed, name.trim() || null);
+      setEmail(""); setName(""); load();
+    } catch (err) {
+      alert("เกิดข้อผิดพลาด: " + (err.message || "อาจมีอีเมลนี้แล้ว"));
+    }
+    setLoading(false);
+  }
+
+  async function removeUser(id) {
+    if (!confirm("ลบผู้ใช้นี้ออกจากรายชื่อที่อนุญาต?")) return;
+    await api.deleteAllowedUser(id); load();
+  }
+
+  return (
+    <div style={{ maxWidth: 600 }}>
+      <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px #0001", marginBottom: 16 }}>
+        <strong style={{ display: "block", marginBottom: 14, fontSize: 16 }}>👥 จัดการผู้ใช้ที่อนุญาต</strong>
+        <p style={{ fontSize: 13, color: "#888", margin: "0 0 16px" }}>
+          เฉพาะอีเมลในรายชื่อนี้เท่านั้นที่สามารถเข้าสู่ระบบด้วย Google ได้
+        </p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+          <input value={email} onChange={(e) => setEmail(e.target.value)}
+            placeholder="อีเมล Google *"
+            onKeyDown={(e) => e.key === "Enter" && addUser()}
+            style={{ ...inputStyle, flex: "1 1 200px" }} />
+          <input value={name} onChange={(e) => setName(e.target.value)}
+            placeholder="ชื่อ (ไม่บังคับ)"
+            onKeyDown={(e) => e.key === "Enter" && addUser()}
+            style={{ ...inputStyle, flex: "1 1 160px" }} />
+          <button onClick={addUser} disabled={loading} style={btnStyle("#1a1a2e")}>
+            + เพิ่ม
+          </button>
+        </div>
+      </div>
+
+      <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px #0001" }}>
+        <strong style={{ display: "block", marginBottom: 12 }}>รายชื่อที่อนุญาต ({users.length})</strong>
+        {users.length === 0 && (
+          <p style={{ color: "#bbb", fontSize: 13, textAlign: "center", padding: "16px 0" }}>
+            ยังไม่มีรายชื่อ — กรุณาเพิ่มอีเมลด้านบน
+          </p>
+        )}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {users.map((u) => (
+            <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10,
+              padding: "10px 12px", borderRadius: 8, background: "#f8f9ff", border: "1px solid #eee" }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{u.name || u.email}</div>
+                {u.name && <div style={{ fontSize: 12, color: "#888" }}>{u.email}</div>}
+              </div>
+              <div style={{ fontSize: 11, color: "#bbb", whiteSpace: "nowrap" }}>
+                {new Date(u.createdAt).toLocaleDateString("th-TH")}
+              </div>
+              <button onClick={() => removeUser(u.id)} style={smallBtn("#e63946")}>🗑️</button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }

@@ -348,6 +348,33 @@ async function createRoomCalendar(req, res) {
   }
 }
 
+// ── Allowed Users ─────────────────────────────────────────
+
+async function listAllowedUsers(req, res) {
+  const users = await prisma.allowedUser.findMany({ orderBy: { createdAt: "asc" } });
+  res.json(users);
+}
+
+async function createAllowedUser(req, res) {
+  try {
+    const { email, name } = req.body;
+    if (!email) return res.status(400).json({ error: "email required" });
+    const u = await prisma.allowedUser.create({ data: { email: email.trim().toLowerCase(), name: name?.trim() || null } });
+    res.json(u);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+}
+
+async function deleteAllowedUser(req, res) {
+  try {
+    await prisma.allowedUser.delete({ where: { id: Number(req.params.id) } });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+}
+
 // ── Helper ────────────────────────────────────────────────
 
 async function notifyUser(lineUserId, messages) {
@@ -367,4 +394,5 @@ module.exports = {
   listAssignees, createAssignee, updateAssignee, deleteAssignee,
   listBookings, listBookingsMonth, listRooms, cancelBookingAdmin, updateRoomCalendar,
   createRoom, updateRoom, deleteRoom, createRoomCalendar,
+  listAllowedUsers, createAllowedUser, deleteAllowedUser,
 };
