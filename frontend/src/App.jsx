@@ -128,32 +128,57 @@ export default function App({ user, onLogout }) {
   ];
 
   return (
-    <div style={{ fontFamily: "system-ui,sans-serif", minHeight: "100vh", background: "#f4f4f8" }}>
-      <div className="nav-header" style={{ background: "#1a1a2e", color: "#fff", padding: "16px 24px",
-        display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontWeight: 700, fontSize: 20 }}>🖥️ Standard Service Admin Console</span>
-        <div className="nav-tabs" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+    <div style={{ fontFamily: "system-ui,sans-serif", minHeight: "100vh", display: "flex", background: "#f4f4f8" }}>
+
+      {/* ── Sidebar ── */}
+      <div style={{
+        width: 220, minHeight: "100vh", background: "#1a1a2e", display: "flex",
+        flexDirection: "column", flexShrink: 0, position: "sticky", top: 0, height: "100vh",
+      }}>
+        {/* Logo */}
+        <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid #ffffff18" }}>
+          <div style={{ fontWeight: 700, fontSize: 15, color: "#fff", lineHeight: 1.3 }}>
+            🖥️ Standard Service
+          </div>
+          <div style={{ fontSize: 11, color: "#aaa", marginTop: 3 }}>Admin Console</div>
+        </div>
+
+        {/* Menu */}
+        <nav style={{ flex: 1, padding: "12px 8px", display: "flex", flexDirection: "column", gap: 2 }}>
           {TABS.map(({ key, label }) => (
-            <button key={key} onClick={() => changeTab(key)}
-              style={{ background: tab === key ? "#e63946" : "transparent", color: "#fff",
-                border: "1px solid #fff3", borderRadius: 6, padding: "6px 16px",
-                cursor: "pointer", fontWeight: tab === key ? 700 : 400 }}>
+            <button key={key} onClick={() => changeTab(key)} style={{
+              display: "block", width: "100%", textAlign: "left",
+              background: tab === key ? "#e63946" : "transparent",
+              color: tab === key ? "#fff" : "#ccc",
+              border: "none", borderRadius: 8, padding: "9px 14px",
+              cursor: "pointer", fontSize: 14, fontWeight: tab === key ? 600 : 400,
+              transition: "background 0.15s",
+            }}
+              onMouseEnter={e => { if (tab !== key) e.currentTarget.style.background = "#ffffff14"; }}
+              onMouseLeave={e => { if (tab !== key) e.currentTarget.style.background = "transparent"; }}
+            >
               {label}
             </button>
           ))}
-          <div style={{ width: 1, height: 24, background: "#fff3", margin: "0 4px" }} />
-          <span style={{ fontSize: 13, color: "#ccc", whiteSpace: "nowrap" }}>
+        </nav>
+
+        {/* User + Logout */}
+        <div style={{ padding: "12px 16px", borderTop: "1px solid #ffffff18" }}>
+          <div style={{ fontSize: 12, color: "#aaa", marginBottom: 8, wordBreak: "break-all" }}>
             {user?.name || user?.email}
-          </span>
-          <button onClick={onLogout}
-            style={{ background: "transparent", color: "#f4a261", border: "1px solid #f4a26155",
-              borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontSize: 13 }}>
+          </div>
+          <button onClick={onLogout} style={{
+            width: "100%", background: "transparent", color: "#f4a261",
+            border: "1px solid #f4a26155", borderRadius: 6, padding: "6px 0",
+            cursor: "pointer", fontSize: 13,
+          }}>
             ออกจากระบบ
           </button>
         </div>
       </div>
 
-      <div className="page-wrap">
+      {/* ── Main content ── */}
+      <div style={{ flex: 1, minWidth: 0, padding: 24, overflowY: "auto" }}>
         {tab === "tickets" && !selectedTicket && (
           <TicketList
             tickets={tickets} loading={loading} total={total}
