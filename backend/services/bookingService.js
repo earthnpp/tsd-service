@@ -41,8 +41,8 @@ async function createBooking({ roomId, lineUserId, displayName, email, departmen
   // Google Calendar sync (non-blocking)
   if (booking.room.calendarId) {
     calendarService.createEvent(booking.room.calendarId, {
-      summary: `[${bookingNo}] ${title}`,
-      description: `จองโดย: ${displayName || lineUserId}`,
+      summary: `${booking.room.name} - ${title}`,
+      description: `ผู้จอง: ${displayName || lineUserId}\nรายละเอียด: ${title}\nหมายเลขการจอง: ${bookingNo}`,
       startAt,
       endAt,
     }).then((eventId) => {
