@@ -775,6 +775,17 @@ function RoomSettings({ rooms, onReload }) {
       alert("เกิดข้อผิดพลาด: " + (err.message || "ไม่สามารถสร้าง Calendar ได้"));
     }
   }
+  const [globalCalInput, setGlobalCalInput] = useState("");
+
+  async function applyCalendarToAll() {
+    const calId = globalCalInput.trim();
+    if (!calId) return alert("กรุณากรอก Calendar ID ก่อน");
+    if (!confirm(`ใช้ Calendar ID นี้กับทุกห้อง (${rooms.length} ห้อง)?`)) return;
+    await Promise.all(rooms.map(r => api.updateRoomCalendar(r.id, calId)));
+    setGlobalCalInput("");
+    onReload();
+  }
+
   async function removeRoom(id) {
     if (!confirm("ลบห้องนี้? การจองทั้งหมดของห้องนี้จะถูกลบด้วย")) return;
     await api.deleteRoom(id); onReload();
@@ -783,6 +794,18 @@ function RoomSettings({ rooms, onReload }) {
   return (
     <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px #0001" }}>
       <strong style={{ fontSize: 15, display: "block", marginBottom: 14 }}>🏢 จัดการห้องประชุม</strong>
+
+      {/* ตั้งค่า Calendar ทุกห้องพร้อมกัน */}
+      <div style={{ background: "#f0f7ff", border: "1px solid #bcd", borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#457b9d" }}>📆 ตั้งค่า Calendar ID ทุกห้องพร้อมกัน</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input value={globalCalInput} onChange={e => setGlobalCalInput(e.target.value)}
+            placeholder="xxx@group.calendar.google.com"
+            style={{ ...inputStyle, flex: 1, fontSize: 12 }} />
+          <button onClick={applyCalendarToAll} style={btnStyle("#457b9d")}>ใช้กับทุกห้อง</button>
+        </div>
+      </div>
+
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
         <input value={newName} onChange={e => setNewName(e.target.value)}
           placeholder="ชื่อห้องใหม่" style={{ ...inputStyle, flex: 1 }}
