@@ -10,8 +10,9 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    ports:
-      - "3306:3306"
+    # ปิด port ไม่ให้เข้าถึงจากภายนอก — ใช้ผ่าน network ภายในเท่านั้น
+    # expose:
+    #   - "3306"
     volumes:
       - db_data:/var/lib/mysql
     networks:
@@ -41,8 +42,9 @@ services:
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-}
     volumes:
       - uploads_data:/app/uploads
+    # expose port 3001 เฉพาะตอน debug — ใน production ให้ปิดแล้วใช้ผ่าน nginx (port 8080)
     ports:
-      - "3001:3000"
+      - "127.0.0.1:3001:3000"
     depends_on:
       db:
         condition: service_healthy

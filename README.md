@@ -15,7 +15,7 @@ STD-Service/
 ├── .env.example                    ← Template ตัวแปรสภาพแวดล้อม
 │
 ├── backend/                        ← Node.js + Express REST API (Port 3000)
-│   ├── app.js                      ← Entry point, middleware setup
+│   ├── app.js                      ← Entry point, middleware, security setup
 │   ├── Dockerfile
 │   ├── package.json
 │   ├── controllers/
@@ -25,14 +25,14 @@ STD-Service/
 │   │   └── liffController.js       ← LINE LIFF endpoints
 │   ├── services/
 │   │   ├── ticketService.js        ← CRUD Ticket + daily limit
-│   │   ├── bookingService.js       ← ตรรกะการจองห้องประชุม
+│   │   ├── bookingService.js       ← ตรรกะการจองห้องประชุม + Google Calendar sync
 │   │   ├── calendarService.js      ← Google Calendar API integration
 │   │   ├── categoryService.js      ← จัดการหมวดหมู่และหมวดย่อย
 │   │   └── sessionService.js       ← สถานะการสนทนา LINE bot
 │   ├── routes/
 │   │   ├── webhook.js              ← POST /webhook (LINE)
 │   │   ├── api.js                  ← Admin API routes (JWT-protected)
-│   │   ├── liff.js                 ← LIFF public endpoints
+│   │   ├── liff.js                 ← LIFF public endpoints + rate limiting
 │   │   └── auth.js                 ← Google OAuth routes
 │   ├── views/flex/                 ← LINE Flex Message templates
 │   │   ├── mainMenu.js
@@ -46,7 +46,7 @@ STD-Service/
 │   │   └── google-credentials.json ← Service account key (ไม่ commit)
 │   └── prisma/
 │       ├── schema.prisma           ← Data models
-│       └── migrations/             ← 9 migration files
+│       └── migrations/             ← 10 migration files
 │
 └── frontend/                       ← React Admin Dashboard (Port 8080)
     ├── Dockerfile                  ← Multi-stage: build → Nginx
@@ -55,7 +55,7 @@ STD-Service/
     ├── .env.example
     └── src/
         ├── main.jsx                ← React entry point
-        ├── App.jsx                 ← Admin Dashboard หลัก
+        ├── App.jsx                 ← Admin Dashboard (Sidebar layout)
         ├── LoginPage.jsx           ← Google OAuth login
         ├── LiffApp.jsx             ← LIFF หน้าหลัก
         ├── LiffBooking.jsx         ← LIFF จองห้องประชุม
@@ -77,7 +77,9 @@ STD-Service/
 | `FaqItem` | คลังคำถามที่พบบ่อย + viewCount + resolvedCount |
 | `Room` | ห้องประชุม + Google Calendar ID |
 | `RoomBooking` | การจองห้องประชุม + Google Event ID |
+| `BookingCounter` | ตัวนับเลขการจอง (รูปแบบ BK-0001) |
 | `AllowedUser` | Whitelist อีเมลที่เข้าถึง Admin ได้ |
+| `SystemConfig` | Key-value config (ข้อมูลติดต่อ IT, ฯลฯ) |
 
 ---
 
@@ -99,19 +101,29 @@ Admin Assign + ปิด Ticket
   → ระบบส่ง prompt ให้คะแนน (1–5 ดาว)
 ```
 
-### Admin Dashboard (React)
+### Admin Dashboard (React — Sidebar Layout)
 - จัดการ Ticket: ดู, กรอง, ค้นหา, assign, เปลี่ยนสถานะ, ปิด, export CSV
 - บันทึกค่าใช้จ่ายซ่อม (จำนวน, VAT, vendor)
 - สถิติ Real-time (pending / in-progress / completed)
 - จัดการหมวดหมู่ & FAQ
-- จัดการห้องประชุมและการจอง
+- จัดการห้องประชุมและการจอง + Google Calendar sync
+- ตั้งค่า Calendar ID ทุกห้องพร้อมกัน
 - จัดการ IT Staff (Assignee)
 - ควบคุมสิทธิ์เข้าถึง (AllowedUser whitelist)
-- Google Calendar sync สำหรับห้องประชุม
+- แก้ไขข้อมูลติดต่อ IT ที่แสดงใน LINE ได้จาก UI
+- URL Hash navigation (รีเพจแล้วอยู่หน้าเดิม)
+
+### Google Calendar Integration
+- สร้าง Calendar ใหม่ผ่าน service account อัตโนมัติ
+- Event format: `ชื่อห้อง : หัวข้อการจอง`
+- Description: ผู้จอง / รายละเอียด / หมายเลขการจอง
+- ยกเลิกการจองใน system → ลบ event ใน Calendar อัตโนมัติ
 
 ### Rate Limiting & Deduplication
 - จำกัด Ticket ต่อ user: 3 ต่อวัน (ตั้งค่าได้ผ่าน `DAILY_TICKET_LIMIT`)
-- ป้องกัน double-submit: FAQ resolved (1 ชม.), Rating (24 ชม.), Booking confirm (30 วินาที)
+- LIFF write endpoints (ticket/booking): 20 requests / 5 นาที ต่อ IP
+- Auth endpoints: 10 requests / 15 นาที
+- Admin API: 300 requests / นาที
 
 ---
 
@@ -137,6 +149,9 @@ Admin Assign + ปิด Ticket
 | PATCH | `/api/bookings/:id/cancel` | ยกเลิกการจอง |
 | GET/POST/DELETE | `/api/allowed-users` | จัดการ Whitelist |
 | GET/POST/PUT/DELETE | `/api/assignees` | จัดการ IT Staff |
+| GET | `/api/config` | ดึง System Config |
+| PUT | `/api/config` | อัปเดต System Config |
+| GET | `/api/calendar/test` | ทดสอบ Google credentials |
 
 ### Public
 
@@ -170,10 +185,11 @@ LIFF_ID=your_liff_id_here
 # Security
 ADMIN_SECRET=change_this_to_a_strong_secret
 JWT_SECRET=change_this_to_a_random_secret_string
+CORS_ORIGIN=https://your-domain.com          # เว้นว่างไว้ = same-origin only
 
 # Google
 GOOGLE_CLIENT_ID=your_google_oauth_client_id_here
-GOOGLE_CREDENTIALS={"type":"service_account",...}   # Service Account JSON (stringify)
+GOOGLE_CREDENTIALS={"type":"service_account",...}   # Service Account JSON (stringify หรือ base64)
 INITIAL_ADMIN_EMAIL=your_admin@gmail.com
 
 # Optional
@@ -183,94 +199,73 @@ DAILY_TICKET_LIMIT=3
 MASTER_CALENDAR_ID=your_google_calendar_id
 ```
 
-> `VITE_ADMIN_TOKEN` และ `VITE_GOOGLE_CLIENT_ID` ใน frontend จะถูก inject อัตโนมัติจาก `ADMIN_SECRET` และ `GOOGLE_CLIENT_ID` ผ่าน Docker build args
+---
+
+## Security
+
+| Layer | มาตรการ |
+|-------|---------|
+| HTTP Headers | Helmet.js (XSS, HSTS, clickjacking protection) |
+| CORS | จำกัดเฉพาะ `CORS_ORIGIN` ที่กำหนด |
+| Rate Limiting | Auth 10/15min · LIFF write 20/5min · Admin 300/min |
+| Auth | JWT + Google OAuth + AllowedUser whitelist |
+| LINE Webhook | Signature verification (HMAC-SHA256) |
+| File Upload | Validate MIME type (images only) + 10MB limit |
+| Database | Prisma parameterized queries (SQL injection safe) |
+| Secrets | `.env` gitignored, service account key gitignored |
+| Network | MySQL port ปิดจาก external · Backend bind to 127.0.0.1 |
 
 ---
 
 ## Deploy บน Portainer
 
-### วิธีที่ 1: Stacks (แนะนำ)
+### 1. เตรียมเซิร์ฟเวอร์
 
-1. **เตรียม repository บนเซิร์ฟเวอร์**
-   ```bash
-   git clone <repo-url> /opt/stacks/STD-Service
-   cd /opt/stacks/STD-Service
-   cp .env.example .env
-   nano .env   # ใส่ค่า secrets ทั้งหมด
-   ```
+```bash
+git clone <repo-url> /opt/stacks/STD-Service
+cd /opt/stacks/STD-Service
+cp .env.example .env
+nano .env   # ใส่ค่า secrets ทั้งหมด
+```
 
-2. **สร้าง external network** (ถ้ายังไม่มี)
-   ```bash
-   docker network create management_xtech_net
-   ```
+### 2. สร้าง external network (ถ้ายังไม่มี)
 
-3. **เปิด Portainer** → ไปที่ **Stacks** → **Add stack**
+```bash
+docker network create management_xtech_net
+```
 
-4. ตั้งชื่อ stack เช่น `helpdesk`
+### 3. Deploy ผ่าน Portainer Stacks
 
-5. เลือก **Repository** แล้วกรอก:
-   - Repository URL: URL ของ Git repo
-   - Compose path: `docker-compose.yml`
+1. **Stacks** → **Add stack** → ตั้งชื่อ `helpdesk`
+2. เลือก **Repository** หรือ **Upload** `docker-compose.yml`
+3. **Environment variables** → Load จากไฟล์ `.env`
+4. กด **Deploy the stack**
 
-   **หรือ** เลือก **Upload** แล้วอัปโหลดไฟล์ `docker-compose.yml`
+### 4. ตั้งค่า LINE Webhook
 
-   **หรือ** เลือก **Web editor** แล้ว paste เนื้อหา `docker-compose.yml`
+1. [LINE Developers Console](https://developers.line.biz/) → Channel → Messaging API
+2. Webhook URL: `https://your-domain.com/webhook`
+3. เปิด **Use webhook** → ปิด **Auto-reply messages**
+4. กด **Verify**
 
-6. เลื่อนลงไปที่ **Environment variables** → คลิก **Load variables from .env file** แล้วอัปโหลดไฟล์ `.env`
-   
-   หรือกรอก Environment variables ด้วยตนเองทีละตัว
-
-7. คลิก **Deploy the stack**
-
-8. รอ Portainer build images และ start containers (~2-5 นาที)
-
-9. ตรวจสอบ:
-   - Admin Dashboard: `http://<server-ip>:8080`
-   - Backend API:     `http://<server-ip>:3001/health`
+> **หมายเหตุ:** LIFF channel ต้อง Publish (ไม่ใช่ Developing) ถึงจะใช้งานได้กับทุกคน
 
 ---
 
-### วิธีที่ 2: ผ่าน Portainer Agent (GitOps)
+### Ports
 
-1. ใน Portainer ไปที่ **Stacks** → **Add stack**
-2. เลือก **Git Repository**
-3. กรอก Repository URL และ branch
-4. เปิด **GitOps updates** เพื่อให้ auto-deploy เมื่อ push code ใหม่
-5. ใส่ Environment variables
-6. คลิก **Deploy the stack**
+| Service | Container Port | Host Port | หมายเหตุ |
+|---------|---------------|-----------|---------|
+| Frontend (Nginx) | 80 | **8080** | Public |
+| Backend (Express) | 3000 | **127.0.0.1:3001** | Localhost debug only |
+| Database (MySQL) | 3306 | — | Internal only (ไม่ expose) |
 
----
-
-### ตั้งค่า LINE Webhook หลัง Deploy
-
-1. เปิด [LINE Developers Console](https://developers.line.biz/)
-2. เลือก Channel → **Messaging API**
-3. Webhook URL: `https://your-domain.com/webhook`
-   - ถ้าใช้ IP ตรงๆ: `http://<server-ip>:3001/webhook`
-4. เปิด **Use webhook**
-5. ปิด **Auto-reply messages**
-6. คลิก **Verify** เพื่อทดสอบการเชื่อมต่อ
-
----
-
-### Ports ที่ใช้งาน
-
-| Service | Container Port | Host Port |
-|---------|---------------|-----------|
-| Frontend (Nginx) | 80 | **8080** |
-| Backend (Express) | 3000 | **3001** |
-| Database (MySQL) | 3306 | **3306** |
-
----
-
-### Volumes ที่สร้าง
+### Volumes
 
 | Volume | เก็บข้อมูล |
 |--------|-----------|
 | `db_data` | MySQL database files |
 | `uploads_data` | รูปภาพที่ user อัปโหลดผ่าน LIFF |
-
----
 
 ### Networks
 
@@ -279,25 +274,25 @@ MASTER_CALENDAR_ID=your_google_calendar_id
 | `helpdesk-net` | bridge (internal) | การสื่อสารระหว่าง containers |
 | `management_xtech_net` | external | เชื่อมต่อกับ infrastructure ภายนอก |
 
-> ต้องสร้าง `management_xtech_net` ก่อน deploy: `docker network create management_xtech_net`
+---
+
+## Google Calendar Setup
+
+1. สร้าง Service Account ใน Google Cloud Console
+2. Enable **Google Calendar API** ในโปรเจกต์
+3. ดาวน์โหลด JSON key → แปลง base64: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("key.json")) | clip`
+4. ใส่ใน `GOOGLE_CREDENTIALS` ใน Portainer environment variables
+5. Admin Dashboard → Settings → ห้องประชุม → กด **"สร้าง Calendar"** ต่อห้อง
+6. ทดสอบ: `GET /api/calendar/test` (ใส่ header `x-admin-token`)
 
 ---
 
 ## การพัฒนาแบบ Local (ngrok)
 
 ```bash
-# 1. ตั้งค่า environment
-cp .env.example .env
-# แก้ไข .env ใส่ LINE credentials
-
-# 2. รัน Docker
+cp .env.example .env        # ใส่ LINE credentials
 docker compose up -d --build
-
-# 3. เปิด ngrok เพื่อรับ webhook
-ngrok http 3001
-
-# 4. นำ URL จาก ngrok ไปตั้ง webhook ใน LINE Developers Console
-# เช่น https://xxxx.ngrok-free.app/webhook
+ngrok http 3001             # นำ URL ไปตั้งเป็น webhook ใน LINE Console
 ```
 
 ---
@@ -307,7 +302,6 @@ ngrok http 3001
 **Backend ไม่ start / database error**
 ```bash
 docker compose logs backend
-# ถ้าเห็น "Can't reach database" → รอ MySQL healthy แล้ว restart backend
 docker compose restart backend
 ```
 
@@ -316,10 +310,9 @@ docker compose restart backend
 docker compose exec backend npx prisma migrate deploy
 ```
 
-**ดู logs แบบ real-time**
+**ทดสอบ Google Calendar credentials**
 ```bash
-docker compose logs -f backend
-docker compose logs -f frontend
+curl -H "x-admin-token: YOUR_ADMIN_SECRET" http://localhost:3001/api/calendar/test
 ```
 
 **Rebuild หลังแก้ code**
