@@ -29,7 +29,12 @@ function Stars({ value }) {
 }
 
 export default function App({ user, onLogout }) {
-  const [tab, setTab] = useState("tickets");
+  const [tab, setTab] = useState(() => window.location.hash.replace("#", "") || "tickets");
+
+  const changeTab = useCallback((t) => {
+    setTab(t);
+    window.location.hash = t;
+  }, []);
   const [tickets, setTickets] = useState([]);
   const [total, setTotal] = useState(0);
   const [stats, setStats] = useState(null);
@@ -129,7 +134,7 @@ export default function App({ user, onLogout }) {
         <span style={{ fontWeight: 700, fontSize: 20 }}>🖥️ Standard Service Admin Console</span>
         <div className="nav-tabs" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           {TABS.map(({ key, label }) => (
-            <button key={key} onClick={() => setTab(key)}
+            <button key={key} onClick={() => changeTab(key)}
               style={{ background: tab === key ? "#e63946" : "transparent", color: "#fff",
                 border: "1px solid #fff3", borderRadius: 6, padding: "6px 16px",
                 cursor: "pointer", fontWeight: tab === key ? 700 : 400 }}>
