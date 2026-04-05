@@ -11,13 +11,14 @@ function formatDateTH(dateStr) {
 }
 
 function formatDateTimeTH(dt) {
-  const d = new Date(dt);
+  // offset to Asia/Bangkok (UTC+7) เพราะ Docker container ใช้ UTC
+  const d = new Date(new Date(dt).getTime() + 7 * 60 * 60 * 1000);
   const months = ["","ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
-  const day = d.getDate();
-  const mon = months[d.getMonth() + 1];
-  const be = d.getFullYear() + 543;
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
+  const day = d.getUTCDate();
+  const mon = months[d.getUTCMonth() + 1];
+  const be = d.getUTCFullYear() + 543;
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
   return `${day} ${mon} ${be} ${hh}:${mm}`;
 }
 
@@ -42,15 +43,16 @@ function roomQuickReply(rooms) {
 // Date quick reply (next 7 days)
 function dateQuickReply(phase, customText = null) {
   const items = [];
-  const now = new Date();
+  // ใช้เวลาไทย (UTC+7) เพื่อให้ "วันนี้" ถูกต้องแม้ server ใช้ UTC
+  const now = new Date(Date.now() + 7 * 60 * 60 * 1000);
   for (let i = 0; i < 7; i++) {
     const d = new Date(now);
-    d.setDate(d.getDate() + i);
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
+    d.setUTCDate(d.getUTCDate() + i);
+    const yyyy = d.getUTCFullYear();
+    const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(d.getUTCDate()).padStart(2, "0");
     const dateStr = `${yyyy}-${mm}-${dd}`;
-    const label = `${dd}/${mm} (${DAY_NAMES[d.getDay()]})`;
+    const label = `${dd}/${mm} (${DAY_NAMES[d.getUTCDay()]})`;
     items.push({
       type: "action",
       action: {
