@@ -5,20 +5,36 @@ const CREDENTIALS_PATH = path.join(__dirname, "../config/google-credentials.json
 
 function getCredentials() {
   // 1) Environment variable (สำหรับ Docker/Portainer)
-  if (process.env.GOOGLE_CREDENTIALS) {
+  const raw = process.env.GOOGLE_CREDENTIALS;
+  if (raw) {
+    console.log(`[Calendar] GOOGLE_CREDENTIALS found, length=${raw.length}, starts=${raw.slice(0, 20)}`);
     try {
-      return JSON.parse(process.env.GOOGLE_CREDENTIALS);
+      const parsed = JSON.parse(raw);
+      console.log(`[Calendar] credentials loaded (JSON), client_email=${parsed.client_email}`);
+      return parsed;
     } catch {
       // อาจเป็น base64
       try {
-        return JSON.parse(Buffer.from(process.env.GOOGLE_CREDENTIALS, "base64").toString());
-      } catch {}
+        const decoded = Buffer.from(raw, "base64").toString();
+        const parsed = JSON.parse(decoded);
+        console.log(`[Calendar] credentials loaded (base64), client_email=${parsed.client_email}`);
+        return parsed;
+      } catch (e) {
+        console.error("[Calendar] GOOGLE_CREDENTIALS parse failed (both JSON and base64):", e.message);
+      }
     }
+  } else {
+    console.warn("[Calendar] GOOGLE_CREDENTIALS not set in environment");
   }
   // 2) File fallback (local dev)
   if (fs.existsSync(CREDENTIALS_PATH)) {
-    try { return JSON.parse(fs.readFileSync(CREDENTIALS_PATH, "utf-8")); } catch {}
+    try {
+      const parsed = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, "utf-8"));
+      console.log(`[Calendar] credentials loaded (file), client_email=${parsed.client_email}`);
+      return parsed;
+    } catch {}
   }
+  console.error("[Calendar] No credentials available — calendar sync disabled");
   return null;
 }
 
