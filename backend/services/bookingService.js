@@ -79,7 +79,11 @@ async function cancelBooking(bookingId, lineUserId) {
   });
 
   if (booking.googleEventId && booking.room.calendarId) {
-    calendarService.deleteEvent(booking.room.calendarId, booking.googleEventId).catch(() => {});
+    calendarService.deleteEvent(booking.room.calendarId, booking.googleEventId)
+      .then(() => console.log(`[Calendar] Event deleted for booking ${booking.bookingNo}`))
+      .catch((err) => console.error(`[Calendar] deleteEvent failed for booking ${booking.bookingNo}:`, err.message));
+  } else {
+    console.warn(`[Calendar] skip delete — booking ${booking.bookingNo} has no googleEventId or calendarId`);
   }
 
   return updated;
@@ -132,7 +136,11 @@ async function adminCancelBooking(bookingId) {
   });
 
   if (booking.googleEventId && booking.room.calendarId) {
-    calendarService.deleteEvent(booking.room.calendarId, booking.googleEventId).catch(() => {});
+    calendarService.deleteEvent(booking.room.calendarId, booking.googleEventId)
+      .then(() => console.log(`[Calendar] Event deleted for booking ${booking.bookingNo}`))
+      .catch((err) => console.error(`[Calendar] deleteEvent failed for booking ${booking.bookingNo}:`, err.message));
+  } else {
+    console.warn(`[Calendar] skip delete — booking ${booking.bookingNo} has no googleEventId or calendarId`);
   }
 
   return updated;
