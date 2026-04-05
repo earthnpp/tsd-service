@@ -759,12 +759,52 @@ function SettingsPanel({ categories, onReload, assignees, onReloadAssignees }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <ContactSettings />
       <AssigneeSettings assignees={assignees} onReload={onReloadAssignees} />
       <div className="two-col">
         <CategorySettings categories={categories} onReload={onReload} />
         <FaqSettings faqs={faqs} onReload={loadFaqs} />
       </div>
       <RoomSettings rooms={rooms} onReload={loadRooms} />
+    </div>
+  );
+}
+
+function ContactSettings() {
+  const [form, setForm] = useState({ contact_name: "", contact_phone: "", contact_email: "", contact_hours: "", contact_line: "" });
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    api.getConfig().then(cfg => setForm(f => ({ ...f, ...cfg }))).catch(() => {});
+  }, []);
+
+  async function save() {
+    await api.updateConfig(form);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  const field = (key, label, placeholder) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <label style={{ fontSize: 12, color: "#666", fontWeight: 600 }}>{label}</label>
+      <input value={form[key] || ""} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+        placeholder={placeholder} style={{ ...inputStyle, fontSize: 13 }} />
+    </div>
+  );
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px #0001" }}>
+      <strong style={{ fontSize: 15, display: "block", marginBottom: 14 }}>📞 ข้อมูลติดต่อ IT (แสดงใน LINE)</strong>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+        {field("contact_name",  "ชื่อทีม",        "เช่น ทีม IT Support")}
+        {field("contact_phone", "เบอร์โทร",        "เช่น 02-xxx-xxxx")}
+        {field("contact_email", "Email",           "เช่น it@company.com")}
+        {field("contact_hours", "เวลาทำการ",       "เช่น จ–ศ 08:00–18:00")}
+        {field("contact_line",  "LINE ID (ถ้ามี)", "เช่น @itsupport")}
+      </div>
+      <button onClick={save} style={{ ...btnStyle(saved ? "#2a9d8f" : "#1a1a2e"), minWidth: 120 }}>
+        {saved ? "✅ บันทึกแล้ว" : "บันทึก"}
+      </button>
     </div>
   );
 }

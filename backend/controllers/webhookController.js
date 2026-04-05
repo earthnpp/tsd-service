@@ -581,14 +581,23 @@ async function onPostback(event, userId) {
   }
 
   if (action === "contact_it") {
+    const { PrismaClient } = require("@prisma/client");
+    const _prisma = new PrismaClient();
+    const rows = await _prisma.systemConfig.findMany();
+    const cfg = Object.fromEntries(rows.map(r => [r.key, r.value]));
+
+    const name   = cfg.contact_name  || "ทีม IT Support";
+    const phone  = cfg.contact_phone || "-";
+    const email  = cfg.contact_email || "-";
+    const hours  = cfg.contact_hours || "-";
+    const lineId = cfg.contact_line  || "";
+
+    let text = `📞 ${name}\n\n☎️ โทร: ${phone}\n📧 Email: ${email}\n🕐 เวลาทำการ: ${hours}`;
+    if (lineId) text += `\n💬 LINE ID: ${lineId}`;
+
     return client.replyMessage({
       replyToken,
-      messages: [
-        {
-          type: "text",
-          text: "📞 ติดต่อทีม IT Support\n\n☎️ โทรภายใน: 1234\n📧 Email: it@company.com\n🕐 เวลาทำการ: จ-ศ 08:00-18:00",
-        },
-      ],
+      messages: [{ type: "text", text }],
     });
   }
 }

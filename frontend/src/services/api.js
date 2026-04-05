@@ -83,6 +83,10 @@ export const api = {
   createRoomCalendar: (id) => request(`/rooms/${id}/create-calendar`, { method: "POST" }),
   getBookingsMonth: (year, month) => request(`/bookings/month?year=${year}&month=${month}`),
 
+  // System Config
+  getConfig: () => request("/config"),
+  updateConfig: (data) => request("/config", { method: "PUT", body: JSON.stringify(data) }),
+
   // Allowed Users
   getAllowedUsers: () => request("/allowed-users"),
   createAllowedUser: (email, name) => request("/allowed-users", { method: "POST", body: JSON.stringify({ email, name }) }),

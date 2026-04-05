@@ -348,6 +348,28 @@ async function createRoomCalendar(req, res) {
   }
 }
 
+// ── System Config ─────────────────────────────────────────
+
+async function getConfig(req, res) {
+  const rows = await prisma.systemConfig.findMany();
+  const config = Object.fromEntries(rows.map(r => [r.key, r.value]));
+  res.json(config);
+}
+
+async function updateConfig(req, res) {
+  const updates = req.body; // { key: value, ... }
+  await Promise.all(
+    Object.entries(updates).map(([key, value]) =>
+      prisma.systemConfig.upsert({
+        where: { key },
+        update: { value: String(value) },
+        create: { key, value: String(value) },
+      })
+    )
+  );
+  res.json({ ok: true });
+}
+
 // ── Calendar Debug ────────────────────────────────────────
 
 async function testCalendar(req, res) {
@@ -445,4 +467,5 @@ module.exports = {
   listBookings, listBookingsMonth, listRooms, cancelBookingAdmin, updateRoomCalendar,
   createRoom, updateRoom, deleteRoom, createRoomCalendar, testCalendar,
   listAllowedUsers, createAllowedUser, deleteAllowedUser,
+  getConfig, updateConfig,
 };

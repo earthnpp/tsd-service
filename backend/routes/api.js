@@ -73,6 +73,10 @@ router.patch("/bookings/:id/cancel",          adminController.cancelBookingAdmin
 router.patch("/rooms/:id/calendar",           adminController.updateRoomCalendar);
 router.post("/rooms/:id/create-calendar",     adminController.createRoomCalendar);
 
+// System config
+router.get("/config",                      adminController.getConfig);
+router.put("/config",                      adminController.updateConfig);
+
 // Calendar debug
 router.get("/calendar/test",               adminController.testCalendar);
 
