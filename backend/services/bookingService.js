@@ -50,9 +50,14 @@ async function createBooking({ roomId, lineUserId, displayName, email, departmen
         prisma.roomBooking.update({
           where: { id: booking.id },
           data: { googleEventId: eventId },
-        }).catch(() => {});
+        }).catch((err) => console.error(`[Calendar] DB update googleEventId failed for booking ${booking.id}:`, err.message));
+        console.log(`[Calendar] Event created: ${eventId} for booking ${bookingNo}`);
+      } else {
+        console.warn(`[Calendar] createEvent returned null for booking ${bookingNo} (calendarId: ${booking.room.calendarId})`);
       }
-    }).catch(() => {});
+    }).catch((err) => console.error(`[Calendar] createEvent threw for booking ${bookingNo}:`, err.message));
+  } else {
+    console.warn(`[Calendar] Room "${booking.room.name}" has no calendarId — skipping sync`);
   }
 
   return booking;

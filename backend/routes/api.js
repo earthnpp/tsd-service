@@ -73,6 +73,9 @@ router.patch("/bookings/:id/cancel",          adminController.cancelBookingAdmin
 router.patch("/rooms/:id/calendar",           adminController.updateRoomCalendar);
 router.post("/rooms/:id/create-calendar",     adminController.createRoomCalendar);
 
+// Calendar debug
+router.get("/calendar/test",               adminController.testCalendar);
+
 // Allowed Users
 router.get("/allowed-users",         adminController.listAllowedUsers);
 router.post("/allowed-users",        adminController.createAllowedUser);

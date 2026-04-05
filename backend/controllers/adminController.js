@@ -348,6 +348,56 @@ async function createRoomCalendar(req, res) {
   }
 }
 
+// ── Calendar Debug ────────────────────────────────────────
+
+async function testCalendar(req, res) {
+  const creds = process.env.GOOGLE_CREDENTIALS;
+  if (!creds) {
+    return res.status(500).json({ ok: false, error: "GOOGLE_CREDENTIALS ไม่ได้ตั้งค่าไว้ใน environment" });
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(creds);
+  } catch {
+    try {
+      parsed = JSON.parse(Buffer.from(creds, "base64").toString());
+    } catch {
+      return res.status(500).json({ ok: false, error: "GOOGLE_CREDENTIALS parse ไม่ได้ — ต้องเป็น JSON string หรือ base64" });
+    }
+  }
+
+  const serviceEmail = parsed?.client_email || null;
+  if (!serviceEmail) {
+    return res.status(500).json({ ok: false, error: "ไม่พบ client_email ใน credentials" });
+  }
+
+  // ทดสอบ list calendars
+  try {
+    const { google } = require("googleapis");
+    const auth = new google.auth.GoogleAuth({
+      credentials: parsed,
+      scopes: ["https://www.googleapis.com/auth/calendar"],
+    });
+    const calendar = google.calendar({ version: "v3", auth });
+    const list = await calendar.calendarList.list({ maxResults: 5 });
+    const rooms = await bookingService.getRooms();
+    return res.json({
+      ok: true,
+      serviceAccountEmail: serviceEmail,
+      calendarsAccessible: list.data.items?.length ?? 0,
+      rooms: rooms.map(r => ({
+        id: r.id,
+        name: r.name,
+        calendarId: r.calendarId || null,
+        hasCalendar: !!r.calendarId,
+      })),
+    });
+  } catch (err) {
+    return res.status(500).json({ ok: false, serviceAccountEmail: serviceEmail, error: err.message });
+  }
+}
+
 // ── Allowed Users ─────────────────────────────────────────
 
 async function listAllowedUsers(req, res) {
@@ -393,6 +443,6 @@ module.exports = {
   listFaqs, createFaq, updateFaq, deleteFaq,
   listAssignees, createAssignee, updateAssignee, deleteAssignee,
   listBookings, listBookingsMonth, listRooms, cancelBookingAdmin, updateRoomCalendar,
-  createRoom, updateRoom, deleteRoom, createRoomCalendar,
+  createRoom, updateRoom, deleteRoom, createRoomCalendar, testCalendar,
   listAllowedUsers, createAllowedUser, deleteAllowedUser,
 };
