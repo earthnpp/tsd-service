@@ -174,6 +174,20 @@ export default function LiffBooking() {
         </div>
 
         <div style={s.card}>
+          {/* Room row */}
+          <div style={s.row}>
+            <span style={s.rowIcon}>🏢</span>
+            <div style={{ flex: 1 }}>
+              <div style={s.rowLabel}>ห้องประชุม</div>
+              <select value={roomId} onChange={e => { setRoomId(e.target.value); setStartTime(""); setEndTime(""); }}
+                style={s.roomSelect}>
+                {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div style={s.divider} />
+
           {/* Date row */}
           <div style={s.row} onClick={() => { setShowCal(v => !v); setShowTime(false); }}>
             <span style={s.rowIcon}>🗓</span>
@@ -257,36 +271,21 @@ export default function LiffBooking() {
                   </select>
                 </div>
               </div>
-            </div>
-          )}
-
-          <div style={s.divider} />
-
-          {/* Room row */}
-          <div style={s.row}>
-            <span style={s.rowIcon}>🏢</span>
-            <div style={{ flex: 1 }}>
-              <div style={s.rowLabel}>ห้อง</div>
-              <select value={roomId} onChange={e => setRoomId(e.target.value)}
-                style={s.roomSelect}>
-                {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-              </select>
-            </div>
-          </div>
-
-          {/* Busy slots info */}
-          {busySlots.length > 0 && (
-            <div style={{ padding: "0 16px 14px" }}>
-              <div style={{ fontSize: 12, color: "#e63946", fontWeight: 600, marginBottom: 6 }}>⚠️ มีการจองในวันนี้</div>
-              {busySlots.map((b, i) => (
-                <div key={i} style={{ fontSize: 12, color: "#666", background: "#fff0f0", borderRadius: 6, padding: "4px 10px", marginBottom: 4 }}>
-                  {fmtHour(b.startAt)} – {fmtHour(b.endAt)} · {b.title}
+              {/* Busy slots info */}
+              {busySlots.length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                  <div style={{ fontSize: 12, color: "#e63946", fontWeight: 600, marginBottom: 6 }}>⚠️ มีการจองในวันนี้</div>
+                  {busySlots.map((b, i) => (
+                    <div key={i} style={{ fontSize: 12, color: "#666", background: "#fff0f0", borderRadius: 6, padding: "4px 10px", marginBottom: 4 }}>
+                      {fmtHour(b.startAt)} – {fmtHour(b.endAt)} · {b.title}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+              {roomId && date && busySlots.length === 0 && (
+                <div style={{ marginTop: 10, fontSize: 12, color: "#2a9d8f" }}>✅ ห้องว่างทั้งวัน</div>
+              )}
             </div>
-          )}
-          {roomId && date && busySlots.length === 0 && (
-            <div style={{ padding: "0 16px 14px", fontSize: 12, color: "#2a9d8f" }}>✅ ห้องว่างทั้งวัน</div>
           )}
         </div>
 
