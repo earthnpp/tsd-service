@@ -1314,12 +1314,20 @@ function BookingsPanel() {
     setViewYear(now.getFullYear()); setViewMonth(now.getMonth() + 1); setSelectedDay(now.getDate());
   }
 
-  // bookings by day number
+  // bookings by day — รองรับ multi-day (ใส่ booking ทุกวันที่ครอบคลุมภายในเดือน)
   const byDay = {};
+  const monthStart = new Date(viewYear, viewMonth - 1, 1);
+  const monthEnd   = new Date(viewYear, viewMonth, 0);
   monthBookings.filter(b => b.status !== "cancelled").forEach(b => {
-    const d = new Date(b.startAt).getDate();
-    if (!byDay[d]) byDay[d] = [];
-    byDay[d].push(b);
+    const bStart = new Date(new Date(b.startAt).toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" }) + "T00:00:00");
+    const bEnd   = new Date(new Date(b.endAt  ).toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" }) + "T00:00:00");
+    const iterStart = bStart < monthStart ? monthStart : bStart;
+    const iterEnd   = bEnd   > monthEnd   ? monthEnd   : bEnd;
+    for (const cur = new Date(iterStart); cur <= iterEnd; cur.setDate(cur.getDate() + 1)) {
+      const day = cur.getDate();
+      if (!byDay[day]) byDay[day] = [];
+      if (!byDay[day].find(x => x.id === b.id)) byDay[day].push(b);
+    }
   });
 
   function fmtTime(dt) {

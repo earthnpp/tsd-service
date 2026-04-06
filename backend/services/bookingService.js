@@ -166,10 +166,16 @@ async function deleteRoom(roomId) {
 }
 
 async function getRoomSlots(roomId, date) {
-  const start = new Date(`${date}T00:00:00+07:00`);
-  const end   = new Date(`${date}T23:59:59+07:00`);
+  const dayStart = new Date(`${date}T00:00:00+07:00`);
+  const dayEnd   = new Date(`${date}T23:59:59+07:00`);
+  // หา booking ที่ overlap กับวันนี้ ไม่ว่าจะเริ่มวันนี้หรือวันก่อนหน้า
   return prisma.roomBooking.findMany({
-    where: { roomId: Number(roomId), status: "confirmed", startAt: { gte: start, lte: end } },
+    where: {
+      roomId: Number(roomId),
+      status: "confirmed",
+      startAt: { lt: dayEnd },
+      endAt:   { gt: dayStart },
+    },
     orderBy: { startAt: "asc" },
     select: { startAt: true, endAt: true, title: true, displayName: true },
   });
