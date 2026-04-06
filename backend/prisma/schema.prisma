@@ -115,6 +115,7 @@ model RoomBooking {
   email         String?
   department    String?
   status        String   @default("confirmed")
+  notes         String?  @db.Text
   googleEventId String?
   createdAt     DateTime @default(now())
 

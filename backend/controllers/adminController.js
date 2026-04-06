@@ -59,7 +59,7 @@ async function updateTicketStatus(req, res) {
   } else if (status === "completed") {
     const ratingMenu = require("../views/flex/ratingMenu");
     await notifyUser(ticket.lineUserId, [
-      { type: "text", text: `✅ ${ticket.ticketNo} ดำเนินการเสร็จสิ้นแล้วครับ\n📝 ${ticket.resolution || "เสร็จเรียบร้อย"}` },
+      { type: "text", text: `✅ ${ticket.ticketNo} ดำเนินการเสร็จสิ้นแล้วครับ\n📝 ผลการดำเนินการ : ${ticket.resolution || "เสร็จเรียบร้อย"}` },
       ratingMenu(ticket.id),
     ]);
   } else if (status === "pending") {
@@ -101,7 +101,7 @@ async function closeWithCost(req, res) {
 
   const ratingMenu = require("../views/flex/ratingMenu");
   await notifyUser(ticket.lineUserId, [
-    { type: "text", text: `✅ ${ticket.ticketNo} ดำเนินการเสร็จสิ้นแล้วครับ\n📝 ${resolution}` },
+    { type: "text", text: `✅ ${ticket.ticketNo} ดำเนินการเสร็จสิ้นแล้วครับ\n📝 ผลการดำเนินการ : ${resolution}` },
     ratingMenu(ticket.id),
   ]);
 
@@ -116,7 +116,7 @@ async function closeTicket(req, res) {
   });
   const ratingMenu = require("../views/flex/ratingMenu");
   await notifyUser(ticket.lineUserId, [
-    { type: "text", text: `✅ ${ticket.ticketNo} ได้รับการแก้ไขเรียบร้อยแล้วครับ\n📝 ${resolution}` },
+    { type: "text", text: `✅ ${ticket.ticketNo} ได้รับการแก้ไขเรียบร้อยแล้วครับ\n📝 ผลการดำเนินการ : ${resolution}` },
     ratingMenu(ticket.id),
   ]);
   res.json(ticket);

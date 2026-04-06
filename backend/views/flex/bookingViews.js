@@ -234,6 +234,7 @@ function bookingSuccess(booking) {
           infoRow("⏰ เริ่มต้น", startStr),
           infoRow("⏰ สิ้นสุด", endStr),
           infoRow("📝 หัวข้อ", booking.title),
+          ...(booking.notes ? [infoRow("📌 รายละเอียดเพิ่มเติม", booking.notes)] : []),
         ],
       },
     },

@@ -1,0 +1,1 @@
+ALTER TABLE `RoomBooking` ADD COLUMN `notes` TEXT NULL;

@@ -1455,7 +1455,9 @@ function BookingsPanel() {
                         <div style={{ fontSize: 12, color: "#70757a" }}>👤 ผู้จอง {b.displayName || b.lineUserId}</div>
                         {b.email && <div style={{ fontSize: 12, color: "#70757a" }}>📧 อีเมล {b.email}</div>}
                         {b.department && <div style={{ fontSize: 12, color: "#70757a" }}>🏢 ฝ่าย/แผนก {b.department}</div>}
+                        {b.notes && <div style={{ fontSize: 12, color: "#70757a" }}>📌 รายละเอียดเพิ่มเติม {b.notes}</div>}
                         <div style={{ fontSize: 11, color: "#aaa", marginTop: 2 }}>📋 หมายเลขการจอง: {b.bookingNo}</div>
+                        <div style={{ fontSize: 11, color: "#aaa", marginTop: 1 }}>🗓️ วันที่จอง: {new Date(b.createdAt).toLocaleString("th-TH", { timeZone: "Asia/Bangkok", dateStyle: "short", timeStyle: "short" })}</div>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
                         <span style={{ background: st.bg, color: st.color, border: `1px solid ${st.color}`,
@@ -1507,7 +1509,9 @@ function BookingsPanel() {
               <div style={{ fontSize: 12, color: "#70757a", marginBottom: 3 }}>👤 ผู้จอง {b.displayName || b.lineUserId}</div>
               {b.email && <div style={{ fontSize: 12, color: "#70757a", marginBottom: 3 }}>📧 อีเมล {b.email}</div>}
               {b.department && <div style={{ fontSize: 12, color: "#70757a", marginBottom: 3 }}>🏢 ฝ่าย/แผนก {b.department}</div>}
-              <div style={{ fontSize: 11, color: "#aaa", marginBottom: 10 }}>📋 หมายเลขการจอง: {b.bookingNo}</div>
+              {b.notes && <div style={{ fontSize: 12, color: "#70757a", marginBottom: 3 }}>📌 รายละเอียดเพิ่มเติม {b.notes}</div>}
+              <div style={{ fontSize: 11, color: "#aaa", marginBottom: 3 }}>📋 หมายเลขการจอง: {b.bookingNo}</div>
+              <div style={{ fontSize: 11, color: "#aaa", marginBottom: 10 }}>🗓️ วันที่จอง: {new Date(b.createdAt).toLocaleString("th-TH", { timeZone: "Asia/Bangkok", dateStyle: "short", timeStyle: "short" })}</div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ background: st.bg, color: st.color, border: `1px solid ${st.color}`,
                   borderRadius: 999, padding: "2px 8px", fontSize: 11, fontWeight: 500 }}>

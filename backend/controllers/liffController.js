@@ -122,7 +122,7 @@ async function createBooking(req, res) {
     await verifyLineToken(accessToken);
     const { userId, displayName } = await getLineUserId(accessToken);
 
-    const { roomId, date, startTime, endTime, title, name, email, department } = req.body;
+    const { roomId, date, startTime, endTime, title, notes, name, email, department } = req.body;
     if (!roomId || !date || !startTime || !endTime || !title?.trim() || !name?.trim() || !email?.trim() || !department?.trim()) {
       return res.status(400).json({ error: "กรุณากรอกข้อมูลที่จำเป็นให้ครบ" });
     }
@@ -140,6 +140,7 @@ async function createBooking(req, res) {
       email: email.trim(),
       department: department.trim(),
       title: title.trim(),
+      notes: notes?.trim() || null,
       startAt,
       endAt,
     });

@@ -31,6 +31,7 @@ export default function LiffBooking() {
   const [showTime, setShowTime] = useState(false);
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
+  const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [bookingNo, setBookingNo] = useState("");
@@ -97,7 +98,7 @@ export default function LiffBooking() {
       const res = await fetch("/api/liff/booking", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-line-access-token": token },
-        body: JSON.stringify({ roomId, date, startTime, endTime, title: title.trim(), name: name.trim(), email: email.trim(), department: department.trim() }),
+        body: JSON.stringify({ roomId, date, startTime, endTime, title: title.trim(), notes: notes.trim() || undefined, name: name.trim(), email: email.trim(), department: department.trim() }),
       });
       if (!res.ok) {
         const b = await res.json().catch(() => ({}));
@@ -159,6 +160,12 @@ export default function LiffBooking() {
               <div style={{ fontSize: 12, color: "#555", marginBottom: 4 }}>ฝ่าย / แผนก <span style={{ color: "#e63946" }}>*</span></div>
               <input value={department} onChange={e => setDepartment(e.target.value)} placeholder="เช่น Marketing, Finance"
                 style={{ width: "100%", padding: "9px 12px", border: "1px solid #ddd", borderRadius: 8, fontSize: 14, boxSizing: "border-box", fontFamily: "inherit" }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 12, color: "#555", marginBottom: 4 }}>รายละเอียดเพิ่มเติม</div>
+              <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="ระบุรายละเอียดเพิ่มเติม เช่น จำนวนผู้เข้าร่วม อุปกรณ์ที่ต้องการ (ถ้ามี)"
+                rows={3}
+                style={{ width: "100%", padding: "9px 12px", border: "1px solid #ddd", borderRadius: 8, fontSize: 14, boxSizing: "border-box", fontFamily: "inherit", resize: "vertical" }} />
             </div>
           </div>
         </div>
