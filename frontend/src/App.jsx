@@ -30,10 +30,12 @@ function Stars({ value }) {
 
 export default function App({ user, onLogout }) {
   const [tab, setTab] = useState(() => window.location.hash.replace("#", "") || "tickets");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const changeTab = useCallback((t) => {
     setTab(t);
     window.location.hash = t;
+    setSidebarOpen(false);
   }, []);
   const [tickets, setTickets] = useState([]);
   const [total, setTotal] = useState(0);
@@ -128,13 +130,16 @@ export default function App({ user, onLogout }) {
   ];
 
   return (
-    <div style={{ fontFamily: "system-ui,sans-serif", minHeight: "100vh", display: "flex", background: "#f4f4f8" }}>
+    <div className="app-layout">
+
+      {/* Hamburger (mobile) */}
+      <button className="hamburger" onClick={() => setSidebarOpen(o => !o)}>☰</button>
+
+      {/* Overlay (mobile) */}
+      <div className={`sidebar-overlay${sidebarOpen ? " open" : ""}`} onClick={() => setSidebarOpen(false)} />
 
       {/* ── Sidebar ── */}
-      <div style={{
-        width: 220, minHeight: "100vh", background: "#1a1a2e", display: "flex",
-        flexDirection: "column", flexShrink: 0, position: "sticky", top: 0, height: "100vh",
-      }}>
+      <div className={`sidebar${sidebarOpen ? " open" : ""}`}>
         {/* Logo */}
         <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid #ffffff18" }}>
           <div style={{ fontWeight: 700, fontSize: 15, color: "#fff", lineHeight: 1.3 }}>
@@ -178,7 +183,7 @@ export default function App({ user, onLogout }) {
       </div>
 
       {/* ── Main content ── */}
-      <div style={{ flex: 1, minWidth: 0, padding: 24, overflowY: "auto" }}>
+      <div className="main-content">
         {tab === "tickets" && !selectedTicket && (
           <TicketList
             tickets={tickets} loading={loading} total={total}
@@ -253,26 +258,31 @@ function TicketList({ tickets, loading, total, filterStatus, setFilterStatus,
       </div>
 
       {/* List */}
-      {loading ? <p style={{ textAlign: "center", color: "#888" }}>⏳ กำลังโหลด...</p> : (
+      {loading ? <p style={{ textAlign: "center", color: "#888", padding: 32 }}>⏳ กำลังโหลด...</p> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {tickets.map((t) => (
             <div key={t.id} onClick={() => onSelect(t)}
-              style={{ background: "#fff", borderRadius: 10, padding: "12px 16px",
-                cursor: "pointer", boxShadow: "0 1px 4px #0001",
-                borderLeft: `4px solid ${STATUS[t.status]?.color || "#ccc"}`,
-                display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>{t.ticketNo} — {t.title}</div>
-                <div style={{ fontSize: 13, color: "#666", marginTop: 2 }}>
-                  {t.category} › {t.subcategory}{t.location ? ` · ${t.location}` : ""}
-                </div>
-                <div style={{ fontSize: 12, color: "#aaa", marginTop: 2 }}>
-                  {t.displayName} · {new Date(t.createdAt).toLocaleString("th-TH")}
+              className="ticket-card"
+              style={{ borderLeftColor: STATUS[t.status]?.color || "#ccc" }}>
+              {/* Row 1: ticket no + badges */}
+              <div className="ticket-top">
+                <span className="ticket-no">#{t.ticketNo}</span>
+                <div className="ticket-badges">
+                  <Badge map={STATUS} value={t.status} />
+                  {t.priority && <Badge map={PRIORITY} value={t.priority} />}
                 </div>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
-                <Badge map={STATUS} value={t.status} />
-                {t.priority && <Badge map={PRIORITY} value={t.priority} />}
+              {/* Row 2: title */}
+              <div className="ticket-title">{t.title}</div>
+              {/* Row 3: meta */}
+              <div className="ticket-meta">
+                <span className="ticket-meta-item">📁 {t.category}{t.subcategory ? ` › ${t.subcategory}` : ""}</span>
+                {t.location && <span className="ticket-meta-item">📍 {t.location}</span>}
+                <span className="ticket-meta-item">👤 {t.displayName || "-"}</span>
+                {t.assignee
+                  ? <span className="ticket-meta-item ticket-assignee">👷 {t.assignee}</span>
+                  : <span className="ticket-meta-item" style={{ color: "#f4a261" }}>⚠️ ยังไม่ assign</span>}
+                <span className="ticket-meta-item">🕐 {new Date(t.createdAt).toLocaleDateString("th-TH", { day:"numeric", month:"short", year:"2-digit" })}</span>
               </div>
             </div>
           ))}

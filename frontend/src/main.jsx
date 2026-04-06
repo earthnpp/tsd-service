@@ -1,4 +1,5 @@
 import { StrictMode, useState } from "react";
+import "./index.css";
 import { createRoot } from "react-dom/client";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import App from "./App";
