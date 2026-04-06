@@ -4,7 +4,10 @@ import liff from "@line/liff";
 const LIFF_ID = import.meta.env.VITE_LIFF_ID;
 const MONTH_TH = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 const DAY_SHORT = ["อา","จ","อ","พ","พฤ","ศ","ส"];
-const HOURS = Array.from({ length: 14 }, (_, i) => `${String(i + 8).padStart(2,"0")}:00`); // 08-21
+const SLOTS = Array.from({ length: 27 }, (_, i) => {
+  const total = 8 * 60 + i * 30; // 08:00 – 21:00 step 30 min
+  return `${String(Math.floor(total / 60)).padStart(2,"0")}:${total % 60 === 0 ? "00" : "30"}`;
+}); // 08:00 … 21:00
 
 function toISO(date) { return date.toISOString().slice(0,10); }
 function fmtDate(iso) {
@@ -83,7 +86,7 @@ export default function LiffBooking() {
     if (endTime && endTime <= h) setEndTime("");
   }
 
-  const endHours = startTime ? HOURS.filter(h => h > startTime) : [];
+  const endSlots = startTime ? SLOTS.filter(h => h > startTime) : SLOTS.slice(1);
 
   async function handleSubmit() {
     if (!title.trim()) { setError("กรุณาใส่ชื่อการประชุม"); titleRef.current?.focus(); return; }
@@ -232,41 +235,28 @@ export default function LiffBooking() {
           {/* Time Picker */}
           {showTime && (
             <div style={{ padding: "0 16px 16px" }}>
-              <div style={{ fontSize: 12, color: "#888", marginBottom: 6 }}>เวลาเริ่ม</div>
-              <div style={s.timeGrid}>
-                {HOURS.slice(0,-1).map(h => {
-                  const busy = isBusy(h);
-                  const sel = startTime === h;
-                  return (
-                    <div key={h} onClick={() => !busy && pickStart(h)}
-                      style={{ ...s.timeChip, background: sel ? "#1a1a2e" : busy ? "#fff0f0" : "#f5f6ff",
-                        color: sel ? "#fff" : busy ? "#e63946" : "#333",
-                        border: sel ? "none" : busy ? "1px solid #ffcccc" : "1px solid #e0e2ff",
-                        cursor: busy ? "default" : "pointer",
-                        textDecoration: busy ? "line-through" : "none" }}>
-                      {h}
-                    </div>
-                  );
-                })}
+              <div style={{ display: "flex", gap: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12, color: "#888", marginBottom: 6 }}>เวลาเริ่มต้น</div>
+                  <select value={startTime} onChange={e => { pickStart(e.target.value); }}
+                    style={s.timeSelect}>
+                    <option value="">-- เลือก --</option>
+                    {SLOTS.slice(0, -1).map(h => (
+                      <option key={h} value={h} disabled={isBusy(h)}>{h}{isBusy(h) ? " (ไม่ว่าง)" : ""}</option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12, color: "#888", marginBottom: 6 }}>เวลาสิ้นสุด</div>
+                  <select value={endTime} onChange={e => { setEndTime(e.target.value); if (e.target.value) setShowTime(false); }}
+                    style={s.timeSelect} disabled={!startTime}>
+                    <option value="">-- เลือก --</option>
+                    {endSlots.map(h => (
+                      <option key={h} value={h}>{h}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              {startTime && (
-                <>
-                  <div style={{ fontSize: 12, color: "#888", margin: "10px 0 6px" }}>เวลาสิ้นสุด</div>
-                  <div style={s.timeGrid}>
-                    {endHours.map(h => {
-                      const sel = endTime === h;
-                      return (
-                        <div key={h} onClick={() => { setEndTime(h); setShowTime(false); }}
-                          style={{ ...s.timeChip, background: sel ? "#457b9d" : "#f5f6ff",
-                            color: sel ? "#fff" : "#333", border: sel ? "none" : "1px solid #e0e2ff",
-                            cursor: "pointer" }}>
-                          {h}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
             </div>
           )}
 
@@ -330,8 +320,7 @@ const s = {
   calGrid: { display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2 },
   calDayLabel: { textAlign: "center", fontSize: 11, color: "#aaa", padding: "2px 0", fontWeight: 600 },
   calCell: { textAlign: "center", fontSize: 13, padding: "7px 2px", borderRadius: 50, transition: "background 0.1s" },
-  timeGrid: { display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6 },
-  timeChip: { textAlign: "center", fontSize: 13, padding: "8px 4px", borderRadius: 8, fontWeight: 500 },
+  timeSelect: { width: "100%", padding: "9px 10px", border: "1px solid #ddd", borderRadius: 8, fontSize: 14, fontFamily: "inherit", background: "#fff", color: "#1a1a2e", outline: "none" },
   roomSelect: { fontSize: 15, fontWeight: 600, color: "#1a1a2e", border: "none", background: "transparent", outline: "none", padding: "2px 0", fontFamily: "inherit", width: "100%" },
   btn: { width: "100%", padding: "15px", background: "#1a1a2e", color: "#fff", border: "none", borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: "pointer" },
   center: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", fontFamily: "sans-serif", textAlign: "center", padding: 24 },
