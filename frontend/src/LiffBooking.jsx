@@ -63,10 +63,18 @@ export default function LiffBooking() {
       .then(r => r.json()).then(setBusySlots).catch(() => setBusySlots([]));
   }, [roomId, startDate]);
 
-  function isBusy(hour) {
-    const hStart = new Date(`${startDate}T${hour}:00+07:00`);
-    const hEnd   = new Date(`${startDate}T${hour.slice(0,2)}:59:59+07:00`);
-    return busySlots.some(b => new Date(b.startAt) < hEnd && new Date(b.endAt) > hStart);
+  // เวลานั้นๆ อยู่ในช่วง busy ไหม (สำหรับ start time)
+  function isStartBusy(slot) {
+    const t = new Date(`${startDate}T${slot}:00+07:00`);
+    return busySlots.some(b => new Date(b.startAt) <= t && new Date(b.endAt) > t);
+  }
+
+  // range [startTime, endSlot] จะ overlap กับ busy ไหม (สำหรับ end time)
+  function isEndBusy(slot) {
+    if (!startTime) return false;
+    const rangeStart = new Date(`${startDate}T${startTime}:00+07:00`);
+    const rangeEnd   = new Date(`${endDate}T${slot}:00+07:00`);
+    return busySlots.some(b => new Date(b.startAt) < rangeEnd && new Date(b.endAt) > rangeStart);
   }
 
   // Calendar grid
@@ -104,13 +112,15 @@ export default function LiffBooking() {
 
   function pickStart(h) {
     setStartTime(h);
-    // ถ้าจองวันเดียวกัน ต้อง reset endTime ถ้าน้อยกว่า startTime
-    if (startDate === endDate && endTime && endTime <= h) setEndTime("");
+    setEndTime(""); // reset เสมอ เพราะ end options เปลี่ยนตาม start
   }
 
   const isMultiDay = startDate !== endDate;
-  // endSlots: ถ้าหลายวัน ให้เลือกได้ทุก slot; ถ้าวันเดียวกัน ต้องมากกว่า startTime
-  const endSlots = (isMultiDay || !startTime) ? SLOTS.slice(1) : SLOTS.filter(h => h > startTime);
+  // endSlots: กรอง slot ที่ไม่ valid ออก
+  const endSlots = SLOTS.filter(h => {
+    if (!isMultiDay && h <= startTime) return false; // วันเดียวกันต้องมากกว่า start
+    return true;
+  });
 
   async function handleSubmit() {
     if (!title.trim()) { setError("กรุณาใส่ชื่อการประชุม"); titleRef.current?.focus(); return; }
@@ -309,7 +319,7 @@ export default function LiffBooking() {
                     style={s.timeSelect}>
                     <option value="">-- เลือก --</option>
                     {SLOTS.slice(0, -1).map(h => (
-                      <option key={h} value={h} disabled={!isMultiDay && isBusy(h)}>{h}{!isMultiDay && isBusy(h) ? " (ไม่ว่าง)" : ""}</option>
+                      <option key={h} value={h} disabled={!isMultiDay && isStartBusy(h)}>{h}{!isMultiDay && isStartBusy(h) ? " (ไม่ว่าง)" : ""}</option>
                     ))}
                   </select>
                 </div>
@@ -319,7 +329,7 @@ export default function LiffBooking() {
                     style={s.timeSelect} disabled={!startTime}>
                     <option value="">-- เลือก --</option>
                     {endSlots.map(h => (
-                      <option key={h} value={h}>{h}</option>
+                      <option key={h} value={h} disabled={!isMultiDay && isEndBusy(h)}>{h}{!isMultiDay && isEndBusy(h) ? " (ไม่ว่าง)" : ""}</option>
                     ))}
                   </select>
                 </div>
