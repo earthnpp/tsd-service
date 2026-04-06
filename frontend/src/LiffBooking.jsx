@@ -25,12 +25,13 @@ export default function LiffBooking() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [department, setDepartment] = useState("");
-  const [date, setDate] = useState(today);
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [roomId, setRoomId] = useState("");
   const [busySlots, setBusySlots] = useState([]);
-  const [showCal, setShowCal] = useState(false);
+  const [showCal, setShowCal] = useState(null); // null | "start" | "end"
   const [showTime, setShowTime] = useState(false);
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
@@ -55,16 +56,16 @@ export default function LiffBooking() {
     }).catch(err => { setError(err.message); setReady(true); });
   }, []);
 
-  // Fetch busy slots when room+date changes
+  // Fetch busy slots when room + startDate changes
   useEffect(() => {
-    if (!roomId || !date) { setBusySlots([]); return; }
-    fetch(`/api/liff/room-slots?roomId=${roomId}&date=${date}`)
+    if (!roomId || !startDate) { setBusySlots([]); return; }
+    fetch(`/api/liff/room-slots?roomId=${roomId}&date=${startDate}`)
       .then(r => r.json()).then(setBusySlots).catch(() => setBusySlots([]));
-  }, [roomId, date]);
+  }, [roomId, startDate]);
 
   function isBusy(hour) {
-    const hStart = new Date(`${date}T${hour}:00+07:00`);
-    const hEnd   = new Date(`${date}T${hour.slice(0,2)}:59:59+07:00`);
+    const hStart = new Date(`${startDate}T${hour}:00+07:00`);
+    const hEnd   = new Date(`${startDate}T${hour.slice(0,2)}:59:59+07:00`);
     return busySlots.some(b => new Date(b.startAt) < hEnd && new Date(b.endAt) > hStart);
   }
 
@@ -74,34 +75,64 @@ export default function LiffBooking() {
   const cells = Array(firstDow).fill(null).concat(Array.from({ length: daysInMonth }, (_, i) => i + 1));
   while (cells.length % 7 !== 0) cells.push(null);
 
+  function openCal(phase) {
+    // sync calendar view to the relevant date
+    const ref = phase === "start" ? startDate : endDate;
+    const d = new Date(ref + "T00:00:00");
+    setCalYear(d.getFullYear());
+    setCalMonth(d.getMonth());
+    setShowCal(phase);
+    setShowTime(false);
+  }
+
   function pickDate(day) {
     const iso = `${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-    setDate(iso); setShowCal(false); setStartTime(""); setEndTime("");
+    if (showCal === "start") {
+      setStartDate(iso);
+      // ถ้า endDate อยู่ก่อน startDate ให้ reset endDate
+      if (endDate < iso) setEndDate(iso);
+      setStartTime(""); setEndTime("");
+    } else {
+      setEndDate(iso);
+      setEndTime("");
+    }
+    setShowCal(null);
   }
+
   function prevCal() { if (calMonth === 0) { setCalYear(y=>y-1); setCalMonth(11); } else setCalMonth(m=>m-1); }
   function nextCal() { if (calMonth === 11) { setCalYear(y=>y+1); setCalMonth(0); } else setCalMonth(m=>m+1); }
 
   function pickStart(h) {
     setStartTime(h);
-    if (endTime && endTime <= h) setEndTime("");
+    // ถ้าจองวันเดียวกัน ต้อง reset endTime ถ้าน้อยกว่า startTime
+    if (startDate === endDate && endTime && endTime <= h) setEndTime("");
   }
 
-  const endSlots = startTime ? SLOTS.filter(h => h > startTime) : SLOTS.slice(1);
+  const isMultiDay = startDate !== endDate;
+  // endSlots: ถ้าหลายวัน ให้เลือกได้ทุก slot; ถ้าวันเดียวกัน ต้องมากกว่า startTime
+  const endSlots = (isMultiDay || !startTime) ? SLOTS.slice(1) : SLOTS.filter(h => h > startTime);
 
   async function handleSubmit() {
     if (!title.trim()) { setError("กรุณาใส่ชื่อการประชุม"); titleRef.current?.focus(); return; }
     if (!name.trim()) { setError("กรุณาใส่ชื่อ-นามสกุล"); return; }
     if (!email.trim()) { setError("กรุณาใส่อีเมล"); return; }
     if (!department.trim()) { setError("กรุณาใส่ฝ่าย/แผนก"); return; }
-    if (!date || !startTime || !endTime) { setError("กรุณาเลือกวันและเวลา"); return; }
+    if (!startDate || !startTime || !endTime) { setError("กรุณาเลือกวันและเวลา"); return; }
     if (!roomId) { setError("กรุณาเลือกห้อง"); return; }
+    const startAt = new Date(`${startDate}T${startTime}:00+07:00`);
+    const endAt   = new Date(`${endDate}T${endTime}:00+07:00`);
+    if (endAt <= startAt) { setError("เวลาสิ้นสุดต้องหลังจากเวลาเริ่มต้น"); return; }
     setSubmitting(true); setError("");
     try {
       const token = liff.getAccessToken();
       const res = await fetch("/api/liff/booking", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-line-access-token": token },
-        body: JSON.stringify({ roomId, date, startTime, endTime, title: title.trim(), notes: notes.trim() || undefined, name: name.trim(), email: email.trim(), department: department.trim() }),
+        body: JSON.stringify({
+          roomId, startDate, startTime, endDate, endTime,
+          title: title.trim(), notes: notes.trim() || undefined,
+          name: name.trim(), email: email.trim(), department: department.trim(),
+        }),
       });
       if (!res.ok) {
         const b = await res.json().catch(() => ({}));
@@ -188,19 +219,37 @@ export default function LiffBooking() {
 
           <div style={s.divider} />
 
-          {/* Date row */}
-          <div style={s.row} onClick={() => { setShowCal(v => !v); setShowTime(false); }}>
-            <span style={s.rowIcon}>🗓</span>
-            <div style={{ flex: 1 }}>
-              <div style={s.rowLabel}>วันที่</div>
-              <div style={s.rowValue}>{fmtDate(date)}</div>
+          {/* Date rows — start & end */}
+          <div style={{ display: "flex" }}>
+            {/* Start date */}
+            <div style={{ flex: 1, ...s.row, borderRight: "1px solid #f0f0f0" }}
+              onClick={() => openCal(showCal === "start" ? null : "start")}>
+              <span style={s.rowIcon}>🗓</span>
+              <div style={{ flex: 1 }}>
+                <div style={s.rowLabel}>วันเริ่มต้น</div>
+                <div style={{ ...s.rowValue, fontSize: 13 }}>{fmtDate(startDate)}</div>
+              </div>
+              <span style={s.chevron}>{showCal === "start" ? "▲" : "▼"}</span>
             </div>
-            <span style={s.chevron}>{showCal ? "▲" : "▼"}</span>
+            {/* End date */}
+            <div style={{ flex: 1, ...s.row }}
+              onClick={() => openCal(showCal === "end" ? null : "end")}>
+              <span style={s.rowIcon}>🏁</span>
+              <div style={{ flex: 1 }}>
+                <div style={s.rowLabel}>วันสิ้นสุด</div>
+                <div style={{ ...s.rowValue, fontSize: 13 }}>{fmtDate(endDate)}</div>
+              </div>
+              <span style={s.chevron}>{showCal === "end" ? "▲" : "▼"}</span>
+            </div>
           </div>
 
           {/* Mini Calendar */}
           {showCal && (
             <div style={s.calContainer}>
+              <div style={{ fontSize: 11, color: showCal === "start" ? "#457b9d" : "#e63946",
+                fontWeight: 600, textAlign: "center", marginBottom: 6 }}>
+                {showCal === "start" ? "เลือกวันเริ่มต้น" : "เลือกวันสิ้นสุด"}
+              </div>
               <div style={s.calHeader}>
                 <button onClick={prevCal} style={s.calNavBtn}>‹</button>
                 <span style={{ fontWeight: 700, fontSize: 14 }}>{MONTH_TH[calMonth]} {calYear + 543}</span>
@@ -212,17 +261,21 @@ export default function LiffBooking() {
                   if (!day) return <div key={i} />;
                   const iso = `${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
                   const isPast = iso < todayISO;
-                  const isSelected = iso === date;
+                  // end date: can't pick before startDate
+                  const isDisabled = isPast || (showCal === "end" && iso < startDate);
+                  const isSelected = showCal === "start" ? iso === startDate : iso === endDate;
+                  const isInRange = iso > startDate && iso < endDate;
                   const isToday = iso === todayISO;
                   return (
-                    <div key={i} onClick={() => !isPast && pickDate(day)}
+                    <div key={i} onClick={() => !isDisabled && pickDate(day)}
                       style={{
                         ...s.calCell,
-                        background: isSelected ? "#1a1a2e" : "transparent",
-                        color: isSelected ? "#fff" : isPast ? "#ccc" : isToday ? "#457b9d" : "#333",
+                        background: isSelected ? (showCal === "start" ? "#457b9d" : "#e63946") : isInRange ? "#e8f0fe" : "transparent",
+                        color: isSelected ? "#fff" : isDisabled ? "#ccc" : isToday ? "#457b9d" : "#333",
                         fontWeight: isToday || isSelected ? 700 : 400,
-                        cursor: isPast ? "default" : "pointer",
+                        cursor: isDisabled ? "default" : "pointer",
                         border: isToday && !isSelected ? "1px solid #457b9d" : "1px solid transparent",
+                        borderRadius: isInRange ? 4 : 50,
                       }}>
                       {day}
                     </div>
@@ -235,7 +288,7 @@ export default function LiffBooking() {
           <div style={s.divider} />
 
           {/* Time row */}
-          <div style={s.row} onClick={() => { setShowTime(v => !v); setShowCal(false); }}>
+          <div style={s.row} onClick={() => { setShowTime(v => !v); setShowCal(null); }}>
             <span style={s.rowIcon}>⏰</span>
             <div style={{ flex: 1 }}>
               <div style={s.rowLabel}>เวลา</div>
@@ -252,11 +305,11 @@ export default function LiffBooking() {
               <div style={{ display: "flex", gap: 10 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 12, color: "#888", marginBottom: 6 }}>เวลาเริ่มต้น</div>
-                  <select value={startTime} onChange={e => { pickStart(e.target.value); }}
+                  <select value={startTime} onChange={e => pickStart(e.target.value)}
                     style={s.timeSelect}>
                     <option value="">-- เลือก --</option>
                     {SLOTS.slice(0, -1).map(h => (
-                      <option key={h} value={h} disabled={isBusy(h)}>{h}{isBusy(h) ? " (ไม่ว่าง)" : ""}</option>
+                      <option key={h} value={h} disabled={!isMultiDay && isBusy(h)}>{h}{!isMultiDay && isBusy(h) ? " (ไม่ว่าง)" : ""}</option>
                     ))}
                   </select>
                 </div>
@@ -271,8 +324,8 @@ export default function LiffBooking() {
                   </select>
                 </div>
               </div>
-              {/* Busy slots info */}
-              {busySlots.length > 0 && (
+              {/* Busy slots info (single day only) */}
+              {!isMultiDay && busySlots.length > 0 && (
                 <div style={{ marginTop: 10 }}>
                   <div style={{ fontSize: 12, color: "#e63946", fontWeight: 600, marginBottom: 6 }}>⚠️ มีการจองในวันนี้</div>
                   {busySlots.map((b, i) => (
@@ -282,7 +335,7 @@ export default function LiffBooking() {
                   ))}
                 </div>
               )}
-              {roomId && date && busySlots.length === 0 && (
+              {!isMultiDay && roomId && startDate && busySlots.length === 0 && (
                 <div style={{ marginTop: 10, fontSize: 12, color: "#2a9d8f" }}>✅ ห้องว่างทั้งวัน</div>
               )}
             </div>
@@ -305,7 +358,6 @@ const s = {
   header: { background: "#1a1a2e", padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" },
   calBtn: { fontSize: 12, color: "#aaddff", textDecoration: "none", background: "rgba(255,255,255,0.1)", padding: "6px 12px", borderRadius: 20 },
   body: { padding: "16px" },
-  titleInput: { width: "100%", fontSize: 22, fontWeight: 600, border: "none", borderBottom: "2px solid #1a1a2e", background: "transparent", padding: "8px 0 10px", marginBottom: 16, boxSizing: "border-box", fontFamily: "inherit", outline: "none", color: "#1a1a2e" },
   card: { background: "#fff", borderRadius: 16, boxShadow: "0 2px 12px #0001", marginBottom: 14, overflow: "hidden" },
   row: { display: "flex", alignItems: "center", padding: "14px 16px", cursor: "pointer", gap: 12 },
   rowIcon: { fontSize: 20, width: 28, textAlign: "center" },
@@ -318,7 +370,7 @@ const s = {
   calNavBtn: { background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#1a1a2e", fontWeight: 700, padding: "0 8px" },
   calGrid: { display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2 },
   calDayLabel: { textAlign: "center", fontSize: 11, color: "#aaa", padding: "2px 0", fontWeight: 600 },
-  calCell: { textAlign: "center", fontSize: 13, padding: "7px 2px", borderRadius: 50, transition: "background 0.1s" },
+  calCell: { textAlign: "center", fontSize: 13, padding: "7px 2px", transition: "background 0.1s" },
   timeSelect: { width: "100%", padding: "9px 10px", border: "1px solid #ddd", borderRadius: 8, fontSize: 14, fontFamily: "inherit", background: "#fff", color: "#1a1a2e", outline: "none" },
   roomSelect: { fontSize: 15, fontWeight: 600, color: "#1a1a2e", border: "none", background: "transparent", outline: "none", padding: "2px 0", fontFamily: "inherit", width: "100%" },
   btn: { width: "100%", padding: "15px", background: "#1a1a2e", color: "#fff", border: "none", borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: "pointer" },

@@ -122,13 +122,13 @@ async function createBooking(req, res) {
     await verifyLineToken(accessToken);
     const { userId, displayName } = await getLineUserId(accessToken);
 
-    const { roomId, date, startTime, endTime, title, notes, name, email, department } = req.body;
-    if (!roomId || !date || !startTime || !endTime || !title?.trim() || !name?.trim() || !email?.trim() || !department?.trim()) {
+    const { roomId, startDate, startTime, endDate, endTime, title, notes, name, email, department } = req.body;
+    if (!roomId || !startDate || !startTime || !endDate || !endTime || !title?.trim() || !name?.trim() || !email?.trim() || !department?.trim()) {
       return res.status(400).json({ error: "กรุณากรอกข้อมูลที่จำเป็นให้ครบ" });
     }
 
-    const startAt = new Date(`${date}T${startTime}:00+07:00`);
-    const endAt   = new Date(`${date}T${endTime}:00+07:00`);
+    const startAt = new Date(`${startDate}T${startTime}:00+07:00`);
+    const endAt   = new Date(`${endDate}T${endTime}:00+07:00`);
     if (endAt <= startAt) {
       return res.status(400).json({ error: "เวลาสิ้นสุดต้องหลังจากเวลาเริ่มต้น" });
     }
