@@ -1,0 +1,75 @@
+version: "3.9"
+
+# docker-compose สำหรับ deploy บน NAS / Portainer
+# ใช้คำสั่ง: docker-compose -f docker-compose.nas.yml up -d
+#
+# หลังรันแล้ว เข้าได้ที่ http://<NAS_IP>:8080
+# ถ้ามี Nginx Proxy Manager ให้ตั้ง Proxy Host ชี้มาที่ port 8080 แล้วออก SSL ที่ NPM แทน
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: helpdesk-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - helpdesk-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+
+  backend:
+    build: ./backend
+    container_name: helpdesk-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      LINE_CHANNEL_ACCESS_TOKEN: ${LINE_CHANNEL_ACCESS_TOKEN}
+      LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET}
+      ADMIN_SECRET: ${ADMIN_SECRET}
+      LIFF_ID: ${LIFF_ID}
+      DAILY_TICKET_LIMIT: ${DAILY_TICKET_LIMIT:-3}
+      MASTER_CALENDAR_ID: ${MASTER_CALENDAR_ID:-}
+      GOOGLE_CREDENTIALS: ${GOOGLE_CREDENTIALS:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      JWT_SECRET: ${JWT_SECRET}
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-}
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - helpdesk-net
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - VITE_LIFF_ID=${LIFF_ID}
+        - VITE_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+    container_name: helpdesk-frontend
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:80"
+    depends_on:
+      - backend
+    networks:
+      - helpdesk-net
+
+volumes:
+  db_data:
+  uploads_data:
+
+networks:
+  helpdesk-net:
+    driver: bridge
