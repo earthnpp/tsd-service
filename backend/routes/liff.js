@@ -33,6 +33,7 @@ const upload = multer({
 });
 
 router.get("/categories", liffController.getCategories);
+router.post("/ai", writeLimiter, liffController.aiChat);
 router.get("/rooms", liffController.getRooms);
 router.get("/room-slots", liffController.getRoomSlots);
 router.get("/bookings-calendar", liffController.getBookingsCalendar);

@@ -178,4 +178,49 @@ async function createBooking(req, res) {
   }
 }
 
-module.exports = { getCategories, createTicket, getRooms, getRoomSlots, createBooking, getBookingsCalendar };
+async function aiChat(req, res) {
+  try {
+    const { messages } = req.body;
+    if (!Array.isArray(messages) || messages.length === 0) return res.status(400).json({ error: "messages required" });
+
+    const rows = await prisma.systemConfig.findMany({
+      where: { key: { in: ["ai_provider", "ai_api_key", "ai_model", "ai_system_prompt"] } },
+    });
+    const cfg = Object.fromEntries(rows.map(r => [r.key, r.value]));
+
+    const provider    = cfg.ai_provider    || "anthropic";
+    const apiKey      = cfg.ai_api_key;
+    const model       = cfg.ai_model       || "claude-haiku-4-5-20251001";
+    const systemPrompt = cfg.ai_system_prompt || "คุณคือผู้ช่วย IT Support ตอบเป็นภาษาไทย กระชับ เข้าใจง่าย";
+
+    if (!apiKey) return res.status(400).json({ error: "ยังไม่ได้ตั้งค่า AI API Key ในระบบครับ" });
+
+    let reply = "";
+    if (provider === "anthropic") {
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+        body: JSON.stringify({ model, max_tokens: 1024, system: systemPrompt, messages }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error?.message || "Anthropic API error");
+      reply = data.content?.[0]?.text || "";
+    } else if (provider === "openai") {
+      const r = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${apiKey}`, "content-type": "application/json" },
+        body: JSON.stringify({ model, max_tokens: 1024, messages: [{ role: "system", content: systemPrompt }, ...messages] }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error?.message || "OpenAI API error");
+      reply = data.choices?.[0]?.message?.content || "";
+    }
+
+    res.json({ reply });
+  } catch (err) {
+    console.error("AI chat error:", err.message);
+    res.status(500).json({ error: "ขณะนี้ AI ไม่พร้อมใช้งานครับ กรุณาลองใหม่อีกครั้ง" });
+  }
+}
+
+module.exports = { getCategories, createTicket, getRooms, getRoomSlots, createBooking, getBookingsCalendar, aiChat };

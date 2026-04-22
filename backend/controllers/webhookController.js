@@ -281,8 +281,38 @@ async function onPostback(event, userId) {
   }
 
   if (action === "faq") {
-    const faqs = await categoryService.getActiveFaqs();
-    return client.replyMessage({ replyToken, messages: [buildFaqListMessage(faqs)] });
+    const liffUrl = `https://liff.line.me/${process.env.LIFF_ID}/ai`;
+    return client.replyMessage({
+      replyToken,
+      messages: [{
+        type: "flex",
+        altText: "💬 ถาม IT Assistant",
+        contents: {
+          type: "bubble",
+          styles: { header: { backgroundColor: "#1a3a5c" }, body: { backgroundColor: "#f4f4f6" } },
+          header: {
+            type: "box", layout: "vertical", paddingAll: "16px",
+            contents: [
+              { type: "text", text: "💬 IT Assistant", weight: "bold", size: "lg", color: "#ffffff" },
+              { type: "text", text: "ถามปัญหา IT ได้เลยครับ", size: "sm", color: "#a8c8e8", margin: "xs" },
+            ],
+          },
+          body: {
+            type: "box", layout: "vertical", paddingAll: "16px", spacing: "sm",
+            contents: [
+              { type: "text", text: "🤖 AI จะช่วยแก้ปัญหาเบื้องต้นให้ครับ\nถ้าแก้ไม่ได้จะแนะนำให้แจ้ง Ticket", size: "sm", color: "#555", wrap: true },
+            ],
+          },
+          footer: {
+            type: "box", layout: "vertical", paddingAll: "12px",
+            contents: [{
+              type: "button", style: "primary", color: "#1a1a2e", height: "sm",
+              action: { type: "uri", label: "💬 เริ่มคุยกับ AI", uri: liffUrl },
+            }],
+          },
+        },
+      }],
+    });
   }
 
   if (action === "submit_no_image") {

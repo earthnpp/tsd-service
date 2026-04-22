@@ -152,11 +152,37 @@ async function getStats({ dateFrom, dateTo } = {}) {
     avgRating: r._avg.rating ? Number(r._avg.rating).toFixed(1) : null,
   }));
 
-  const faqViews = faqRaw._sum.viewCount || 0;
-  const faqResolved = faqRaw._sum.resolvedCount || 0;
-  const faqSelfResolveRate = faqViews > 0 ? Math.round((faqResolved / faqViews) * 100) : 0;
+  // Daily trend — last 7 days (fixed window, not affected by dateFilter)
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+  const trendTickets = await prisma.ticket.findMany({
+    where: { createdAt: { gte: sevenDaysAgo } },
+    select: { createdAt: true },
+  });
+  const dailyTrend = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const key = d.toISOString().slice(0, 10);
+    return {
+      date: key,
+      label: d.toLocaleDateString("th-TH", { month: "short", day: "numeric" }),
+      count: trendTickets.filter(t => t.createdAt.toISOString().slice(0, 10) === key).length,
+    };
+  });
 
-  return { total, pending, inProgress, completed, avgRating, byCategory, byAssignee, faqViews, faqResolved, faqSelfResolveRate };
+  // Avg resolution time (hours)
+  const resolvedWithTime = await prisma.ticket.findMany({
+    where: { ...dateFilter, status: "completed", completedAt: { not: null } },
+    select: { createdAt: true, completedAt: true },
+  });
+  const avgResolutionHours = resolvedWithTime.length > 0
+    ? Math.round(resolvedWithTime.reduce((s, t) => s + (new Date(t.completedAt) - new Date(t.createdAt)) / 3600000, 0) / resolvedWithTime.length)
+    : null;
+
+  const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  return { total, pending, inProgress, completed, avgRating, byCategory, byAssignee, dailyTrend, avgResolutionHours, completionRate };
 }
 
 module.exports = {

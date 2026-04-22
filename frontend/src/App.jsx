@@ -39,7 +39,7 @@ function Stars({ value }) {
 }
 
 export default function App({ user, onLogout }) {
-  const [tab, setTab] = useState(() => window.location.hash.replace("#", "") || "tickets");
+  const [tab, setTab] = useState(() => window.location.hash.replace("#", "") || "dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
 
@@ -710,35 +710,45 @@ function Dashboard({ stats, dateFrom, dateTo, setDateFrom, setDateTo }) {
     { key: "year", label: "ปีนี้" },
   ];
 
-  if (!stats) return <p>⏳ กำลังโหลด...</p>;
+  if (!stats) return <p style={{ padding: 24 }}>⏳ กำลังโหลด...</p>;
+
+  const trendMax = Math.max(...(stats.dailyTrend || []).map(d => d.count), 1);
   const cards = [
-    { label: "Ticket ทั้งหมด", value: stats.total, color: "#1a1a2e" },
-    { label: "🟡 รอดำเนินการ", value: stats.pending, color: "#e9c46a" },
-    { label: "🔵 กำลังดำเนินการ", value: stats.inProgress, color: "#457b9d" },
-    { label: "🟢 เสร็จสิ้น", value: stats.completed, color: "#2a9d8f" },
-    { label: "💡 FAQ เข้าถึง", value: stats.faqViews || 0, color: "#f4a261" },
-    { label: "✅ แก้เองได้", value: `${stats.faqSelfResolveRate || 0}%`, color: "#2a9d8f", sub: `${stats.faqResolved || 0} / ${stats.faqViews || 0} ครั้ง` },
+    { label: "Ticket ทั้งหมด", value: stats.total,      color: "#1a1a2e", icon: "🎫" },
+    { label: "รอดำเนินการ",    value: stats.pending,     color: "#e9a825", icon: "🟡" },
+    { label: "กำลังดำเนินการ", value: stats.inProgress,  color: "#457b9d", icon: "🔵" },
+    { label: "เสร็จสิ้น",      value: stats.completed,   color: "#2a9d8f", icon: "🟢" },
+    { label: "อัตราปิดงาน",    value: `${stats.completionRate ?? 0}%`, color: "#2a9d8f", icon: "✅" },
+    {
+      label: "เวลาเฉลี่ยปิดงาน",
+      value: stats.avgResolutionHours != null
+        ? stats.avgResolutionHours >= 24
+          ? `${Math.round(stats.avgResolutionHours / 24)} วัน`
+          : `${stats.avgResolutionHours} ชม.`
+        : "-",
+      color: "#f4a261", icon: "⏱️",
+    },
   ];
+
   return (
-    <div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {/* Date Filter */}
-      <div style={{ background: "#fff", borderRadius: 12, padding: "14px 20px", marginBottom: 20, boxShadow: "0 1px 4px #0001", display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+      <div style={{ background: "#fff", borderRadius: 12, padding: "14px 20px", boxShadow: "0 1px 4px #0001", display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: "#555", marginRight: 4 }}>ช่วงเวลา:</span>
         {presets.map(p => {
-          const active = p.key === "all" && !dateFrom && !dateTo;
+          const active = p.key === "all" ? !dateFrom && !dateTo : false;
           return (
             <button key={p.key} onClick={() => applyPreset(p.key)}
               style={{ padding: "5px 12px", borderRadius: 20, border: `1px solid ${active ? "#1a1a2e" : "#ddd"}`, fontSize: 13, cursor: "pointer",
-                background: active ? "#1a1a2e" : "#f5f6ff",
-                color: active ? "#fff" : "#333", fontWeight: 500 }}>
+                background: active ? "#1a1a2e" : "#f5f6ff", color: active ? "#fff" : "#333", fontWeight: 500 }}>
               {p.label}
             </button>
           );
         })}
-        <span style={{ fontSize: 13, color: "#aaa" }}>หรือกำหนดเอง:</span>
+        <span style={{ fontSize: 13, color: "#aaa" }}>กำหนดเอง:</span>
         <input type="date" value={dateFrom} max={today} onChange={e => setDateFrom(e.target.value)}
           style={{ padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 }} />
-        <span style={{ fontSize: 13 }}>ถึง</span>
+        <span style={{ fontSize: 13 }}>–</span>
         <input type="date" value={dateTo} max={today} onChange={e => setDateTo(e.target.value)}
           style={{ padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13 }} />
         {(dateFrom || dateTo) && (
@@ -749,46 +759,78 @@ function Dashboard({ stats, dateFrom, dateTo, setDateFrom, setDateTo }) {
         )}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 16, marginBottom: 24 }}>
-        {cards.map((c) => (
-          <div key={c.label} style={{ background: "#fff", borderRadius: 12, padding: "20px 24px",
-            borderTop: `4px solid ${c.color}`, boxShadow: "0 1px 4px #0001" }}>
-            <div style={{ fontSize: 32, fontWeight: 800, color: c.color }}>{c.value}</div>
-            <div style={{ fontSize: 14, color: "#666", marginTop: 4 }}>{c.label}</div>
-            {c.sub && <div style={{ fontSize: 11, color: "#aaa", marginTop: 2 }}>{c.sub}</div>}
+      {/* KPI Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 14 }}>
+        {cards.map(c => (
+          <div key={c.label} style={{ background: "#fff", borderRadius: 12, padding: "18px 20px", borderTop: `4px solid ${c.color}`, boxShadow: "0 1px 4px #0001" }}>
+            <div style={{ fontSize: 11, color: "#aaa", marginBottom: 6 }}>{c.icon} {c.label}</div>
+            <div style={{ fontSize: 30, fontWeight: 800, color: c.color, lineHeight: 1 }}>{c.value}</div>
           </div>
         ))}
       </div>
-      {stats.avgRating && (
-        <div style={{ background: "#fff", borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: "0 1px 4px #0001" }}>
-          <strong>ความพึงพอใจเฉลี่ย: </strong>
-          <Stars value={Math.round(stats.avgRating)} /> {stats.avgRating} / 5
+
+      {/* Trend + Rating row */}
+      <div className="two-col">
+        {/* 7-day trend chart */}
+        <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px #0001" }}>
+          <strong style={{ display: "block", marginBottom: 16, fontSize: 14 }}>📈 Ticket 7 วันล่าสุด</strong>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 80 }}>
+            {(stats.dailyTrend || []).map(d => (
+              <div key={d.date} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                <span style={{ fontSize: 10, color: "#888" }}>{d.count || ""}</span>
+                <div style={{
+                  width: "100%", borderRadius: "4px 4px 0 0",
+                  background: d.count > 0 ? "#457b9d" : "#eee",
+                  height: d.count > 0 ? `${Math.max(8, Math.round((d.count / trendMax) * 60))}px` : "4px",
+                  transition: "height 0.3s",
+                }} />
+                <span style={{ fontSize: 9, color: "#aaa", textAlign: "center", lineHeight: 1.2 }}>{d.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      )}
+
+        {/* Satisfaction */}
+        <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px #0001" }}>
+          <strong style={{ display: "block", marginBottom: 16, fontSize: 14 }}>⭐ ความพึงพอใจ</strong>
+          {stats.avgRating ? (
+            <div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 40, fontWeight: 800, color: "#f4a261" }}>{stats.avgRating}</span>
+                <span style={{ fontSize: 14, color: "#aaa" }}>/ 5</span>
+              </div>
+              <Stars value={Math.round(stats.avgRating)} />
+            </div>
+          ) : (
+            <p style={{ color: "#bbb", fontSize: 13 }}>ยังไม่มีการให้คะแนน</p>
+          )}
+        </div>
+      </div>
+
+      {/* Category + Assignee */}
       <div className="two-col">
         <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px #0001" }}>
-          <strong style={{ display: "block", marginBottom: 12 }}>📊 สัดส่วนตามหมวด</strong>
-          {stats.byCategory.map((c) => (
+          <strong style={{ display: "block", marginBottom: 12, fontSize: 14 }}>📊 สัดส่วนตามหมวด</strong>
+          {stats.byCategory.length === 0 && <p style={{ color: "#bbb", fontSize: 13 }}>ยังไม่มีข้อมูล</p>}
+          {stats.byCategory.map(c => (
             <div key={c.category} style={{ marginBottom: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                <span>{c.category}</span><span>{c.count}</span>
+                <span>{c.category}</span><span style={{ fontWeight: 600 }}>{c.count}</span>
               </div>
-              <div style={{ background: "#eee", borderRadius: 4, height: 8, marginTop: 4 }}>
-                <div style={{ background: "#457b9d", borderRadius: 4, height: 8,
-                  width: `${stats.total ? Math.round((c.count / stats.total) * 100) : 0}%` }} />
+              <div style={{ background: "#eee", borderRadius: 4, height: 7, marginTop: 4 }}>
+                <div style={{ background: "#457b9d", borderRadius: 4, height: 7, width: `${stats.total ? Math.round((c.count / stats.total) * 100) : 0}%` }} />
               </div>
             </div>
           ))}
         </div>
         <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px #0001" }}>
-          <strong style={{ display: "block", marginBottom: 12 }}>👷 ภาระงาน IT Staff</strong>
-          {stats.byAssignee.map((a) => (
-            <div key={a.assignee} style={{ display: "flex", justifyContent: "space-between",
-              alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f0f0f0", fontSize: 14 }}>
+          <strong style={{ display: "block", marginBottom: 12, fontSize: 14 }}>👷 ภาระงาน IT Staff</strong>
+          {stats.byAssignee.map(a => (
+            <div key={a.assignee} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f0f0f0", fontSize: 14 }}>
               <span>{a.assignee}</span>
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontWeight: 700 }}>{a.count} tickets</div>
-                {a.avgRating && <Stars value={Math.round(a.avgRating)} />}
+                {a.avgRating && <div style={{ fontSize: 11, color: "#f4a261" }}>{"⭐".repeat(Math.round(a.avgRating))} {a.avgRating}</div>}
               </div>
             </div>
           ))}
@@ -805,7 +847,7 @@ const SETTING_TABS = [
   { key: "notification", label: "🔔 แจ้งเตือน" },
   { key: "assignee",     label: "👷 เจ้าหน้าที่" },
   { key: "category",     label: "📂 หมวดหมู่" },
-  { key: "faq",          label: "💡 FAQ" },
+  { key: "ai",           label: "🤖 AI Assistant" },
   { key: "room",         label: "🏢 ห้องประชุม" },
 ];
 
@@ -841,8 +883,92 @@ function SettingsPanel({ categories, onReload, assignees, onReloadAssignees }) {
       {section === "notification" && <NotificationSettings />}
       {section === "assignee"     && <AssigneeSettings assignees={assignees} onReload={onReloadAssignees} />}
       {section === "category"     && <CategorySettings categories={categories} onReload={onReload} />}
-      {section === "faq"          && <FaqSettings faqs={faqs} onReload={loadFaqs} />}
+      {section === "ai"           && <AiSettings />}
       {section === "room"         && <RoomSettings rooms={rooms} onReload={loadRooms} />}
+    </div>
+  );
+}
+
+function AiSettings() {
+  const [form, setForm] = useState({ ai_provider: "anthropic", ai_api_key: "", ai_model: "claude-haiku-4-5-20251001", ai_system_prompt: "" });
+  const [saved, setSaved] = useState(false);
+  const [showKey, setShowKey] = useState(false);
+
+  const DEFAULT_PROMPT = `คุณคือผู้ช่วย IT Support เบื้องต้นของ The Standard ชื่อ "IT Assistant"
+ช่วยแก้ปัญหาคอมพิวเตอร์และระบบ IT เบื้องต้น ตอบเป็นภาษาไทย กระชับ เข้าใจง่าย
+ถ้าแก้ไม่ได้หรือเกิน scope ให้แนะนำแจ้ง Ticket ห้ามตอบเรื่องนอก IT`;
+
+  const MODELS = {
+    anthropic: ["claude-haiku-4-5-20251001", "claude-sonnet-4-6"],
+    openai:    ["gpt-4o-mini", "gpt-4o"],
+  };
+
+  useEffect(() => {
+    api.getConfig().then(cfg => {
+      setForm(f => ({
+        ...f,
+        ai_provider:      cfg.ai_provider      || "anthropic",
+        ai_api_key:       cfg.ai_api_key        || "",
+        ai_model:         cfg.ai_model          || "claude-haiku-4-5-20251001",
+        ai_system_prompt: cfg.ai_system_prompt  || DEFAULT_PROMPT,
+      }));
+    }).catch(() => {});
+  }, []);
+
+  async function save() {
+    await api.updateConfig(form);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px #0001", display: "flex", flexDirection: "column", gap: 14 }}>
+      <strong style={{ fontSize: 15 }}>🤖 AI Assistant (LIFF Chat)</strong>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div>
+          <label style={{ fontSize: 12, color: "#666", fontWeight: 600, display: "block", marginBottom: 4 }}>Provider</label>
+          <select value={form.ai_provider} onChange={e => setForm(f => ({ ...f, ai_provider: e.target.value, ai_model: MODELS[e.target.value]?.[0] || "" }))}
+            style={{ ...inputStyle, fontSize: 13, width: "100%" }}>
+            <option value="anthropic">Anthropic (Claude)</option>
+            <option value="openai">OpenAI (GPT)</option>
+          </select>
+        </div>
+        <div>
+          <label style={{ fontSize: 12, color: "#666", fontWeight: 600, display: "block", marginBottom: 4 }}>Model</label>
+          <select value={form.ai_model} onChange={e => setForm(f => ({ ...f, ai_model: e.target.value }))}
+            style={{ ...inputStyle, fontSize: 13, width: "100%" }}>
+            {(MODELS[form.ai_provider] || []).map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label style={{ fontSize: 12, color: "#666", fontWeight: 600, display: "block", marginBottom: 4 }}>API Key</label>
+        <div style={{ display: "flex", gap: 6 }}>
+          <input type={showKey ? "text" : "password"} value={form.ai_api_key}
+            onChange={e => setForm(f => ({ ...f, ai_api_key: e.target.value }))}
+            placeholder="sk-ant-..." style={{ ...inputStyle, flex: 1, fontSize: 13 }} />
+          <button onClick={() => setShowKey(s => !s)} style={{ ...smallBtn("#888"), padding: "0 10px" }}>
+            {showKey ? "🙈" : "👁️"}
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label style={{ fontSize: 12, color: "#666", fontWeight: 600, display: "block", marginBottom: 4 }}>
+          System Prompt <span style={{ fontWeight: 400, color: "#aaa" }}>(กำหนดพฤติกรรมและความรู้ของ AI)</span>
+        </label>
+        <textarea value={form.ai_system_prompt} onChange={e => setForm(f => ({ ...f, ai_system_prompt: e.target.value }))}
+          rows={8} style={{ width: "100%", ...inputStyle, resize: "vertical", fontSize: 13, boxSizing: "border-box", lineHeight: 1.6 }} />
+        <p style={{ fontSize: 11, color: "#aaa", margin: "4px 0 0" }}>
+          ใส่ข้อมูลภายใน เช่น รหัส WiFi, IP Printer, ขั้นตอนการใช้งานระบบ ได้ในนี้เลย
+        </p>
+      </div>
+
+      <button onClick={save} style={{ ...btnStyle(saved ? "#2a9d8f" : "#1a1a2e"), alignSelf: "flex-start", minWidth: 120 }}>
+        {saved ? "✅ บันทึกแล้ว" : "บันทึก"}
+      </button>
     </div>
   );
 }

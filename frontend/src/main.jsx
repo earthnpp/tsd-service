@@ -6,6 +6,7 @@ import App from "./App";
 import LiffApp from "./LiffApp";
 import LiffBooking from "./LiffBooking";
 import LiffCalendar from "./LiffCalendar";
+import LiffAI from "./LiffAI";
 import LoginPage from "./LoginPage";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
@@ -13,6 +14,7 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 const path = window.location.pathname;
 const isLiffBooking  = path.startsWith("/liff/booking");
 const isLiffCalendar = path.startsWith("/liff/calendar");
+const isLiffAI       = path.startsWith("/liff/ai");
 const isLiff         = path.startsWith("/liff");
 
 function AdminRoot() {
@@ -45,6 +47,7 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     {isLiffCalendar ? <LiffCalendar />
       : isLiffBooking ? <LiffBooking />
+      : isLiffAI ? <LiffAI />
       : isLiff ? <LiffApp />
       : (
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
