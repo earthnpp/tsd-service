@@ -121,7 +121,7 @@ export default function App({ user, onLogout }) {
     URL.revokeObjectURL(url);
   }
 
-  const TABS = [
+  const ALL_TABS = [
     { key: "tickets",   label: "🎫 Tickets" },
     { key: "bookings",  label: "🏢 ห้องประชุม" },
     { key: "dashboard", label: "📊 Dashboard" },
@@ -130,6 +130,10 @@ export default function App({ user, onLogout }) {
     { key: "export",    label: "📥 Export" },
     { key: "audit",     label: "📋 Audit Log" },
   ];
+  // null permissions = full access (INITIAL_ADMIN_EMAIL)
+  const TABS = user?.permissions === null || user?.permissions === undefined
+    ? ALL_TABS
+    : ALL_TABS.filter(({ key }) => user.permissions.includes(key));
 
   return (
     <div className="app-layout">
@@ -1922,6 +1926,66 @@ function smallBtn(bg, tiny = false) {
 }
 
 // ── Users Panel ───────────────────────────────────────────
+const MODULE_LIST = [
+  { key: "tickets",   label: "🎫 Tickets" },
+  { key: "bookings",  label: "🏢 ห้องประชุม" },
+  { key: "dashboard", label: "📊 Dashboard" },
+  { key: "settings",  label: "⚙️ Settings" },
+  { key: "users",     label: "👥 Users" },
+  { key: "export",    label: "📥 Export" },
+  { key: "audit",     label: "📋 Audit Log" },
+];
+
+function UserPermissionRow({ u, onDelete, onUpdated }) {
+  const perms = Array.isArray(u.permissions) ? u.permissions : [];
+  const [saving, setSaving] = useState(false);
+
+  async function toggle(key) {
+    const next = perms.includes(key) ? perms.filter(k => k !== key) : [...perms, key];
+    setSaving(true);
+    try {
+      const updated = await api.updateUserPermissions(u.id, next);
+      onUpdated(updated);
+    } catch {}
+    setSaving(false);
+  }
+
+  return (
+    <div style={{ borderRadius: 10, background: "#f8f9ff", border: "1px solid #eee", padding: "12px 14px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>{u.name || u.email}</div>
+          {u.name && <div style={{ fontSize: 12, color: "#888" }}>{u.email}</div>}
+        </div>
+        <div style={{ fontSize: 11, color: "#bbb", whiteSpace: "nowrap" }}>
+          {new Date(u.createdAt).toLocaleDateString("th-TH")}
+        </div>
+        <button onClick={() => onDelete(u.id)} style={smallBtn("#e63946")}>🗑️</button>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {MODULE_LIST.map(({ key, label }) => {
+          const checked = perms.includes(key);
+          return (
+            <label key={key} style={{
+              display: "flex", alignItems: "center", gap: 5, cursor: saving ? "default" : "pointer",
+              fontSize: 12, padding: "4px 10px", borderRadius: 20,
+              background: checked ? "#1a1a2e" : "#eee",
+              color: checked ? "#fff" : "#555",
+              opacity: saving ? 0.6 : 1,
+              userSelect: "none",
+            }}>
+              <input type="checkbox" checked={checked} disabled={saving}
+                onChange={() => toggle(key)}
+                style={{ width: 12, height: 12, accentColor: "#e63946" }} />
+              {label}
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function UsersPanel() {
   const [users, setUsers] = useState([]);
   const [email, setEmail] = useState("");
@@ -1955,8 +2019,12 @@ function UsersPanel() {
     await api.deleteAllowedUser(id); load();
   }
 
+  function handleUpdated(updated) {
+    setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
+  }
+
   return (
-    <div style={{ maxWidth: 600 }}>
+    <div style={{ maxWidth: 680 }}>
       <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px #0001", marginBottom: 16 }}>
         <strong style={{ display: "block", marginBottom: 14, fontSize: 16 }}>👥 จัดการผู้ใช้ที่อนุญาต</strong>
         <p style={{ fontSize: 13, color: "#888", margin: "0 0 16px" }}>
@@ -1978,25 +2046,16 @@ function UsersPanel() {
       </div>
 
       <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px #0001" }}>
-        <strong style={{ display: "block", marginBottom: 12 }}>รายชื่อที่อนุญาต ({users.length})</strong>
+        <strong style={{ display: "block", marginBottom: 4 }}>รายชื่อที่อนุญาต ({users.length})</strong>
+        <p style={{ fontSize: 12, color: "#aaa", margin: "0 0 14px" }}>กด checkbox เพื่อเปิด/ปิด module — บันทึกอัตโนมัติ</p>
         {users.length === 0 && (
           <p style={{ color: "#bbb", fontSize: 13, textAlign: "center", padding: "16px 0" }}>
             ยังไม่มีรายชื่อ — กรุณาเพิ่มอีเมลด้านบน
           </p>
         )}
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {users.map((u) => (
-            <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10,
-              padding: "10px 12px", borderRadius: 8, background: "#f8f9ff", border: "1px solid #eee" }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 600 }}>{u.name || u.email}</div>
-                {u.name && <div style={{ fontSize: 12, color: "#888" }}>{u.email}</div>}
-              </div>
-              <div style={{ fontSize: 11, color: "#bbb", whiteSpace: "nowrap" }}>
-                {new Date(u.createdAt).toLocaleDateString("th-TH")}
-              </div>
-              <button onClick={() => removeUser(u.id)} style={smallBtn("#e63946")}>🗑️</button>
-            </div>
+            <UserPermissionRow key={u.id} u={u} onDelete={removeUser} onUpdated={handleUpdated} />
           ))}
         </div>
       </div>

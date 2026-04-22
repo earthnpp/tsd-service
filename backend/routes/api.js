@@ -22,75 +22,86 @@ function adminAuth(req, res, next) {
 
   // Fallback: ADMIN_SECRET (สำหรับ internal/script use)
   if (token === process.env.ADMIN_SECRET) {
-    req.adminUser = { email: "system" };
+    req.adminUser = { email: "system", permissions: null };
     return next();
   }
 
   res.status(401).json({ error: "Unauthorized" });
 }
 
+// null permissions = full access (INITIAL_ADMIN_EMAIL / system token)
+function requirePermission(module) {
+  return (req, res, next) => {
+    const perms = req.adminUser?.permissions;
+    if (perms === null || perms === undefined) return next();
+    if (!Array.isArray(perms) || !perms.includes(module)) {
+      return res.status(403).json({ error: "ไม่มีสิทธิ์เข้าถึงโมดูลนี้" });
+    }
+    next();
+  };
+}
+
 router.use(adminAuth);
 
 // Tickets
-router.get("/tickets/export",         adminController.exportTickets);
-router.get("/tickets",                adminController.listTickets);
-router.get("/tickets/:id",            adminController.getTicket);
-router.patch("/tickets/:id/assign",   adminController.assignTicket);
-router.patch("/tickets/:id/close",    adminController.closeTicket);
-router.patch("/tickets/:id/status",   adminController.updateTicketStatus);
-router.patch("/tickets/:id/cost",          adminController.updateTicketCost);
-router.patch("/tickets/:id/close-cost",    adminController.closeWithCost);
-router.get("/stats",                  adminController.getStats);
+router.get("/tickets/export",           requirePermission("export"),    adminController.exportTickets);
+router.get("/tickets",                  requirePermission("tickets"),   adminController.listTickets);
+router.get("/tickets/:id",              requirePermission("tickets"),   adminController.getTicket);
+router.patch("/tickets/:id/assign",     requirePermission("tickets"),   adminController.assignTicket);
+router.patch("/tickets/:id/close",      requirePermission("tickets"),   adminController.closeTicket);
+router.patch("/tickets/:id/status",     requirePermission("tickets"),   adminController.updateTicketStatus);
+router.patch("/tickets/:id/cost",       requirePermission("tickets"),   adminController.updateTicketCost);
+router.patch("/tickets/:id/close-cost", requirePermission("tickets"),   adminController.closeWithCost);
+router.get("/stats",                    requirePermission("dashboard"), adminController.getStats);
 
-// Assignees
+// Assignees — GET open (needed by tickets tab), writes need settings
 router.get("/assignees",              adminController.listAssignees);
-router.post("/assignees",             adminController.createAssignee);
-router.put("/assignees/:id",          adminController.updateAssignee);
-router.delete("/assignees/:id",       adminController.deleteAssignee);
+router.post("/assignees",             requirePermission("settings"), adminController.createAssignee);
+router.put("/assignees/:id",          requirePermission("settings"), adminController.updateAssignee);
+router.delete("/assignees/:id",       requirePermission("settings"), adminController.deleteAssignee);
 
-// Categories
+// Categories — GET open (needed by tickets filter), writes need settings
 router.get("/categories",                        adminController.listCategories);
-router.post("/categories",                       adminController.createCategory);
-router.put("/categories/:id",                    adminController.updateCategory);
-router.delete("/categories/:id",                 adminController.deleteCategory);
-router.post("/categories/:id/subcategories",     adminController.createSubcategory);
-router.put("/subcategories/:id",                 adminController.updateSubcategory);
+router.post("/categories",                       requirePermission("settings"), adminController.createCategory);
+router.put("/categories/:id",                    requirePermission("settings"), adminController.updateCategory);
+router.delete("/categories/:id",                 requirePermission("settings"), adminController.deleteCategory);
+router.post("/categories/:id/subcategories",     requirePermission("settings"), adminController.createSubcategory);
+router.put("/subcategories/:id",                 requirePermission("settings"), adminController.updateSubcategory);
 router.delete("/subcategories/:id",              adminController.deleteSubcategory);
 
 // FAQ
-router.get("/faq",        adminController.listFaqs);
-router.post("/faq",       adminController.createFaq);
-router.put("/faq/:id",    adminController.updateFaq);
-router.delete("/faq/:id", adminController.deleteFaq);
+router.get("/faq",        requirePermission("settings"), adminController.listFaqs);
+router.post("/faq",       requirePermission("settings"), adminController.createFaq);
+router.put("/faq/:id",    requirePermission("settings"), adminController.updateFaq);
+router.delete("/faq/:id", requirePermission("settings"), adminController.deleteFaq);
 
 // Bookings
-router.get("/bookings/month",                 adminController.listBookingsMonth);
-router.get("/bookings/export",                adminController.exportBookings);
-router.get("/bookings",                       adminController.listBookings);
-router.get("/rooms",                          adminController.listRooms);
-router.post("/rooms",                         adminController.createRoom);
-router.put("/rooms/:id",                      adminController.updateRoom);
-router.delete("/rooms/:id",                   adminController.deleteRoom);
-router.patch("/bookings/:id/cancel",          adminController.cancelBookingAdmin);
-router.patch("/rooms/:id/calendar",           adminController.updateRoomCalendar);
-router.post("/rooms/:id/create-calendar",     adminController.createRoomCalendar);
+router.get("/bookings/month",             requirePermission("bookings"), adminController.listBookingsMonth);
+router.get("/bookings/export",            requirePermission("export"),   adminController.exportBookings);
+router.get("/bookings",                   requirePermission("bookings"), adminController.listBookings);
+router.get("/rooms",                      adminController.listRooms);
+router.post("/rooms",                     requirePermission("settings"), adminController.createRoom);
+router.put("/rooms/:id",                  requirePermission("settings"), adminController.updateRoom);
+router.delete("/rooms/:id",               requirePermission("settings"), adminController.deleteRoom);
+router.patch("/bookings/:id/cancel",      requirePermission("bookings"), adminController.cancelBookingAdmin);
+router.patch("/rooms/:id/calendar",       requirePermission("settings"), adminController.updateRoomCalendar);
+router.post("/rooms/:id/create-calendar", requirePermission("settings"), adminController.createRoomCalendar);
 
 // System config
-router.get("/config",                      adminController.getConfig);
-router.put("/config",                      adminController.updateConfig);
-router.post("/config/test-notify",         adminController.testNotifyGroup);
-
-// Calendar debug
-router.get("/calendar/test",               adminController.testCalendar);
+router.get("/config",              requirePermission("settings"), adminController.getConfig);
+router.put("/config",              requirePermission("settings"), adminController.updateConfig);
+router.post("/config/test-notify", requirePermission("settings"), adminController.testNotifyGroup);
+router.get("/calendar/test",       requirePermission("settings"), adminController.testCalendar);
 
 // Allowed Users
-router.get("/allowed-users",         adminController.listAllowedUsers);
-router.post("/allowed-users",        adminController.createAllowedUser);
-router.delete("/allowed-users/:id",  adminController.deleteAllowedUser);
+router.get("/allowed-users",                    requirePermission("users"), adminController.listAllowedUsers);
+router.post("/allowed-users",                   requirePermission("users"), adminController.createAllowedUser);
+router.delete("/allowed-users/:id",             requirePermission("users"), adminController.deleteAllowedUser);
+router.put("/allowed-users/:id/permissions",    requirePermission("users"), adminController.updateAllowedUserPermissions);
 
 // Audit Logs
-router.get("/audit-logs",         auditController.listAuditLogs);
-router.get("/audit-logs/export",  auditController.exportAuditLogs);
-router.get("/audit-logs/actions", auditController.getAuditActions);
+router.get("/audit-logs",         requirePermission("audit"), auditController.listAuditLogs);
+router.get("/audit-logs/export",  requirePermission("audit"), auditController.exportAuditLogs);
+router.get("/audit-logs/actions", requirePermission("audit"), auditController.getAuditActions);
 
 module.exports = router;

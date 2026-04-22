@@ -20,7 +20,9 @@ function AdminRoot() {
     const token = localStorage.getItem("admin_token");
     const email = localStorage.getItem("admin_email");
     const name  = localStorage.getItem("admin_name");
-    return token ? { token, email, name } : null;
+    const raw   = localStorage.getItem("admin_permissions");
+    const permissions = raw === "null" ? null : (raw ? JSON.parse(raw) : null);
+    return token ? { token, email, name, permissions } : null;
   });
 
   function handleLogin(userData) {
@@ -31,6 +33,7 @@ function AdminRoot() {
     localStorage.removeItem("admin_token");
     localStorage.removeItem("admin_email");
     localStorage.removeItem("admin_name");
+    localStorage.removeItem("admin_permissions");
     setUser(null);
   }
 

@@ -30,9 +30,13 @@ async function googleLogin(req, res) {
       return res.status(403).json({ error: "ไม่มีสิทธิ์เข้าใช้งาน กรุณาติดต่อผู้ดูแลระบบ" });
     }
 
-    const token = jwt.sign({ email, name }, process.env.JWT_SECRET, { expiresIn: "8h" });
+    // null permissions = full access (INITIAL_ADMIN_EMAIL not in DB)
+    const dbUser = await prisma.allowedUser.findUnique({ where: { email } });
+    const permissions = dbUser ? (dbUser.permissions || []) : null;
+
+    const token = jwt.sign({ email, name, permissions }, process.env.JWT_SECRET, { expiresIn: "8h" });
     audit.log({ actor: email, actorType: "admin", action: "ADMIN_LOGIN", detail: name, ipAddress: ip, userAgent: ua });
-    res.json({ token, email, name });
+    res.json({ token, email, name, permissions });
   } catch (err) {
     console.error("Google auth error:", err.message);
     res.status(401).json({ error: "Token ไม่ถูกต้อง" });

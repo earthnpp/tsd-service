@@ -133,10 +133,11 @@ model BookingCounter {
 }
 
 model AllowedUser {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  email       String   @unique
+  name        String?
+  permissions Json?
+  createdAt   DateTime @default(now())
 }
 
 model SystemConfig {

@@ -16,7 +16,8 @@ export default function LoginPage({ onLogin }) {
       localStorage.setItem("admin_token", data.token);
       localStorage.setItem("admin_email", data.email);
       localStorage.setItem("admin_name", data.name || "");
-      onLogin({ token: data.token, email: data.email, name: data.name });
+      localStorage.setItem("admin_permissions", JSON.stringify(data.permissions ?? null));
+      onLogin({ token: data.token, email: data.email, name: data.name, permissions: data.permissions ?? null });
     } catch {
       alert("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้");
     }

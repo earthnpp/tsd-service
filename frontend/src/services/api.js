@@ -97,6 +97,7 @@ export const api = {
   getAllowedUsers: () => request("/allowed-users"),
   createAllowedUser: (email, name) => request("/allowed-users", { method: "POST", body: JSON.stringify({ email, name }) }),
   deleteAllowedUser: (id) => request(`/allowed-users/${id}`, { method: "DELETE" }),
+  updateUserPermissions: (id, permissions) => request(`/allowed-users/${id}/permissions`, { method: "PUT", body: JSON.stringify({ permissions }) }),
 
   // Audit Logs
   getAuditLogs: (params = {}) => {

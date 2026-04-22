@@ -469,6 +469,21 @@ async function deleteAllowedUser(req, res) {
   }
 }
 
+async function updateAllowedUserPermissions(req, res) {
+  try {
+    const { permissions } = req.body;
+    if (!Array.isArray(permissions)) return res.status(400).json({ error: "permissions must be array" });
+    const u = await prisma.allowedUser.update({
+      where: { id: Number(req.params.id) },
+      data: { permissions },
+    });
+    audit.log({ ...audit.fromReq(req), action: "USER_PERMISSIONS_UPDATED", resourceType: "user", resourceId: String(u.id), detail: `${u.email}: [${permissions.join(", ")}]` });
+    res.json(u);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+}
+
 // ── Helper ────────────────────────────────────────────────
 
 async function notifyUser(lineUserId, messages) {
@@ -527,6 +542,6 @@ module.exports = {
   listAssignees, createAssignee, updateAssignee, deleteAssignee,
   listBookings, listBookingsMonth, exportBookings, listRooms, cancelBookingAdmin, updateRoomCalendar,
   createRoom, updateRoom, deleteRoom, createRoomCalendar, testCalendar,
-  listAllowedUsers, createAllowedUser, deleteAllowedUser,
+  listAllowedUsers, createAllowedUser, deleteAllowedUser, updateAllowedUserPermissions,
   getConfig, updateConfig, testNotifyGroup,
 };
