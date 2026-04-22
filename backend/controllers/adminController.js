@@ -476,7 +476,12 @@ async function notifyUser(lineUserId, messages) {
   try {
     await client.pushMessage({ to: lineUserId, messages });
   } catch (err) {
-    console.error("Line push error:", err.message);
+    let lineMsg = "";
+    try { lineMsg = JSON.parse(err.body)?.message || ""; } catch {}
+    console.error(`[Notify] push to user failed: ${err.statusCode || ""} ${lineMsg || err.message} (userId=${lineUserId})`);
+    if (lineMsg.toLowerCase().includes("invalid destination")) {
+      console.error("[Notify] hint: user อาจ block บอทไปแล้ว หรือ LINE User ID ไม่ถูกต้อง");
+    }
   }
 }
 
