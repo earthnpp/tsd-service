@@ -287,6 +287,21 @@ function bookingList(bookings) {
             weight: "bold",
             margin: "sm",
           },
+          ...(!isConfirmed && b.cancelledBy ? [{
+            type: "text",
+            text: `ยกเลิกโดย: ${b.cancelledBy}${b.cancelledByType === "admin" ? " (Admin)" : ""}`,
+            color: "#aaaaaa",
+            size: "xxs",
+            margin: "xs",
+            wrap: true,
+          }] : []),
+          ...(!isConfirmed && b.cancelledAt ? [{
+            type: "text",
+            text: `เมื่อ: ${new Date(b.cancelledAt).toLocaleString("th-TH", { timeZone: "Asia/Bangkok", dateStyle: "short", timeStyle: "short" })}`,
+            color: "#aaaaaa",
+            size: "xxs",
+            wrap: true,
+          }] : []),
         ],
       },
       footer: isConfirmed

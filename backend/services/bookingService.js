@@ -74,7 +74,12 @@ async function cancelBooking(bookingId, lineUserId) {
 
   const updated = await prisma.roomBooking.update({
     where: { id: bookingId },
-    data: { status: "cancelled" },
+    data: {
+      status: "cancelled",
+      cancelledBy: booking.displayName || lineUserId,
+      cancelledAt: new Date(),
+      cancelledByType: "user",
+    },
     include: { room: true },
   });
 
@@ -91,11 +96,15 @@ async function cancelBooking(bookingId, lineUserId) {
 
 async function getBookingsByUser(lineUserId, limit = 5) {
   const now = new Date();
+  // Show upcoming confirmed + recently cancelled (within 7 days)
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   return prisma.roomBooking.findMany({
     where: {
       lineUserId,
-      endAt: { gte: now },
-      status: { not: "cancelled" },
+      OR: [
+        { status: "confirmed", endAt: { gte: now } },
+        { status: "cancelled", cancelledAt: { gte: weekAgo } },
+      ],
     },
     include: { room: true },
     orderBy: { startAt: "asc" },
@@ -122,7 +131,7 @@ async function getAllBookings({ status, roomId, page = 1, limit = 20 } = {}) {
   return { bookings, total };
 }
 
-async function adminCancelBooking(bookingId) {
+async function adminCancelBooking(bookingId, actorEmail) {
   const booking = await prisma.roomBooking.findUnique({
     where: { id: Number(bookingId) },
     include: { room: true },
@@ -131,7 +140,12 @@ async function adminCancelBooking(bookingId) {
 
   const updated = await prisma.roomBooking.update({
     where: { id: Number(bookingId) },
-    data: { status: "cancelled" },
+    data: {
+      status: "cancelled",
+      cancelledBy: actorEmail || "admin",
+      cancelledAt: new Date(),
+      cancelledByType: "admin",
+    },
     include: { room: true },
   });
 

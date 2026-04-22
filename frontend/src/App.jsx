@@ -1318,17 +1318,19 @@ function BookingsPanel() {
 
   // bookings by day — รองรับ multi-day (ใส่ booking ทุกวันที่ครอบคลุมภายในเดือน)
   const byDay = {};
+  const cancelledByDay = {};
   const monthStart = new Date(viewYear, viewMonth - 1, 1);
   const monthEnd   = new Date(viewYear, viewMonth, 0);
-  monthBookings.filter(b => b.status !== "cancelled").forEach(b => {
+  monthBookings.forEach(b => {
     const bStart = new Date(new Date(b.startAt).toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" }) + "T00:00:00");
     const bEnd   = new Date(new Date(b.endAt  ).toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" }) + "T00:00:00");
     const iterStart = bStart < monthStart ? monthStart : bStart;
     const iterEnd   = bEnd   > monthEnd   ? monthEnd   : bEnd;
+    const target = b.status === "cancelled" ? cancelledByDay : byDay;
     for (const cur = new Date(iterStart); cur <= iterEnd; cur.setDate(cur.getDate() + 1)) {
       const day = cur.getDate();
-      if (!byDay[day]) byDay[day] = [];
-      if (!byDay[day].find(x => x.id === b.id)) byDay[day].push(b);
+      if (!target[day]) target[day] = [];
+      if (!target[day].find(x => x.id === b.id)) target[day].push(b);
     }
   });
 
@@ -1345,6 +1347,7 @@ function BookingsPanel() {
   const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth() + 1;
   const todayDate = isCurrentMonth ? now.getDate() : null;
   const selBookings = selectedDay ? (byDay[selectedDay] || []) : [];
+  const selCancelledBookings = selectedDay ? (cancelledByDay[selectedDay] || []) : [];
 
   return (
     <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 4px #0001", overflow: "hidden" }}>
@@ -1441,12 +1444,16 @@ function BookingsPanel() {
           <div style={{ fontSize: 13, fontWeight: 500, color: "#3c4043", marginBottom: 10 }}>
             {new Date(viewYear, viewMonth - 1, selectedDay)
               .toLocaleDateString("th-TH", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-            {selBookings.length === 0 && <span style={{ color: "#aaa", fontWeight: 400 }}> — ว่าง</span>}
+            {selBookings.length === 0 && selCancelledBookings.length === 0 && (
+              <span style={{ color: "#aaa", fontWeight: 400 }}> — ว่าง</span>
+            )}
           </div>
-          {selBookings.length === 0
+
+          {selBookings.length === 0 && selCancelledBookings.length === 0
             ? <p style={{ color: "#aaa", fontSize: 13, margin: 0 }}>ไม่มีการจองในวันนี้</p>
             : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {/* Active bookings */}
                 {selBookings.map(b => {
                   const st = bookingStatus(b);
                   const isPast = new Date(b.endAt) < now;
@@ -1484,6 +1491,48 @@ function BookingsPanel() {
                     </div>
                   );
                 })}
+
+                {/* Cancelled bookings */}
+                {selCancelledBookings.length > 0 && (
+                  <>
+                    {selBookings.length > 0 && (
+                      <div style={{ fontSize: 11, color: "#aaa", marginTop: 4, marginBottom: 2, paddingLeft: 2 }}>
+                        รายการที่ยกเลิก
+                      </div>
+                    )}
+                    {selCancelledBookings.map(b => (
+                      <div key={b.id} style={{
+                        display: "flex", gap: 10, alignItems: "flex-start",
+                        padding: "10px 12px", borderRadius: 8,
+                        borderLeft: "4px solid #ccc",
+                        background: "#f5f5f5",
+                        opacity: 0.75,
+                      }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: 14, color: "#999", marginBottom: 4,
+                            textDecoration: "line-through" }}>{b.title}</div>
+                          <div style={{ fontSize: 12, color: "#aaa" }}>📍 {b.room?.name}</div>
+                          <div style={{ fontSize: 12, color: "#aaa" }}>🕐 เวลา {fmtTime(b.startAt)} – {fmtTime(b.endAt)} น.</div>
+                          <div style={{ fontSize: 12, color: "#aaa" }}>👤 ผู้จอง {b.displayName || b.lineUserId}</div>
+                          {b.notes && <div style={{ fontSize: 12, color: "#aaa" }}>📌 {b.notes}</div>}
+                          <div style={{ fontSize: 11, color: "#bbb", marginTop: 3 }}>📋 {b.bookingNo}</div>
+                          {b.cancelledBy && (
+                            <div style={{ fontSize: 11, color: "#e07b7b", marginTop: 4, fontWeight: 500 }}>
+                              ❌ ยกเลิกโดย {b.cancelledBy}
+                              {b.cancelledByType === "admin" ? " (Admin)" : " (ผู้จอง)"}
+                              {b.cancelledAt && ` · ${new Date(b.cancelledAt).toLocaleString("th-TH", { timeZone: "Asia/Bangkok", dateStyle: "short", timeStyle: "short" })}`}
+                            </div>
+                          )}
+                        </div>
+                        <span style={{ background: "#f0f0f0", color: "#999", border: "1px solid #ddd",
+                          borderRadius: 999, padding: "2px 8px", fontSize: 11, fontWeight: 500,
+                          whiteSpace: "nowrap", flexShrink: 0 }}>
+                          ยกเลิกแล้ว
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
             )
           }

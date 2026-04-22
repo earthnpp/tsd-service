@@ -296,7 +296,7 @@ async function listRooms(req, res) {
 
 async function cancelBookingAdmin(req, res) {
   try {
-    const booking = await bookingService.adminCancelBooking(req.params.id);
+    const booking = await bookingService.adminCancelBooking(req.params.id, req.adminUser?.email);
     const fmt = (dt) => new Date(dt).toLocaleString("th-TH", {
       timeZone: "Asia/Bangkok", dateStyle: "short", timeStyle: "short",
     });

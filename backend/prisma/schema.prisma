@@ -115,9 +115,12 @@ model RoomBooking {
   email         String?
   department    String?
   status        String   @default("confirmed")
-  notes         String?  @db.Text
-  googleEventId String?
-  createdAt     DateTime @default(now())
+  notes           String?   @db.Text
+  googleEventId   String?
+  cancelledBy     String?
+  cancelledAt     DateTime?
+  cancelledByType String?
+  createdAt       DateTime  @default(now())
 
   @@index([roomId])
   @@index([lineUserId])
