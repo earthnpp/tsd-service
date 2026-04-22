@@ -91,7 +91,6 @@ function completedWithRatingCard(ticket) {
                 type: "postback",
                 label,
                 data: `action=submit_rating&ticketId=${ticket.id}&rating=${n}`,
-                displayText: `${n} ดาว`,
               },
             })),
             margin: "sm",
