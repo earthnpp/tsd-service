@@ -14,6 +14,16 @@ const PRIORITY = {
 };
 const PAGE_SIZES = [20, 50, 100];
 
+const ALL_TABS = [
+  { key: "tickets",   label: "🎫 Tickets" },
+  { key: "bookings",  label: "🏢 ห้องประชุม" },
+  { key: "dashboard", label: "📊 Dashboard" },
+  { key: "settings",  label: "⚙️ Settings" },
+  { key: "users",     label: "👥 Users" },
+  { key: "export",    label: "📥 Export" },
+  { key: "audit",     label: "📋 Audit Log" },
+];
+
 function Badge({ map, value }) {
   const m = map[value] || { label: value, color: "#999", bg: "#eee" };
   return (
@@ -121,15 +131,6 @@ export default function App({ user, onLogout }) {
     URL.revokeObjectURL(url);
   }
 
-  const ALL_TABS = [
-    { key: "tickets",   label: "🎫 Tickets" },
-    { key: "bookings",  label: "🏢 ห้องประชุม" },
-    { key: "dashboard", label: "📊 Dashboard" },
-    { key: "settings",  label: "⚙️ Settings" },
-    { key: "users",     label: "👥 Users" },
-    { key: "export",    label: "📥 Export" },
-    { key: "audit",     label: "📋 Audit Log" },
-  ];
   // null permissions = full access (INITIAL_ADMIN_EMAIL)
   const TABS = user?.permissions === null || user?.permissions === undefined
     ? ALL_TABS
@@ -1926,15 +1927,6 @@ function smallBtn(bg, tiny = false) {
 }
 
 // ── Users Panel ───────────────────────────────────────────
-const MODULE_LIST = [
-  { key: "tickets",   label: "🎫 Tickets" },
-  { key: "bookings",  label: "🏢 ห้องประชุม" },
-  { key: "dashboard", label: "📊 Dashboard" },
-  { key: "settings",  label: "⚙️ Settings" },
-  { key: "users",     label: "👥 Users" },
-  { key: "export",    label: "📥 Export" },
-  { key: "audit",     label: "📋 Audit Log" },
-];
 
 function UserPermissionRow({ u, onDelete, onUpdated }) {
   const perms = Array.isArray(u.permissions) ? u.permissions : [];
@@ -1963,7 +1955,7 @@ function UserPermissionRow({ u, onDelete, onUpdated }) {
         <button onClick={() => onDelete(u.id)} style={smallBtn("#e63946")}>🗑️</button>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        {MODULE_LIST.map(({ key, label }) => {
+        {ALL_TABS.map(({ key, label }) => {
           const checked = perms.includes(key);
           return (
             <label key={key} style={{
