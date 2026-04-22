@@ -796,6 +796,7 @@ function SettingsPanel({ categories, onReload, assignees, onReloadAssignees }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <ContactSettings />
+      <NotificationSettings />
       <AssigneeSettings assignees={assignees} onReload={onReloadAssignees} />
       <div className="two-col">
         <CategorySettings categories={categories} onReload={onReload} />
@@ -841,6 +842,83 @@ function ContactSettings() {
       <button onClick={save} style={{ ...btnStyle(saved ? "#2a9d8f" : "#1a1a2e"), minWidth: 120 }}>
         {saved ? "✅ บันทึกแล้ว" : "บันทึก"}
       </button>
+    </div>
+  );
+}
+
+function NotificationSettings() {
+  const [groupId, setGroupId] = useState("");
+  const [saved, setSaved]     = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testMsg, setTestMsg] = useState("");
+
+  useEffect(() => {
+    api.getConfig().then(cfg => { if (cfg.notify_group_id) setGroupId(cfg.notify_group_id); }).catch(() => {});
+  }, []);
+
+  async function save() {
+    await api.updateConfig({ notify_group_id: groupId.trim() });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  async function sendTest() {
+    setTesting(true);
+    setTestMsg("");
+    try {
+      await api.updateConfig({ notify_group_id: groupId.trim() });
+      await api.testNotifyGroup();
+      setTestMsg("✅ ส่งข้อความทดสอบสำเร็จ ตรวจสอบในกลุ่มได้เลย");
+    } catch {
+      setTestMsg("❌ ส่งไม่สำเร็จ ตรวจสอบ Group ID และ LINE token");
+    }
+    setTesting(false);
+  }
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px #0001" }}>
+      <strong style={{ fontSize: 15, display: "block", marginBottom: 6 }}>🔔 แจ้งเตือนกลุ่ม LINE</strong>
+      <p style={{ fontSize: 12, color: "#888", margin: "0 0 14px" }}>
+        เมื่อมี Ticket หรือจองห้องใหม่ บอทจะส่งแจ้งเตือนเข้ากลุ่ม LINE ที่กำหนดทันที
+      </p>
+
+      <div style={{ background: "#f5f7ff", borderRadius: 8, padding: "12px 14px", marginBottom: 14,
+        borderLeft: "3px solid #457b9d", fontSize: 12, color: "#444", lineHeight: 1.7 }}>
+        <strong>วิธีรับ Group ID:</strong><br/>
+        1. เพิ่มบอทเข้ากลุ่ม LINE ที่ต้องการรับแจ้งเตือน<br/>
+        2. พิมพ์ข้อความ <code style={{ background: "#e8edf8", padding: "1px 5px", borderRadius: 3 }}>group id</code> ในกลุ่มนั้น<br/>
+        3. บอทจะตอบกลับพร้อม Group ID ให้คัดลอกมาวางด้านล่าง
+      </div>
+
+      <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+        <div style={{ flex: "1 1 280px" }}>
+          <label style={{ fontSize: 12, color: "#666", fontWeight: 600, display: "block", marginBottom: 4 }}>
+            LINE Group ID
+          </label>
+          <input value={groupId} onChange={e => setGroupId(e.target.value)}
+            placeholder="C xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            style={{ ...inputStyle, fontSize: 13, width: "100%", boxSizing: "border-box",
+              fontFamily: "monospace" }} />
+        </div>
+        <button onClick={save} style={{ ...btnStyle(saved ? "#2a9d8f" : "#1a1a2e"), minWidth: 100 }}>
+          {saved ? "✅ บันทึกแล้ว" : "บันทึก"}
+        </button>
+        <button onClick={sendTest} disabled={!groupId.trim() || testing}
+          style={{ ...btnStyle("#457b9d"), minWidth: 120, opacity: (!groupId.trim() || testing) ? 0.5 : 1 }}>
+          {testing ? "⏳ กำลังส่ง..." : "📤 ทดสอบส่ง"}
+        </button>
+      </div>
+      {testMsg && (
+        <div style={{ marginTop: 10, fontSize: 12,
+          color: testMsg.startsWith("✅") ? "#2a9d8f" : "#e63946" }}>
+          {testMsg}
+        </div>
+      )}
+      {groupId.trim() && (
+        <div style={{ marginTop: 10, fontSize: 11, color: "#aaa" }}>
+          กลุ่มปัจจุบัน: <code style={{ background: "#f5f5f5", padding: "1px 5px", borderRadius: 3 }}>{groupId}</code>
+        </div>
+      )}
     </div>
   );
 }

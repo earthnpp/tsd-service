@@ -73,6 +73,21 @@ async function handleEvents(events) {
 async function handleEvent(event) {
   const userId = event.source.userId;
   const replyToken = event.replyToken;
+
+  // ── Group message: help admin get Group ID ─────────────────
+  if (event.source.type === "group" && event.type === "message" && event.message.type === "text") {
+    const txt = event.message.text.trim().toLowerCase();
+    if (txt === "group id" || txt === "/groupid") {
+      return client.replyMessage({
+        replyToken,
+        messages: [{ type: "text", text: `🆔 Group ID ของกลุ่มนี้คือ:\n${event.source.groupId}\n\nคัดลอกไปใส่ใน Settings → Notify Group ID ได้เลยครับ` }],
+      });
+    }
+    // ไม่ตอบสนองต่อข้อความกลุ่มทั่วไป
+    return;
+  }
+  if (event.source.type === "group") return;
+
   if (isDuplicate(replyToken)) return;
   if (!acquireLock(userId)) return;
   try {

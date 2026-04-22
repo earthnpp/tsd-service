@@ -91,6 +91,7 @@ export const api = {
   // System Config
   getConfig: () => request("/config"),
   updateConfig: (data) => request("/config", { method: "PUT", body: JSON.stringify(data) }),
+  testNotifyGroup: () => request("/config/test-notify", { method: "POST" }),
 
   // Allowed Users
   getAllowedUsers: () => request("/allowed-users"),

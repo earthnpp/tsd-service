@@ -5,6 +5,7 @@ const categoryService = require("../services/categoryService");
 const bookingService = require("../services/bookingService");
 const ticketConfirm = require("../views/flex/ticketConfirm");
 const { bookingSuccess } = require("../views/flex/bookingViews");
+const notifyService = require("../services/notifyService");
 
 const prisma = new PrismaClient();
 const client = new line.messagingApi.MessagingApiClient({
@@ -71,6 +72,9 @@ async function createTicket(req, res) {
       to: userId,
       messages: [ticketConfirm(ticket)],
     }).catch(() => {});
+
+    // Notify admin group
+    notifyService.notifyNewTicket(ticket).catch(() => {});
 
     res.json({ success: true, ticketNo: ticket.ticketNo });
   } catch (err) {
@@ -149,6 +153,9 @@ async function createBooking(req, res) {
       to: userId,
       messages: [bookingSuccess(booking)],
     }).catch(() => {});
+
+    // Notify admin group
+    notifyService.notifyNewBooking(booking).catch(() => {});
 
     res.json({ success: true, bookingNo: booking.bookingNo });
   } catch (err) {

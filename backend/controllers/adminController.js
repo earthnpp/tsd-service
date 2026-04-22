@@ -389,6 +389,22 @@ async function updateConfig(req, res) {
   res.json({ ok: true });
 }
 
+async function testNotifyGroup(req, res) {
+  const notify = require("../services/notifyService");
+  const row = await prisma.systemConfig.findUnique({ where: { key: "notify_group_id" } });
+  const groupId = row?.value?.trim();
+  if (!groupId) return res.status(400).json({ error: "ยังไม่ได้ตั้งค่า notify_group_id" });
+  try {
+    await notify.notifyNewTicket({
+      ticketNo: "TEST-0000", title: "ทดสอบระบบแจ้งเตือน", category: "ทดสอบ", subcategory: "ระบบ",
+      displayName: "Admin", department: "-", createdAt: new Date(),
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
 // ── Calendar Debug ────────────────────────────────────────
 
 async function testCalendar(req, res) {
@@ -523,5 +539,5 @@ module.exports = {
   listBookings, listBookingsMonth, exportBookings, listRooms, cancelBookingAdmin, updateRoomCalendar,
   createRoom, updateRoom, deleteRoom, createRoomCalendar, testCalendar,
   listAllowedUsers, createAllowedUser, deleteAllowedUser,
-  getConfig, updateConfig,
+  getConfig, updateConfig, testNotifyGroup,
 };
