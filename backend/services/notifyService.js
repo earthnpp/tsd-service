@@ -18,7 +18,13 @@ async function pushTo(configKey, messages) {
   try {
     await client.pushMessage({ to: groupId, messages });
   } catch (err) {
-    console.error(`[Notify] push to ${configKey} failed:`, err.message);
+    const detail = err.statusCode
+      ? `${err.statusCode} – ${err.originalError?.error?.message || err.message}`
+      : err.message;
+    console.error(`[Notify] push to ${configKey} failed: ${detail}`);
+    if (err.statusCode === 400) {
+      console.error(`[Notify] hint: bot ยังไม่ได้อยู่ในกลุ่ม หรือ Group ID ไม่ถูกต้อง (${groupId})`);
+    }
   }
 }
 
