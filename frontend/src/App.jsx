@@ -31,6 +31,7 @@ function Stars({ value }) {
 export default function App({ user, onLogout }) {
   const [tab, setTab] = useState(() => window.location.hash.replace("#", "") || "tickets");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [logoutConfirm, setLogoutConfirm] = useState(false);
 
   const changeTab = useCallback((t) => {
     setTab(t);
@@ -173,13 +174,36 @@ export default function App({ user, onLogout }) {
           <div style={{ fontSize: 12, color: "#aaa", marginBottom: 8, wordBreak: "break-all" }}>
             {user?.name || user?.email}
           </div>
-          <button onClick={onLogout} style={{
-            width: "100%", background: "transparent", color: "#f4a261",
-            border: "1px solid #f4a26155", borderRadius: 6, padding: "6px 0",
-            cursor: "pointer", fontSize: 13,
-          }}>
-            ออกจากระบบ
-          </button>
+          {logoutConfirm ? (
+            <div style={{ background: "#ffffff18", borderRadius: 8, padding: "10px 12px" }}>
+              <div style={{ fontSize: 12, color: "#fff", marginBottom: 8, textAlign: "center" }}>
+                ต้องการออกจากระบบใช่ไหม?
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={onLogout} style={{
+                  flex: 1, background: "#e63946", color: "#fff", border: "none",
+                  borderRadius: 6, padding: "6px 0", cursor: "pointer", fontSize: 12, fontWeight: 600,
+                }}>
+                  ออกจากระบบ
+                </button>
+                <button onClick={() => setLogoutConfirm(false)} style={{
+                  flex: 1, background: "transparent", color: "#aaa",
+                  border: "1px solid #ffffff30", borderRadius: 6, padding: "6px 0",
+                  cursor: "pointer", fontSize: 12,
+                }}>
+                  ยกเลิก
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setLogoutConfirm(true)} style={{
+              width: "100%", background: "transparent", color: "#f4a261",
+              border: "1px solid #f4a26155", borderRadius: 6, padding: "6px 0",
+              cursor: "pointer", fontSize: 13,
+            }}>
+              ออกจากระบบ
+            </button>
+          )}
         </div>
       </div>
 
