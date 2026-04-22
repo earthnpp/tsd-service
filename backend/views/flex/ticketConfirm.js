@@ -6,7 +6,7 @@ function ticketConfirm(ticket) {
     altText: `✅ สร้าง Ticket สำเร็จ: ${ticket.ticketNo}`,
     contents: {
       type: "bubble",
-      styles: { header: { backgroundColor: "#f0faf8" }, body: { backgroundColor: "#ffffff" } },
+      styles: { header: { backgroundColor: "#b8e8e0" }, body: { backgroundColor: "#ffffff" } },
       header: {
         type: "box",
         layout: "vertical",

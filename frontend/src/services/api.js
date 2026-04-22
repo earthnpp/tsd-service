@@ -79,6 +79,11 @@ export const api = {
   updateRoom: (id, data) => request(`/rooms/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteRoom: (id) => request(`/rooms/${id}`, { method: "DELETE" }),
   cancelBooking: (id) => request(`/bookings/${id}/cancel`, { method: "PATCH" }),
+  exportBookings: (params = {}) => {
+    const q = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== "" && v !== "all") q.set(k, v); });
+    return `/api/bookings/export?${q}&_token=${getToken()}`;
+  },
   updateRoomCalendar: (id, calendarId) => request(`/rooms/${id}/calendar`, { method: "PATCH", body: JSON.stringify({ calendarId }) }),
   createRoomCalendar: (id) => request(`/rooms/${id}/create-calendar`, { method: "POST" }),
   getBookingsMonth: (year, month) => request(`/bookings/month?year=${year}&month=${month}`),

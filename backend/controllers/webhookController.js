@@ -232,10 +232,10 @@ async function onPostback(event, userId) {
         contents: {
           type: "bubble",
           header: {
-            type: "box", layout: "vertical", backgroundColor: "#1a1a2e", paddingAll: "16px",
+            type: "box", layout: "vertical", backgroundColor: "#d0d8f0", paddingAll: "16px",
             contents: [
-              { type: "text", text: "🛠️ แจ้งปัญหา IT", weight: "bold", size: "lg", color: "#ffffff" },
-              { type: "text", text: "กรอกแบบฟอร์มเพื่อแจ้งปัญหา", size: "sm", color: "#aaaacc", margin: "xs" },
+              { type: "text", text: "🛠️ แจ้งปัญหา IT", weight: "bold", size: "lg", color: "#1a1a2e" },
+              { type: "text", text: "กรอกแบบฟอร์มเพื่อแจ้งปัญหา", size: "sm", color: "#555555", margin: "xs" },
             ],
           },
           body: {
@@ -378,10 +378,10 @@ async function onPostback(event, userId) {
         contents: {
           type: "bubble",
           header: {
-            type: "box", layout: "vertical", backgroundColor: "#1a1a2e", paddingAll: "16px",
+            type: "box", layout: "vertical", backgroundColor: "#d0d8f0", paddingAll: "16px",
             contents: [
-              { type: "text", text: "🗓️ จองห้องประชุม", weight: "bold", size: "lg", color: "#ffffff" },
-              { type: "text", text: "กรอกแบบฟอร์มเพื่อจองห้อง", size: "sm", color: "#aaaacc", margin: "xs" },
+              { type: "text", text: "🗓️ จองห้องประชุม", weight: "bold", size: "lg", color: "#1a1a2e" },
+              { type: "text", text: "กรอกแบบฟอร์มเพื่อจองห้อง", size: "sm", color: "#555555", margin: "xs" },
             ],
           },
           body: {
@@ -556,10 +556,10 @@ async function onPostback(event, userId) {
         contents: {
           type: "bubble",
           header: {
-            type: "box", layout: "vertical", backgroundColor: "#1a1a2e", paddingAll: "16px",
+            type: "box", layout: "vertical", backgroundColor: "#d0d8f0", paddingAll: "16px",
             contents: [
-              { type: "text", text: "📅 ปฏิทินห้องประชุม", weight: "bold", size: "lg", color: "#ffffff" },
-              { type: "text", text: "ดูตารางการจองและความพร้อมของห้อง", size: "sm", color: "#aaaacc", margin: "xs" },
+              { type: "text", text: "📅 ปฏิทินห้องประชุม", weight: "bold", size: "lg", color: "#1a1a2e" },
+              { type: "text", text: "ดูตารางการจองและความพร้อมของห้อง", size: "sm", color: "#555555", margin: "xs" },
             ],
           },
           footer: {
@@ -648,11 +648,11 @@ function buildFaqListMessage(faqs) {
       header: {
         type: "box",
         layout: "vertical",
-        backgroundColor: "#1a1a2e",
+        backgroundColor: "#d0d8f0",
         paddingAll: "16px",
         contents: [
-          { type: "text", text: "💡 FAQ", weight: "bold", size: "lg", color: "#ffffff" },
-          { type: "text", text: "กดเลือกคำถามที่ต้องการ", size: "sm", color: "#aaaacc", margin: "xs" },
+          { type: "text", text: "💡 FAQ", weight: "bold", size: "lg", color: "#1a1a2e" },
+          { type: "text", text: "กดเลือกคำถามที่ต้องการ", size: "sm", color: "#555555", margin: "xs" },
         ],
       },
       body: {
@@ -690,11 +690,11 @@ function buildFaqAnswerMessage(faq) {
       header: {
         type: "box",
         layout: "vertical",
-        backgroundColor: "#1a1a2e",
+        backgroundColor: "#d0d8f0",
         paddingAll: "16px",
         contents: [
-          { type: "text", text: "💡 วิธีแก้ไข", weight: "bold", size: "md", color: "#ffffff" },
-          { type: "text", text: faq.question, size: "sm", color: "#aaaacc", margin: "xs", wrap: true },
+          { type: "text", text: "💡 วิธีแก้ไข", weight: "bold", size: "md", color: "#1a1a2e" },
+          { type: "text", text: faq.question, size: "sm", color: "#555555", margin: "xs", wrap: true },
         ],
       },
       body: {

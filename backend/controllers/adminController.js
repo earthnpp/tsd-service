@@ -21,8 +21,8 @@ async function listTickets(req, res) {
 }
 
 async function exportTickets(req, res) {
-  const { status, category, search } = req.query;
-  const tickets = await ticketService.getAllTicketsForExport({ status, category, search });
+  const { status, category, search, dateFrom, dateTo } = req.query;
+  const tickets = await ticketService.getAllTicketsForExport({ status, category, search, dateFrom, dateTo });
   res.json(tickets);
 }
 
@@ -472,11 +472,45 @@ async function deleteAllowedUser(req, res) {
 // ── Helper ────────────────────────────────────────────────
 
 async function notifyUser(lineUserId, messages) {
+  if (!lineUserId || !process.env.LINE_CHANNEL_ACCESS_TOKEN) return;
   try {
     await client.pushMessage({ to: lineUserId, messages });
   } catch (err) {
     console.error("Line push error:", err.message);
   }
+}
+
+async function exportBookings(req, res) {
+  const { status, roomId, from, to } = req.query;
+  const where = {};
+  if (status && status !== "all") where.status = status;
+  if (roomId) where.roomId = Number(roomId);
+  if (from || to) {
+    where.startAt = {};
+    if (from) where.startAt.gte = new Date(from);
+    if (to) {
+      const d = new Date(to); d.setHours(23, 59, 59, 999);
+      where.startAt.lte = d;
+    }
+  }
+  const bookings = await prisma.roomBooking.findMany({
+    where, include: { room: true }, orderBy: { startAt: "desc" }, take: 10000,
+  });
+
+  const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const fmt = (dt) => dt ? new Date(dt).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) : "";
+  const headers = ["BookingNo", "Room", "Title", "Status", "DisplayName", "Email", "Department",
+    "StartAt", "EndAt", "Notes", "CancelledBy", "CancelledByType", "CancelledAt", "CreatedAt"];
+  const rows = bookings.map((b) => [
+    b.bookingNo, b.room?.name || "", b.title, b.status,
+    b.displayName || "", b.email || "", b.department || "",
+    fmt(b.startAt), fmt(b.endAt), b.notes || "",
+    b.cancelledBy || "", b.cancelledByType || "", fmt(b.cancelledAt), fmt(b.createdAt),
+  ].map(esc).join(","));
+
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="bookings-${Date.now()}.csv"`);
+  res.send("﻿" + [headers.join(","), ...rows].join("\n"));
 }
 
 module.exports = {
@@ -486,7 +520,7 @@ module.exports = {
   createSubcategory, updateSubcategory, deleteSubcategory,
   listFaqs, createFaq, updateFaq, deleteFaq,
   listAssignees, createAssignee, updateAssignee, deleteAssignee,
-  listBookings, listBookingsMonth, listRooms, cancelBookingAdmin, updateRoomCalendar,
+  listBookings, listBookingsMonth, exportBookings, listRooms, cancelBookingAdmin, updateRoomCalendar,
   createRoom, updateRoom, deleteRoom, createRoomCalendar, testCalendar,
   listAllowedUsers, createAllowedUser, deleteAllowedUser,
   getConfig, updateConfig,

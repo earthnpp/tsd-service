@@ -63,10 +63,18 @@ async function getAllTickets({ status, category, search, page = 1, limit = 20 } 
   return { tickets, total };
 }
 
-async function getAllTicketsForExport({ status, category, search } = {}) {
+async function getAllTicketsForExport({ status, category, search, dateFrom, dateTo } = {}) {
   const where = {};
   if (status && status !== "all") where.status = status;
   if (category && category !== "all") where.category = category;
+  if (dateFrom || dateTo) {
+    where.createdAt = {};
+    if (dateFrom) where.createdAt.gte = new Date(dateFrom);
+    if (dateTo) {
+      const d = new Date(dateTo); d.setHours(23, 59, 59, 999);
+      where.createdAt.lte = d;
+    }
+  }
   if (search) {
     where.OR = [
       { ticketNo: { contains: search } },

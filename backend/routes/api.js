@@ -6,7 +6,7 @@ const auditController = require("../controllers/auditController");
 const router = express.Router();
 
 function adminAuth(req, res, next) {
-  const token = req.headers["x-admin-token"];
+  const token = req.headers["x-admin-token"] || req.query._token;
   if (!token) return res.status(401).json({ error: "Unauthorized" });
 
   // รองรับ JWT token (จาก Google login)
@@ -65,6 +65,7 @@ router.delete("/faq/:id", adminController.deleteFaq);
 
 // Bookings
 router.get("/bookings/month",                 adminController.listBookingsMonth);
+router.get("/bookings/export",                adminController.exportBookings);
 router.get("/bookings",                       adminController.listBookings);
 router.get("/rooms",                          adminController.listRooms);
 router.post("/rooms",                         adminController.createRoom);

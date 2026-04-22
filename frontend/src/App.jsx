@@ -208,7 +208,7 @@ export default function App({ user, onLogout }) {
         {tab === "dashboard" && <Dashboard stats={stats} dateFrom={statDateFrom} dateTo={statDateTo} setDateFrom={setStatDateFrom} setDateTo={setStatDateTo} />}
         {tab === "settings"  && <SettingsPanel categories={categories} onReload={loadCategories} assignees={assignees} onReloadAssignees={loadAssignees} />}
         {tab === "users"     && <UsersPanel />}
-        {tab === "export"    && <ExportPanel total={total} onExport={exportCSV} />}
+        {tab === "export"    && <ExportPanel />}
         {tab === "audit"     && <AuditLogPanel />}
       </div>
     </div>
@@ -1592,17 +1592,172 @@ function BookingsPanel() {
 }
 
 // ── Export Panel ──────────────────────────────────────────
-function ExportPanel({ total, onExport }) {
+function ExportPanel() {
+  const [tStatus,   setTStatus]   = useState("all");
+  const [tFrom,     setTFrom]     = useState("");
+  const [tTo,       setTTo]       = useState("");
+  const [tCategory, setTCategory] = useState("all");
+  const [tLoading,  setTLoading]  = useState(false);
+  const [categories, setCategories] = useState([]);
+
+  const [bStatus, setBStatus] = useState("all");
+  const [bFrom,   setBFrom]   = useState("");
+  const [bTo,     setBTo]     = useState("");
+  const [rooms,   setRooms]   = useState([]);
+  const [bRoom,   setBRoom]   = useState("all");
+
+  const [aFrom, setAFrom] = useState("");
+  const [aTo,   setATo]   = useState("");
+  const [aAction, setAAction] = useState("");
+  const [actions, setActions] = useState([]);
+
+  useEffect(() => {
+    api.getCategories().then(setCategories).catch(() => {});
+    api.getRooms().then(setRooms).catch(() => {});
+    api.getAuditActions().then(setActions).catch(() => {});
+  }, []);
+
+  async function exportTickets() {
+    setTLoading(true);
+    try {
+      const all = await api.exportTickets({ status: tStatus, category: tCategory, dateFrom: tFrom || undefined, dateTo: tTo || undefined });
+      const headers = ["ticketNo","title","category","subcategory","status","priority","assignee",
+        "displayName","email","department","assetTag","createdAt","completedAt","rating","description"];
+      const rows = all.map((t) => headers.map((h) => `"${(t[h] ?? "").toString().replace(/"/g,'""')}"`).join(","));
+      const blob = new Blob(["﻿" + headers.join(",") + "\n" + rows.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = `tickets-${Date.now()}.csv`; a.click();
+      URL.revokeObjectURL(url);
+    } catch {}
+    setTLoading(false);
+  }
+
+  function exportBookings() {
+    const url = api.exportBookings({ status: bStatus, roomId: bRoom !== "all" ? bRoom : undefined, from: bFrom || undefined, to: bTo || undefined });
+    window.open(url, "_blank");
+  }
+
+  function exportAudit() {
+    const url = api.exportAuditLogs({ action: aAction || undefined, from: aFrom || undefined, to: aTo || undefined });
+    window.open(url, "_blank");
+  }
+
+  const cardStyle = { background: "#fff", borderRadius: 12, padding: "20px 24px", boxShadow: "0 1px 4px #0001", marginBottom: 16 };
+  const labelStyle = { fontSize: 11, color: "#888", marginBottom: 4, display: "block" };
+  const fieldStyle = { border: "1px solid #ddd", borderRadius: 6, padding: "6px 10px", fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box" };
+  const rowStyle = { display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 14 };
+
   return (
-    <div style={{ background: "#fff", borderRadius: 12, padding: 32, textAlign: "center", boxShadow: "0 1px 4px #0001" }}>
-      <div style={{ fontSize: 48 }}>📊</div>
-      <h3>Export Ticket Data</h3>
-      <p style={{ color: "#666" }}>จำนวน Ticket ที่กรองอยู่: <strong>{total}</strong> รายการ</p>
-      <button onClick={onExport}
-        style={{ padding: "12px 32px", background: "#1a1a2e", color: "#fff",
-          border: "none", borderRadius: 8, fontWeight: 700, fontSize: 16, cursor: "pointer" }}>
-        📥 Download CSV
-      </button>
+    <div style={{ maxWidth: 760 }}>
+
+      {/* ── Tickets ── */}
+      <div style={cardStyle}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "#1a1a2e", marginBottom: 14 }}>🎫 Export Tickets</div>
+        <div style={rowStyle}>
+          <div style={{ flex: "1 1 120px" }}>
+            <label style={labelStyle}>สถานะ</label>
+            <select value={tStatus} onChange={e => setTStatus(e.target.value)} style={fieldStyle}>
+              <option value="all">ทั้งหมด</option>
+              <option value="pending">รอดำเนินการ</option>
+              <option value="in_progress">กำลังดำเนินการ</option>
+              <option value="completed">เสร็จสิ้น</option>
+            </select>
+          </div>
+          <div style={{ flex: "1 1 140px" }}>
+            <label style={labelStyle}>หมวดหมู่</label>
+            <select value={tCategory} onChange={e => setTCategory(e.target.value)} style={fieldStyle}>
+              <option value="all">ทุกหมวด</option>
+              {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+            </select>
+          </div>
+          <div style={{ flex: "0 0 auto" }}>
+            <label style={labelStyle}>จากวันที่</label>
+            <input type="date" value={tFrom} onChange={e => setTFrom(e.target.value)} style={{ ...fieldStyle, width: "auto" }} />
+          </div>
+          <div style={{ flex: "0 0 auto" }}>
+            <label style={labelStyle}>ถึงวันที่</label>
+            <input type="date" value={tTo} onChange={e => setTTo(e.target.value)} style={{ ...fieldStyle, width: "auto" }} />
+          </div>
+          <button onClick={exportTickets} disabled={tLoading}
+            style={{ padding: "8px 20px", background: "#1a1a2e", color: "#fff", border: "none",
+              borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap",
+              opacity: tLoading ? 0.6 : 1 }}>
+            {tLoading ? "⏳ กำลัง..." : "📥 Download CSV"}
+          </button>
+        </div>
+        <div style={{ fontSize: 11, color: "#aaa" }}>
+          Columns: Ticket No, หัวข้อ, หมวด, หมวดย่อย, สถานะ, ลำดับความสำคัญ, ผู้รับงาน, ชื่อผู้แจ้ง, Email, แผนก, Asset Tag, วันที่สร้าง, วันที่เสร็จ, Rating, รายละเอียด
+        </div>
+      </div>
+
+      {/* ── Bookings ── */}
+      <div style={cardStyle}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "#1a1a2e", marginBottom: 14 }}>🏢 Export ห้องประชุม</div>
+        <div style={rowStyle}>
+          <div style={{ flex: "1 1 120px" }}>
+            <label style={labelStyle}>สถานะ</label>
+            <select value={bStatus} onChange={e => setBStatus(e.target.value)} style={fieldStyle}>
+              <option value="all">ทั้งหมด</option>
+              <option value="confirmed">ยืนยันแล้ว</option>
+              <option value="cancelled">ยกเลิกแล้ว</option>
+            </select>
+          </div>
+          <div style={{ flex: "1 1 140px" }}>
+            <label style={labelStyle}>ห้อง</label>
+            <select value={bRoom} onChange={e => setBRoom(e.target.value)} style={fieldStyle}>
+              <option value="all">ทุกห้อง</option>
+              {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+            </select>
+          </div>
+          <div style={{ flex: "0 0 auto" }}>
+            <label style={labelStyle}>จากวันที่</label>
+            <input type="date" value={bFrom} onChange={e => setBFrom(e.target.value)} style={{ ...fieldStyle, width: "auto" }} />
+          </div>
+          <div style={{ flex: "0 0 auto" }}>
+            <label style={labelStyle}>ถึงวันที่</label>
+            <input type="date" value={bTo} onChange={e => setBTo(e.target.value)} style={{ ...fieldStyle, width: "auto" }} />
+          </div>
+          <button onClick={exportBookings}
+            style={{ padding: "8px 20px", background: "#457b9d", color: "#fff", border: "none",
+              borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
+            📥 Download CSV
+          </button>
+        </div>
+        <div style={{ fontSize: 11, color: "#aaa" }}>
+          Columns: Booking No, ห้อง, หัวข้อ, สถานะ, ชื่อผู้จอง, Email, แผนก, เวลาเริ่ม, เวลาสิ้นสุด, หมายเหตุ, ยกเลิกโดย, ประเภทการยกเลิก, วันที่ยกเลิก, วันที่จอง
+        </div>
+      </div>
+
+      {/* ── Audit Logs ── */}
+      <div style={cardStyle}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "#1a1a2e", marginBottom: 14 }}>📋 Export Audit Log</div>
+        <div style={rowStyle}>
+          <div style={{ flex: "1 1 180px" }}>
+            <label style={labelStyle}>Action</label>
+            <select value={aAction} onChange={e => setAAction(e.target.value)} style={fieldStyle}>
+              <option value="">ทั้งหมด</option>
+              {actions.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </div>
+          <div style={{ flex: "0 0 auto" }}>
+            <label style={labelStyle}>จากวันที่</label>
+            <input type="date" value={aFrom} onChange={e => setAFrom(e.target.value)} style={{ ...fieldStyle, width: "auto" }} />
+          </div>
+          <div style={{ flex: "0 0 auto" }}>
+            <label style={labelStyle}>ถึงวันที่</label>
+            <input type="date" value={aTo} onChange={e => setATo(e.target.value)} style={{ ...fieldStyle, width: "auto" }} />
+          </div>
+          <button onClick={exportAudit}
+            style={{ padding: "8px 20px", background: "#2a9d8f", color: "#fff", border: "none",
+              borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
+            📥 Download CSV
+          </button>
+        </div>
+        <div style={{ fontSize: 11, color: "#aaa" }}>
+          Columns: ID, Timestamp, Actor, Actor Type, Action, Resource Type, Resource ID, Detail, IP Address
+        </div>
+      </div>
+
     </div>
   );
 }

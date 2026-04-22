@@ -4,7 +4,7 @@ function categoryMenu(categories) {
     altText: "เลือกหมวดหมู่ปัญหา",
     contents: {
       type: "bubble",
-      styles: { header: { backgroundColor: "#fff0f1" }, body: { backgroundColor: "#ffffff" } },
+      styles: { header: { backgroundColor: "#f5c6ca" }, body: { backgroundColor: "#ffffff" } },
       header: {
         type: "box",
         layout: "vertical",
