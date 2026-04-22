@@ -899,9 +899,12 @@ function AiSettings() {
 ถ้าแก้ไม่ได้หรือเกิน scope ให้แนะนำแจ้ง Ticket ห้ามตอบเรื่องนอก IT`;
 
   const MODELS = {
-    anthropic: ["claude-haiku-4-5-20251001", "claude-sonnet-4-6"],
-    openai:    ["gpt-4o-mini", "gpt-4o"],
+    anthropic: ["claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-opus-4-7"],
+    openai:    ["gpt-4o-mini", "gpt-4o", "o1-mini", "o1"],
   };
+
+  const knownModels = MODELS[form.ai_provider] || [];
+  const isCustomModel = form.ai_model !== "" && !knownModels.includes(form.ai_model);
 
   useEffect(() => {
     api.getConfig().then(cfg => {
@@ -928,7 +931,7 @@ function AiSettings() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div>
           <label style={{ fontSize: 12, color: "#666", fontWeight: 600, display: "block", marginBottom: 4 }}>Provider</label>
-          <select value={form.ai_provider} onChange={e => setForm(f => ({ ...f, ai_provider: e.target.value, ai_model: MODELS[e.target.value]?.[0] || "" }))}
+          <select value={form.ai_provider} onChange={e => setForm(f => ({ ...f, ai_provider: e.target.value, ai_model: MODELS[e.target.value]?.[0] ?? "" }))}
             style={{ ...inputStyle, fontSize: 13, width: "100%" }}>
             <option value="anthropic">Anthropic (Claude)</option>
             <option value="openai">OpenAI (GPT)</option>
@@ -936,10 +939,24 @@ function AiSettings() {
         </div>
         <div>
           <label style={{ fontSize: 12, color: "#666", fontWeight: 600, display: "block", marginBottom: 4 }}>Model</label>
-          <select value={form.ai_model} onChange={e => setForm(f => ({ ...f, ai_model: e.target.value }))}
+          <select
+            value={isCustomModel ? "__custom__" : form.ai_model}
+            onChange={e => {
+              if (e.target.value === "__custom__") setForm(f => ({ ...f, ai_model: "" }));
+              else setForm(f => ({ ...f, ai_model: e.target.value }));
+            }}
             style={{ ...inputStyle, fontSize: 13, width: "100%" }}>
-            {(MODELS[form.ai_provider] || []).map(m => <option key={m} value={m}>{m}</option>)}
+            {knownModels.map(m => <option key={m} value={m}>{m}</option>)}
+            <option value="__custom__">กำหนดเอง...</option>
           </select>
+          {isCustomModel || (form.ai_model === "" && !knownModels.includes("")) ? (
+            <input
+              value={form.ai_model}
+              onChange={e => setForm(f => ({ ...f, ai_model: e.target.value }))}
+              placeholder="พิมพ์ชื่อ model เช่น claude-opus-4-7"
+              style={{ ...inputStyle, fontSize: 13, width: "100%", marginTop: 6 }}
+            />
+          ) : null}
         </div>
       </div>
 

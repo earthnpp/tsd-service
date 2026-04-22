@@ -47,10 +47,10 @@ async function main() {
     name: "IT Helpdesk Menu",
     chatBarText: "เมนู IT Helpdesk",
     areas: [
-      // Top-left: FAQ
+      // Top-left: ถาม AI
       {
         bounds: { x: 0, y: 0, width: 833, height: 843 },
-        action: { type: "postback", data: "action=faq", label: "FAQ" },
+        action: { type: "postback", data: "action=faq", label: "ถาม AI" },
       },
       // Top-center: แจ้งซ่อม
       {
