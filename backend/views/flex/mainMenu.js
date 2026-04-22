@@ -5,6 +5,7 @@ function mainMenu(displayName) {
     contents: {
       type: "bubble",
       size: "mega",
+      styles: { header: { backgroundColor: "#f5f7ff" }, body: { backgroundColor: "#ffffff" } },
       header: {
         type: "box",
         layout: "vertical",
@@ -14,17 +15,16 @@ function mainMenu(displayName) {
             text: "🖥️ IT Helpdesk",
             weight: "bold",
             size: "xl",
-            color: "#ffffff",
+            color: "#1a1a2e",
           },
           {
             type: "text",
             text: `สวัสดี ${displayName || "คุณ"} 👋`,
             size: "sm",
-            color: "#e0e0e0",
+            color: "#555555",
             margin: "xs",
           },
         ],
-        backgroundColor: "#1a1a2e",
         paddingAll: "20px",
       },
       body: {

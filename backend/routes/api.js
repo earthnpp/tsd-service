@@ -1,6 +1,7 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const adminController = require("../controllers/adminController");
+const auditController = require("../controllers/auditController");
 
 const router = express.Router();
 
@@ -84,5 +85,10 @@ router.get("/calendar/test",               adminController.testCalendar);
 router.get("/allowed-users",         adminController.listAllowedUsers);
 router.post("/allowed-users",        adminController.createAllowedUser);
 router.delete("/allowed-users/:id",  adminController.deleteAllowedUser);
+
+// Audit Logs
+router.get("/audit-logs",         auditController.listAuditLogs);
+router.get("/audit-logs/export",  auditController.exportAuditLogs);
+router.get("/audit-logs/actions", auditController.getAuditActions);
 
 module.exports = router;

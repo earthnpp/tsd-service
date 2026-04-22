@@ -140,3 +140,20 @@ model SystemConfig {
   key   String @id
   value String @db.Text
 }
+
+model AuditLog {
+  id           Int      @id @default(autoincrement())
+  timestamp    DateTime @default(now())
+  actor        String
+  actorType    String   // "admin" | "user" | "system"
+  action       String
+  resourceType String?
+  resourceId   String?
+  detail       String?  @db.Text
+  ipAddress    String?
+  userAgent    String?
+
+  @@index([timestamp])
+  @@index([actor])
+  @@index([action])
+}

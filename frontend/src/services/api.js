@@ -91,4 +91,17 @@ export const api = {
   getAllowedUsers: () => request("/allowed-users"),
   createAllowedUser: (email, name) => request("/allowed-users", { method: "POST", body: JSON.stringify({ email, name }) }),
   deleteAllowedUser: (id) => request(`/allowed-users/${id}`, { method: "DELETE" }),
+
+  // Audit Logs
+  getAuditLogs: (params = {}) => {
+    const q = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== "" && v !== "all") q.set(k, v); });
+    return request(`/audit-logs?${q}`);
+  },
+  getAuditActions: () => request("/audit-logs/actions"),
+  exportAuditLogs: (params = {}) => {
+    const q = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== "" && v !== "all") q.set(k, v); });
+    return `/api/audit-logs/export?${q}&_token=${getToken()}`;
+  },
 };

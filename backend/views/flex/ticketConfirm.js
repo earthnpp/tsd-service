@@ -6,13 +6,13 @@ function ticketConfirm(ticket) {
     altText: `✅ สร้าง Ticket สำเร็จ: ${ticket.ticketNo}`,
     contents: {
       type: "bubble",
+      styles: { header: { backgroundColor: "#f0faf8" }, body: { backgroundColor: "#ffffff" } },
       header: {
         type: "box",
         layout: "vertical",
         contents: [
-          { type: "text", text: "✅ แจ้งปัญหาสำเร็จ", weight: "bold", size: "lg", color: "#ffffff" },
+          { type: "text", text: "✅ แจ้งปัญหาสำเร็จ", weight: "bold", size: "lg", color: "#2a9d8f" },
         ],
-        backgroundColor: "#2a9d8f",
         paddingAll: "16px",
       },
       body: {

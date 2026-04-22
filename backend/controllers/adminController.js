@@ -2,6 +2,7 @@ const ticketService = require("../services/ticketService");
 const categoryService = require("../services/categoryService");
 const bookingService = require("../services/bookingService");
 const calendarService = require("../services/calendarService");
+const audit = require("../services/auditService");
 
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
@@ -39,6 +40,7 @@ async function assignTicket(req, res) {
     type: "text",
     text: `🔵 ได้รับงานแล้วครับ!\n\n📋 ${ticket.ticketNo}\n📌 ${ticket.title}\n👷 ผู้รับผิดชอบ: ${assignee}\n\nกำลังดำเนินการแก้ไขให้ครับ 🙏`,
   }]);
+  audit.log({ ...audit.fromReq(req), action: "TICKET_ASSIGNED", resourceType: "ticket", resourceId: ticket.id, detail: `${ticket.ticketNo} → ${assignee}` });
   res.json(ticket);
 }
 
@@ -69,6 +71,7 @@ async function updateTicketStatus(req, res) {
     }]);
   }
 
+  audit.log({ ...audit.fromReq(req), action: "TICKET_STATUS_CHANGED", resourceType: "ticket", resourceId: ticket.id, detail: `${ticket.ticketNo}: → ${status || "updated"}` });
   res.json(ticket);
 }
 
@@ -81,6 +84,7 @@ async function updateTicketCost(req, res) {
     costVat: costVat ? Number(costVat) : null,
     repairVendor: repairVendor || null,
   });
+  audit.log({ ...audit.fromReq(req), action: "TICKET_COST_UPDATED", resourceType: "ticket", resourceId: ticket.id, detail: `${ticket.ticketNo} cost: ${costAmount || 0} THB` });
   res.json(ticket);
 }
 
@@ -104,7 +108,7 @@ async function closeWithCost(req, res) {
     { type: "text", text: `✅ ${ticket.ticketNo} ดำเนินการเสร็จสิ้นแล้วครับ\n📝 ผลการดำเนินการ : ${resolution}` },
     ratingMenu(ticket.id),
   ]);
-
+  audit.log({ ...audit.fromReq(req), action: "TICKET_CLOSED", resourceType: "ticket", resourceId: ticket.id, detail: `${ticket.ticketNo}: ${resolution}` });
   res.json(ticket);
 }
 
@@ -119,6 +123,7 @@ async function closeTicket(req, res) {
     { type: "text", text: `✅ ${ticket.ticketNo} ได้รับการแก้ไขเรียบร้อยแล้วครับ\n📝 ผลการดำเนินการ : ${resolution}` },
     ratingMenu(ticket.id),
   ]);
+  audit.log({ ...audit.fromReq(req), action: "TICKET_CLOSED", resourceType: "ticket", resourceId: ticket.id, detail: `${ticket.ticketNo}: ${resolution}` });
   res.json(ticket);
 }
 
@@ -138,6 +143,7 @@ async function listCategories(req, res) {
 async function createCategory(req, res) {
   try {
     const cat = await categoryService.createCategory(req.body);
+    audit.log({ ...audit.fromReq(req), action: "CATEGORY_CREATED", resourceType: "category", resourceId: cat.id, detail: cat.name });
     res.json(cat);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -147,6 +153,7 @@ async function createCategory(req, res) {
 async function updateCategory(req, res) {
   try {
     const cat = await categoryService.updateCategory(req.params.id, req.body);
+    audit.log({ ...audit.fromReq(req), action: "CATEGORY_UPDATED", resourceType: "category", resourceId: cat.id, detail: cat.name });
     res.json(cat);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -156,6 +163,7 @@ async function updateCategory(req, res) {
 async function deleteCategory(req, res) {
   try {
     await categoryService.deleteCategory(req.params.id);
+    audit.log({ ...audit.fromReq(req), action: "CATEGORY_DELETED", resourceType: "category", resourceId: req.params.id });
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -201,6 +209,7 @@ async function listFaqs(req, res) {
 async function createFaq(req, res) {
   try {
     const faq = await categoryService.createFaq(req.body);
+    audit.log({ ...audit.fromReq(req), action: "FAQ_CREATED", resourceType: "faq", resourceId: faq.id, detail: faq.question });
     res.json(faq);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -210,6 +219,7 @@ async function createFaq(req, res) {
 async function updateFaq(req, res) {
   try {
     const faq = await categoryService.updateFaq(req.params.id, req.body);
+    audit.log({ ...audit.fromReq(req), action: "FAQ_UPDATED", resourceType: "faq", resourceId: faq.id, detail: faq.question });
     res.json(faq);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -219,6 +229,7 @@ async function updateFaq(req, res) {
 async function deleteFaq(req, res) {
   try {
     await categoryService.deleteFaq(req.params.id);
+    audit.log({ ...audit.fromReq(req), action: "FAQ_DELETED", resourceType: "faq", resourceId: req.params.id });
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -237,6 +248,7 @@ async function createAssignee(req, res) {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: "name required" });
     const a = await prisma.assignee.create({ data: { name: name.trim() } });
+    audit.log({ ...audit.fromReq(req), action: "ASSIGNEE_CREATED", resourceType: "assignee", resourceId: a.id, detail: a.name });
     res.json(a);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -246,6 +258,7 @@ async function createAssignee(req, res) {
 async function updateAssignee(req, res) {
   try {
     const a = await prisma.assignee.update({ where: { id: Number(req.params.id) }, data: req.body });
+    audit.log({ ...audit.fromReq(req), action: "ASSIGNEE_UPDATED", resourceType: "assignee", resourceId: a.id, detail: a.name });
     res.json(a);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -255,6 +268,7 @@ async function updateAssignee(req, res) {
 async function deleteAssignee(req, res) {
   try {
     await prisma.assignee.delete({ where: { id: Number(req.params.id) } });
+    audit.log({ ...audit.fromReq(req), action: "ASSIGNEE_DELETED", resourceType: "assignee", resourceId: req.params.id });
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -290,6 +304,7 @@ async function cancelBookingAdmin(req, res) {
       type: "text",
       text: `📢 การจองของคุณถูกยกเลิกโดยผู้ดูแลระบบครับ\n\n📋 ${booking.bookingNo}\n🏢 ห้อง: ${booking.room?.name || "-"}\n📝 ${booking.title}\n🕐 ${fmt(booking.startAt)} – ${fmt(booking.endAt)}\n\nหากมีข้อสงสัยกรุณาติดต่อเจ้าหน้าที่ครับ 🙏`,
     }]);
+    audit.log({ ...audit.fromReq(req), action: "BOOKING_CANCELLED", resourceType: "booking", resourceId: booking.id, detail: `${booking.bookingNo} ${booking.room?.name || ""}: ${booking.title}` });
     res.json(booking);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -311,6 +326,7 @@ async function createRoom(req, res) {
     const { name } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: "กรุณาระบุชื่อห้อง" });
     const room = await bookingService.createRoom(name.trim());
+    audit.log({ ...audit.fromReq(req), action: "ROOM_CREATED", resourceType: "room", resourceId: room.id, detail: room.name });
     res.json(room);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -320,6 +336,7 @@ async function createRoom(req, res) {
 async function updateRoom(req, res) {
   try {
     const room = await bookingService.updateRoom(req.params.id, req.body);
+    audit.log({ ...audit.fromReq(req), action: "ROOM_UPDATED", resourceType: "room", resourceId: room.id, detail: room.name });
     res.json(room);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -329,6 +346,7 @@ async function updateRoom(req, res) {
 async function deleteRoom(req, res) {
   try {
     await bookingService.deleteRoom(req.params.id);
+    audit.log({ ...audit.fromReq(req), action: "ROOM_DELETED", resourceType: "room", resourceId: req.params.id });
     res.json({ success: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -357,7 +375,7 @@ async function getConfig(req, res) {
 }
 
 async function updateConfig(req, res) {
-  const updates = req.body; // { key: value, ... }
+  const updates = req.body;
   await Promise.all(
     Object.entries(updates).map(([key, value]) =>
       prisma.systemConfig.upsert({
@@ -367,6 +385,7 @@ async function updateConfig(req, res) {
       })
     )
   );
+  audit.log({ ...audit.fromReq(req), action: "SETTINGS_CHANGED", resourceType: "config", detail: Object.keys(updates).join(", ") });
   res.json({ ok: true });
 }
 
@@ -432,6 +451,7 @@ async function createAllowedUser(req, res) {
     const { email, name } = req.body;
     if (!email) return res.status(400).json({ error: "email required" });
     const u = await prisma.allowedUser.create({ data: { email: email.trim().toLowerCase(), name: name?.trim() || null } });
+    audit.log({ ...audit.fromReq(req), action: "USER_ADDED", resourceType: "user", resourceId: u.id, detail: u.email });
     res.json(u);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -440,7 +460,9 @@ async function createAllowedUser(req, res) {
 
 async function deleteAllowedUser(req, res) {
   try {
+    const u = await prisma.allowedUser.findUnique({ where: { id: Number(req.params.id) } });
     await prisma.allowedUser.delete({ where: { id: Number(req.params.id) } });
+    audit.log({ ...audit.fromReq(req), action: "USER_REMOVED", resourceType: "user", resourceId: req.params.id, detail: u?.email });
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });

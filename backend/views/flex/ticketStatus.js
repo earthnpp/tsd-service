@@ -17,12 +17,13 @@ function ticketStatusList(tickets) {
     return {
       type: "bubble",
       size: "kilo",
+      styles: { header: { backgroundColor: "#f5f7ff" }, body: { backgroundColor: "#ffffff" } },
       header: {
         type: "box",
         layout: "horizontal",
         contents: [
           { type: "text", text: t.ticketNo, weight: "bold", size: "sm", color: "#1a1a2e", flex: 1 },
-          { type: "text", text: `${s.icon} ${s.label}`, size: "xs", color: "#888888", align: "end" },
+          { type: "text", text: `${s.icon} ${s.label}`, size: "xs", color: "#555555", align: "end" },
         ],
         paddingAll: "12px",
       },

@@ -150,13 +150,13 @@ function bookingPreview(data) {
     contents: {
       type: "bubble",
       size: "kilo",
+      styles: { header: { backgroundColor: "#f5f7ff" }, body: { backgroundColor: "#ffffff" } },
       header: {
         type: "box",
         layout: "vertical",
-        backgroundColor: "#1a1a2e",
         paddingAll: "16px",
         contents: [
-          { type: "text", text: "📋 สรุปการจองห้องประชุม", color: "#ffffff", weight: "bold", size: "md" },
+          { type: "text", text: "📋 สรุปการจองห้องประชุม", color: "#1a1a2e", weight: "bold", size: "md" },
         ],
       },
       body: {
@@ -214,13 +214,13 @@ function bookingSuccess(booking) {
     contents: {
       type: "bubble",
       size: "kilo",
+      styles: { header: { backgroundColor: "#f0faf8" }, body: { backgroundColor: "#ffffff" } },
       header: {
         type: "box",
         layout: "vertical",
-        backgroundColor: "#2a9d8f",
         paddingAll: "16px",
         contents: [
-          { type: "text", text: "✅ จองห้องสำเร็จ!", color: "#ffffff", weight: "bold", size: "lg" },
+          { type: "text", text: "✅ จองห้องสำเร็จ!", color: "#2a9d8f", weight: "bold", size: "lg" },
         ],
       },
       body: {
@@ -257,13 +257,16 @@ function bookingList(bookings) {
     return {
       type: "bubble",
       size: "kilo",
+      styles: {
+        header: { backgroundColor: isConfirmed ? "#f5f7ff" : "#f5f5f5" },
+        body: { backgroundColor: "#ffffff" },
+      },
       header: {
         type: "box",
         layout: "vertical",
-        backgroundColor: isConfirmed ? "#1a1a2e" : "#999999",
         paddingAll: "12px",
         contents: [
-          { type: "text", text: b.room.name, color: "#ffffff", weight: "bold", size: "md" },
+          { type: "text", text: b.room.name, color: isConfirmed ? "#1a1a2e" : "#888888", weight: "bold", size: "md" },
           { type: "text", text: b.bookingNo, color: "#aaaaaa", size: "xs" },
         ],
       },

@@ -4,14 +4,14 @@ function subcategoryMenu(categoryName, subcategories) {
     altText: `เลือกประเภทย่อย - ${categoryName}`,
     contents: {
       type: "bubble",
+      styles: { header: { backgroundColor: "#fff0f1" }, body: { backgroundColor: "#ffffff" } },
       header: {
         type: "box",
         layout: "vertical",
         contents: [
-          { type: "text", text: `หมวด: ${categoryName}`, weight: "bold", size: "lg", color: "#ffffff" },
-          { type: "text", text: "เลือกประเภทย่อย", size: "sm", color: "#e0e0e0", margin: "xs" },
+          { type: "text", text: `หมวด: ${categoryName}`, weight: "bold", size: "lg", color: "#e63946" },
+          { type: "text", text: "เลือกประเภทย่อย", size: "sm", color: "#555555", margin: "xs" },
         ],
-        backgroundColor: "#1a1a2e",
         paddingAll: "16px",
       },
       body: {

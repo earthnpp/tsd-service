@@ -127,6 +127,7 @@ export default function App({ user, onLogout }) {
     { key: "settings",  label: "⚙️ Settings" },
     { key: "users",     label: "👥 Users" },
     { key: "export",    label: "📥 Export" },
+    { key: "audit",     label: "📋 Audit Log" },
   ];
 
   return (
@@ -208,6 +209,7 @@ export default function App({ user, onLogout }) {
         {tab === "settings"  && <SettingsPanel categories={categories} onReload={loadCategories} assignees={assignees} onReloadAssignees={loadAssignees} />}
         {tab === "users"     && <UsersPanel />}
         {tab === "export"    && <ExportPanel total={total} onExport={exportCSV} />}
+        {tab === "audit"     && <AuditLogPanel />}
       </div>
     </div>
   );
@@ -1655,6 +1657,264 @@ function UsersPanel() {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Audit Log ────────────────────────────────────────────
+function AuditLogPanel() {
+  const [logs, setLogs]         = useState([]);
+  const [total, setTotal]       = useState(0);
+  const [page, setPage]         = useState(1);
+  const [limit]                 = useState(50);
+  const [loading, setLoading]   = useState(false);
+  const [actions, setActions]   = useState([]);
+  const [expanded, setExpanded] = useState(null);
+
+  const [filterActor,     setFilterActor]     = useState("");
+  const [filterAction,    setFilterAction]    = useState("");
+  const [filterActorType, setFilterActorType] = useState("");
+  const [filterFrom,      setFilterFrom]      = useState("");
+  const [filterTo,        setFilterTo]        = useState("");
+  const [searchInput,     setSearchInput]     = useState("");
+  const [search,          setSearch]          = useState("");
+
+  const debounceRef = useRef(null);
+  function handleSearchInput(val) {
+    setSearchInput(val);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => { setSearch(val); setPage(1); }, 500);
+  }
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await api.getAuditLogs({
+        page, limit,
+        actor: filterActor || undefined,
+        action: filterAction || undefined,
+        actorType: filterActorType || undefined,
+        from: filterFrom || undefined,
+        to: filterTo || undefined,
+        search: search || undefined,
+      });
+      setLogs(result.logs);
+      setTotal(result.total);
+    } catch {}
+    setLoading(false);
+  }, [page, limit, filterActor, filterAction, filterActorType, filterFrom, filterTo, search]);
+
+  useEffect(() => { api.getAuditActions().then(setActions).catch(() => {}); }, []);
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => { setPage(1); }, [filterActor, filterAction, filterActorType, filterFrom, filterTo, search]);
+
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+
+  function doExport() {
+    const url = api.exportAuditLogs({
+      actor: filterActor || undefined,
+      action: filterAction || undefined,
+      actorType: filterActorType || undefined,
+      from: filterFrom || undefined,
+      to: filterTo || undefined,
+      search: search || undefined,
+    });
+    window.open(url, "_blank");
+  }
+
+  const actionColor = (a) => {
+    if (a?.includes("DELETE") || a?.includes("FAILED")) return "#e63946";
+    if (a?.includes("LOGIN")) return "#457b9d";
+    if (a?.includes("CREATE")) return "#2a9d8f";
+    if (a?.includes("UPDATE") || a?.includes("ASSIGN") || a?.includes("CLOSE")) return "#e9c46a";
+    return "#888";
+  };
+
+  const fmt = (ts) => ts ? new Date(ts).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) : "-";
+
+  return (
+    <div>
+      {/* Filters */}
+      <div style={{ background: "#fff", borderRadius: 10, padding: "14px 16px",
+        marginBottom: 12, boxShadow: "0 1px 4px #0001" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
+          <div style={{ flex: "1 1 160px" }}>
+            <div style={{ fontSize: 11, color: "#888", marginBottom: 3 }}>ค้นหา</div>
+            <input value={searchInput} onChange={(e) => handleSearchInput(e.target.value)}
+              placeholder="Actor, Detail, IP..."
+              style={{ width: "100%", border: "1px solid #ddd", borderRadius: 6,
+                padding: "6px 10px", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+          </div>
+          <div style={{ flex: "1 1 140px" }}>
+            <div style={{ fontSize: 11, color: "#888", marginBottom: 3 }}>Actor</div>
+            <input value={filterActor} onChange={(e) => { setFilterActor(e.target.value); setPage(1); }}
+              placeholder="email..."
+              style={{ width: "100%", border: "1px solid #ddd", borderRadius: 6,
+                padding: "6px 10px", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+          </div>
+          <div style={{ flex: "1 1 160px" }}>
+            <div style={{ fontSize: 11, color: "#888", marginBottom: 3 }}>Action</div>
+            <select value={filterAction} onChange={(e) => { setFilterAction(e.target.value); setPage(1); }}
+              style={{ width: "100%", border: "1px solid #ddd", borderRadius: 6,
+                padding: "6px 10px", fontSize: 13, background: "#fff", boxSizing: "border-box" }}>
+              <option value="">ทั้งหมด</option>
+              {actions.map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </div>
+          <div style={{ flex: "1 1 120px" }}>
+            <div style={{ fontSize: 11, color: "#888", marginBottom: 3 }}>Actor Type</div>
+            <select value={filterActorType} onChange={(e) => { setFilterActorType(e.target.value); setPage(1); }}
+              style={{ width: "100%", border: "1px solid #ddd", borderRadius: 6,
+                padding: "6px 10px", fontSize: 13, background: "#fff", boxSizing: "border-box" }}>
+              <option value="">ทั้งหมด</option>
+              <option value="admin">admin</option>
+              <option value="user">user</option>
+              <option value="system">system</option>
+            </select>
+          </div>
+          <div style={{ flex: "0 0 auto" }}>
+            <div style={{ fontSize: 11, color: "#888", marginBottom: 3 }}>จาก</div>
+            <input type="date" value={filterFrom} onChange={(e) => { setFilterFrom(e.target.value); setPage(1); }}
+              style={{ border: "1px solid #ddd", borderRadius: 6, padding: "6px 10px", fontSize: 13 }} />
+          </div>
+          <div style={{ flex: "0 0 auto" }}>
+            <div style={{ fontSize: 11, color: "#888", marginBottom: 3 }}>ถึง</div>
+            <input type="date" value={filterTo} onChange={(e) => { setFilterTo(e.target.value); setPage(1); }}
+              style={{ border: "1px solid #ddd", borderRadius: 6, padding: "6px 10px", fontSize: 13 }} />
+          </div>
+          <button onClick={() => {
+            setFilterActor(""); setFilterAction(""); setFilterActorType("");
+            setFilterFrom(""); setFilterTo(""); setSearchInput(""); setSearch(""); setPage(1);
+          }} style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #ddd",
+            background: "#f5f5f5", cursor: "pointer", fontSize: 13, alignSelf: "flex-end" }}>
+            ล้าง
+          </button>
+          <button onClick={doExport}
+            style={{ padding: "6px 14px", borderRadius: 6, border: "none",
+              background: "#2a9d8f", color: "#fff", cursor: "pointer", fontSize: 13,
+              fontWeight: 600, alignSelf: "flex-end" }}>
+            📥 Export CSV
+          </button>
+        </div>
+        <div style={{ marginTop: 8, fontSize: 12, color: "#888" }}>
+          ทั้งหมด <strong>{total}</strong> รายการ
+        </div>
+      </div>
+
+      {/* Table */}
+      <div style={{ background: "#fff", borderRadius: 10, boxShadow: "0 1px 4px #0001", overflow: "hidden" }}>
+        {loading ? (
+          <p style={{ textAlign: "center", color: "#888", padding: 40 }}>⏳ กำลังโหลด...</p>
+        ) : logs.length === 0 ? (
+          <p style={{ textAlign: "center", color: "#aaa", padding: 40 }}>ไม่มีข้อมูล</p>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: "#f5f7fa", color: "#555" }}>
+                  {["เวลา", "Actor", "Type", "Action", "Resource", "Detail", "IP"].map((h) => (
+                    <th key={h} style={{ padding: "10px 12px", textAlign: "left",
+                      fontWeight: 600, whiteSpace: "nowrap", borderBottom: "1px solid #eee" }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map((l) => (
+                  <>
+                    <tr key={l.id}
+                      onClick={() => setExpanded(expanded === l.id ? null : l.id)}
+                      style={{ borderBottom: "1px solid #f0f0f0", cursor: "pointer",
+                        background: expanded === l.id ? "#f0f8ff" : "transparent",
+                        transition: "background 0.1s" }}
+                      onMouseEnter={e => { if (expanded !== l.id) e.currentTarget.style.background = "#fafafa"; }}
+                      onMouseLeave={e => { if (expanded !== l.id) e.currentTarget.style.background = "transparent"; }}>
+                      <td style={{ padding: "8px 12px", whiteSpace: "nowrap", color: "#666" }}>
+                        {fmt(l.timestamp)}
+                      </td>
+                      <td style={{ padding: "8px 12px", maxWidth: 160, overflow: "hidden",
+                        textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {l.actor}
+                      </td>
+                      <td style={{ padding: "8px 12px" }}>
+                        <span style={{ fontSize: 11, padding: "2px 7px", borderRadius: 999,
+                          background: l.actorType === "admin" ? "#e3f2fd" : l.actorType === "user" ? "#e8f5e9" : "#f5f5f5",
+                          color: l.actorType === "admin" ? "#1565c0" : l.actorType === "user" ? "#2e7d32" : "#666",
+                          fontWeight: 600 }}>
+                          {l.actorType}
+                        </span>
+                      </td>
+                      <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: actionColor(l.action) }}>
+                          {l.action}
+                        </span>
+                      </td>
+                      <td style={{ padding: "8px 12px", whiteSpace: "nowrap", fontSize: 12, color: "#888" }}>
+                        {l.resourceType ? `${l.resourceType}${l.resourceId ? ` #${l.resourceId}` : ""}` : "-"}
+                      </td>
+                      <td style={{ padding: "8px 12px", maxWidth: 200, overflow: "hidden",
+                        textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#555" }}>
+                        {l.detail || "-"}
+                      </td>
+                      <td style={{ padding: "8px 12px", whiteSpace: "nowrap", fontSize: 12, color: "#aaa" }}>
+                        {l.ipAddress || "-"}
+                      </td>
+                    </tr>
+                    {expanded === l.id && (
+                      <tr key={`${l.id}-exp`} style={{ background: "#f0f8ff" }}>
+                        <td colSpan={7} style={{ padding: "10px 20px", fontSize: 12, color: "#444",
+                          borderBottom: "1px solid #d0e8ff" }}>
+                          <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+                            <div><span style={{ color: "#888" }}>ID:</span> {l.id}</div>
+                            <div><span style={{ color: "#888" }}>Actor:</span> {l.actor}</div>
+                            <div><span style={{ color: "#888" }}>Action:</span> {l.action}</div>
+                            {l.resourceType && <div><span style={{ color: "#888" }}>Resource:</span> {l.resourceType} #{l.resourceId}</div>}
+                            {l.detail && <div><span style={{ color: "#888" }}>Detail:</span> {l.detail}</div>}
+                            {l.ipAddress && <div><span style={{ color: "#888" }}>IP:</span> {l.ipAddress}</div>}
+                            {l.userAgent && <div style={{ flex: "1 1 100%" }}><span style={{ color: "#888" }}>UA:</span> {l.userAgent}</div>}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 16 }}>
+          <button onClick={() => setPage(1)} disabled={page === 1}
+            style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid #ddd",
+              background: page === 1 ? "#f5f5f5" : "#fff", cursor: page === 1 ? "default" : "pointer" }}>
+            «
+          </button>
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+            style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid #ddd",
+              background: page === 1 ? "#f5f5f5" : "#fff", cursor: page === 1 ? "default" : "pointer" }}>
+            ‹
+          </button>
+          <span style={{ padding: "5px 14px", fontSize: 13, color: "#555" }}>
+            {page} / {totalPages}
+          </span>
+          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+            style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid #ddd",
+              background: page === totalPages ? "#f5f5f5" : "#fff",
+              cursor: page === totalPages ? "default" : "pointer" }}>
+            ›
+          </button>
+          <button onClick={() => setPage(totalPages)} disabled={page === totalPages}
+            style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid #ddd",
+              background: page === totalPages ? "#f5f5f5" : "#fff",
+              cursor: page === totalPages ? "default" : "pointer" }}>
+            »
+          </button>
+        </div>
+      )}
     </div>
   );
 }
