@@ -873,13 +873,18 @@ function NotificationSettings() {
   }
 
   async function sendTest(type) {
+    const val = (type === "ticket" ? ticketGroup : bookingGroup).trim();
+    if (!val) {
+      setTestMsg(m => ({ ...m, [type]: "⚠️ กรุณากรอก Group ID ก่อน" }));
+      return;
+    }
     setTesting(type);
     setTestMsg(m => ({ ...m, [type]: "" }));
     try {
-      await api.testNotifyGroup(type);
+      await api.testNotifyGroup(type, val);
       setTestMsg(m => ({ ...m, [type]: "✅ ส่งสำเร็จ ตรวจสอบในกลุ่มได้เลย" }));
-    } catch {
-      setTestMsg(m => ({ ...m, [type]: "❌ ส่งไม่สำเร็จ ตรวจสอบ Group ID" }));
+    } catch (err) {
+      setTestMsg(m => ({ ...m, [type]: "❌ ส่งไม่สำเร็จ ตรวจสอบว่าบอทอยู่ในกลุ่มแล้ว" }));
     }
     setTesting(null);
   }
@@ -891,15 +896,15 @@ function NotificationSettings() {
         <input value={value} onChange={e => onChange(e.target.value)}
           placeholder="C xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
           style={{ ...inputStyle, flex: "1 1 240px", fontSize: 12, fontFamily: "monospace" }} />
-        <button onClick={() => sendTest(type)} disabled={!value.trim() || testing === type}
+        <button onClick={() => sendTest(type)} disabled={testing === type}
           style={{ ...btnStyle("#457b9d"), fontSize: 12,
-            opacity: (!value.trim() || testing === type) ? 0.5 : 1 }}>
+            opacity: testing === type ? 0.5 : 1 }}>
           {testing === type ? "⏳..." : "📤 ทดสอบ"}
         </button>
       </div>
       {testMsg[type] && (
         <div style={{ marginTop: 6, fontSize: 11,
-          color: testMsg[type].startsWith("✅") ? "#2a9d8f" : "#e63946" }}>
+          color: testMsg[type].startsWith("✅") ? "#2a9d8f" : testMsg[type].startsWith("⚠️") ? "#e9730e" : "#e63946" }}>
           {testMsg[type]}
         </div>
       )}

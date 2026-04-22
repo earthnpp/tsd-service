@@ -18,13 +18,12 @@ async function pushTo(configKey, messages) {
   try {
     await client.pushMessage({ to: groupId, messages });
   } catch (err) {
+    let lineMsg = "";
+    try { lineMsg = JSON.parse(err.body)?.message || ""; } catch {}
     const detail = err.statusCode
-      ? `${err.statusCode} – ${err.originalError?.error?.message || err.message}`
+      ? `${err.statusCode} – ${lineMsg || err.message}`
       : err.message;
-    console.error(`[Notify] push to ${configKey} failed: ${detail}`);
-    if (err.statusCode === 400) {
-      console.error(`[Notify] hint: bot ยังไม่ได้อยู่ในกลุ่ม หรือ Group ID ไม่ถูกต้อง (${groupId})`);
-    }
+    console.error(`[Notify] push to ${configKey} failed: ${detail} (groupId=${groupId})`);
   }
 }
 
@@ -60,7 +59,7 @@ async function notifyNewTicket(ticket) {
       styles: {
         header: { backgroundColor: "#fff0f1" },
         body:   { backgroundColor: "#ffffff" },
-        footer: { backgroundColor: "#f9f9f9" },
+        ...(url ? { footer: { backgroundColor: "#f9f9f9" } } : {}),
       },
       header: {
         type: "box", layout: "vertical", paddingAll: "14px",
@@ -102,7 +101,7 @@ async function notifyNewBooking(booking) {
       styles: {
         header: { backgroundColor: "#e8f5ff" },
         body:   { backgroundColor: "#ffffff" },
-        footer: { backgroundColor: "#f9f9f9" },
+        ...(url ? { footer: { backgroundColor: "#f9f9f9" } } : {}),
       },
       header: {
         type: "box", layout: "vertical", paddingAll: "14px",
@@ -137,4 +136,58 @@ function row(label, value) {
   };
 }
 
-module.exports = { notifyNewTicket, notifyNewBooking };
+async function pushDirect(groupId, type) {
+  if (!process.env.LINE_CHANNEL_ACCESS_TOKEN) throw new Error("LINE_CHANNEL_ACCESS_TOKEN ไม่ได้ตั้งค่า");
+  const adminUrl = await getConfigValue("admin_url");
+  const url = adminUrl ? `${adminUrl}/#${type === "booking" ? "bookings" : "tickets"}` : null;
+
+  const messages = type === "booking" ? [{
+    type: "flex",
+    altText: "🧪 ทดสอบแจ้งเตือนจองห้อง",
+    contents: {
+      type: "bubble",
+      styles: {
+        header: { backgroundColor: "#e8f5ff" },
+        body: { backgroundColor: "#ffffff" },
+        ...(url ? { footer: { backgroundColor: "#f9f9f9" } } : {}),
+      },
+      header: { type: "box", layout: "vertical", paddingAll: "14px",
+        contents: [{ type: "text", text: "🧪 ทดสอบ: มีการจองห้องประชุมใหม่", weight: "bold", size: "md", color: "#457b9d" }] },
+      body: { type: "box", layout: "vertical", spacing: "sm", paddingAll: "16px",
+        contents: [
+          row("📋 เลขที่", "BK-TEST"),
+          row("🏢 ห้อง", "ห้องทดสอบ"),
+          row("📝 หัวข้อ", "ทดสอบแจ้งเตือนจองห้อง"),
+          row("👤 ผู้จอง", "Admin"),
+          row("📅 เวลา", fmtDateTime(new Date())),
+        ] },
+      ...(url ? { footer: footer(url) } : {}),
+    },
+  }] : [{
+    type: "flex",
+    altText: "🧪 ทดสอบแจ้งเตือน Ticket",
+    contents: {
+      type: "bubble",
+      styles: {
+        header: { backgroundColor: "#fff0f1" },
+        body: { backgroundColor: "#ffffff" },
+        ...(url ? { footer: { backgroundColor: "#f9f9f9" } } : {}),
+      },
+      header: { type: "box", layout: "vertical", paddingAll: "14px",
+        contents: [{ type: "text", text: "🧪 ทดสอบ: มี Ticket ใหม่เข้าระบบ", weight: "bold", size: "md", color: "#e63946" }] },
+      body: { type: "box", layout: "vertical", spacing: "sm", paddingAll: "16px",
+        contents: [
+          row("📋 เลขที่", "TEST-0000"),
+          row("📝 หัวข้อ", "ทดสอบระบบแจ้งเตือน"),
+          row("📂 หมวด", "ทดสอบ › ระบบ"),
+          row("👤 ผู้แจ้ง", "Admin"),
+          row("⏰ เวลา", fmtDateTime(new Date())),
+        ] },
+      ...(url ? { footer: footer(url) } : {}),
+    },
+  }];
+
+  await client.pushMessage({ to: groupId, messages });
+}
+
+module.exports = { notifyNewTicket, notifyNewBooking, pushDirect };
