@@ -800,7 +800,17 @@ function Dashboard({ stats, dateFrom, dateTo, setDateFrom, setDateTo }) {
 }
 
 // ── Settings Panel ────────────────────────────────────────
+const SETTING_TABS = [
+  { key: "contact",      label: "📞 ติดต่อ" },
+  { key: "notification", label: "🔔 แจ้งเตือน" },
+  { key: "assignee",     label: "👷 เจ้าหน้าที่" },
+  { key: "category",     label: "📂 หมวดหมู่" },
+  { key: "faq",          label: "💡 FAQ" },
+  { key: "room",         label: "🏢 ห้องประชุม" },
+];
+
 function SettingsPanel({ categories, onReload, assignees, onReloadAssignees }) {
+  const [section, setSection] = useState("contact");
   const [faqs, setFaqs] = useState([]);
   const [rooms, setRooms] = useState([]);
   const loadFaqs = useCallback(async () => { try { setFaqs(await api.getFaqs()); } catch {} }, []);
@@ -809,15 +819,30 @@ function SettingsPanel({ categories, onReload, assignees, onReloadAssignees }) {
   useEffect(() => { loadRooms(); }, [loadRooms]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <ContactSettings />
-      <NotificationSettings />
-      <AssigneeSettings assignees={assignees} onReload={onReloadAssignees} />
-      <div className="two-col">
-        <CategorySettings categories={categories} onReload={onReload} />
-        <FaqSettings faqs={faqs} onReload={loadFaqs} />
+    <div>
+      {/* Sub-tab bar */}
+      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 20,
+        background: "#fff", borderRadius: 10, padding: 6, boxShadow: "0 1px 4px #0001" }}>
+        {SETTING_TABS.map(({ key, label }) => (
+          <button key={key} onClick={() => setSection(key)} style={{
+            padding: "7px 14px", borderRadius: 7, border: "none", cursor: "pointer",
+            fontSize: 13, fontWeight: section === key ? 600 : 400,
+            background: section === key ? "#1a1a2e" : "transparent",
+            color: section === key ? "#fff" : "#555",
+            transition: "background 0.15s",
+          }}>
+            {label}
+          </button>
+        ))}
       </div>
-      <RoomSettings rooms={rooms} onReload={loadRooms} />
+
+      {/* Content */}
+      {section === "contact"      && <ContactSettings />}
+      {section === "notification" && <NotificationSettings />}
+      {section === "assignee"     && <AssigneeSettings assignees={assignees} onReload={onReloadAssignees} />}
+      {section === "category"     && <CategorySettings categories={categories} onReload={onReload} />}
+      {section === "faq"          && <FaqSettings faqs={faqs} onReload={loadFaqs} />}
+      {section === "room"         && <RoomSettings rooms={rooms} onReload={loadRooms} />}
     </div>
   );
 }
