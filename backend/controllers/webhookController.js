@@ -679,7 +679,7 @@ function buildFaqListMessage(faqs) {
           type: "box",
           layout: "horizontal",
           paddingAll: "10px",
-          backgroundColor: i % 2 === 0 ? "#f5f6ff" : "#ffffff",
+          backgroundColor: i % 2 === 0 ? "#eef0f8" : "#f4f4f6",
           cornerRadius: "8px",
           action: {
             type: "postback",

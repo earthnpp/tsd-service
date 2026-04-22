@@ -17,7 +17,7 @@ function ticketStatusList(tickets) {
     return {
       type: "bubble",
       size: "kilo",
-      styles: { header: { backgroundColor: "#1a3a5c" }, body: { backgroundColor: "#ffffff" } },
+      styles: { header: { backgroundColor: "#1a3a5c" }, body: { backgroundColor: "#f4f4f6" } },
       header: {
         type: "box",
         layout: "horizontal",

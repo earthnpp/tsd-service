@@ -4,7 +4,7 @@ function subcategoryMenu(categoryName, subcategories) {
     altText: `เลือกประเภทย่อย - ${categoryName}`,
     contents: {
       type: "bubble",
-      styles: { header: { backgroundColor: "#f5c6ca" }, body: { backgroundColor: "#ffffff" } },
+      styles: { header: { backgroundColor: "#f5c6ca" }, body: { backgroundColor: "#f4f4f6" } },
       header: {
         type: "box",
         layout: "vertical",

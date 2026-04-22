@@ -58,7 +58,7 @@ async function notifyNewTicket(ticket) {
       type: "bubble",
       styles: {
         header: { backgroundColor: "#fff0f1" },
-        body:   { backgroundColor: "#ffffff" },
+        body:   { backgroundColor: "#f4f4f6" },
         ...(url ? { footer: { backgroundColor: "#f9f9f9" } } : {}),
       },
       header: {
@@ -100,7 +100,7 @@ async function notifyNewBooking(booking) {
       type: "bubble",
       styles: {
         header: { backgroundColor: "#e8f5ff" },
-        body:   { backgroundColor: "#ffffff" },
+        body:   { backgroundColor: "#f4f4f6" },
         ...(url ? { footer: { backgroundColor: "#f9f9f9" } } : {}),
       },
       header: {
@@ -148,7 +148,7 @@ async function pushDirect(groupId, type) {
       type: "bubble",
       styles: {
         header: { backgroundColor: "#e8f5ff" },
-        body: { backgroundColor: "#ffffff" },
+        body: { backgroundColor: "#f4f4f6" },
         ...(url ? { footer: { backgroundColor: "#f9f9f9" } } : {}),
       },
       header: { type: "box", layout: "vertical", paddingAll: "14px",
@@ -170,7 +170,7 @@ async function pushDirect(groupId, type) {
       type: "bubble",
       styles: {
         header: { backgroundColor: "#fff0f1" },
-        body: { backgroundColor: "#ffffff" },
+        body: { backgroundColor: "#f4f4f6" },
         ...(url ? { footer: { backgroundColor: "#f9f9f9" } } : {}),
       },
       header: { type: "box", layout: "vertical", paddingAll: "14px",

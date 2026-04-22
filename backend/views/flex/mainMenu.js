@@ -5,7 +5,7 @@ function mainMenu(displayName) {
     contents: {
       type: "bubble",
       size: "mega",
-      styles: { header: { backgroundColor: "#1a3a5c" }, body: { backgroundColor: "#ffffff" } },
+      styles: { header: { backgroundColor: "#1a3a5c" }, body: { backgroundColor: "#f4f4f6" } },
       header: {
         type: "box",
         layout: "vertical",

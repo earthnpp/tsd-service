@@ -150,7 +150,7 @@ function bookingPreview(data) {
     contents: {
       type: "bubble",
       size: "kilo",
-      styles: { header: { backgroundColor: "#1a3a5c" }, body: { backgroundColor: "#ffffff" } },
+      styles: { header: { backgroundColor: "#1a3a5c" }, body: { backgroundColor: "#f4f4f6" } },
       header: {
         type: "box",
         layout: "vertical",
@@ -214,7 +214,7 @@ function bookingSuccess(booking) {
     contents: {
       type: "bubble",
       size: "kilo",
-      styles: { header: { backgroundColor: "#b8e8e0" }, body: { backgroundColor: "#ffffff" } },
+      styles: { header: { backgroundColor: "#b8e8e0" }, body: { backgroundColor: "#f4f4f6" } },
       header: {
         type: "box",
         layout: "vertical",
@@ -259,7 +259,7 @@ function bookingList(bookings) {
       size: "kilo",
       styles: {
         header: { backgroundColor: isConfirmed ? "#1a3a5c" : "#888888" },
-        body: { backgroundColor: "#ffffff" },
+        body: { backgroundColor: "#f4f4f6" },
       },
       header: {
         type: "box",

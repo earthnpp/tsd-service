@@ -14,7 +14,7 @@ function assignedCard(ticket) {
     altText: `🔵 ${ticket.ticketNo} ได้รับงานแล้วครับ!`,
     contents: {
       type: "bubble",
-      styles: { header: { backgroundColor: "#cce5ff" }, body: { backgroundColor: "#ffffff" } },
+      styles: { header: { backgroundColor: "#cce5ff" }, body: { backgroundColor: "#f4f4f6" } },
       header: {
         type: "box", layout: "vertical", paddingAll: "14px",
         contents: [{ type: "text", text: "🔵 ได้รับงานแล้วครับ!", weight: "bold", size: "md", color: "#1565c0" }],
@@ -39,7 +39,7 @@ function completedCard(ticket) {
     altText: `✅ ${ticket.ticketNo} ดำเนินการเสร็จสิ้นแล้วครับ`,
     contents: {
       type: "bubble",
-      styles: { header: { backgroundColor: "#b8e8e0" }, body: { backgroundColor: "#ffffff" } },
+      styles: { header: { backgroundColor: "#b8e8e0" }, body: { backgroundColor: "#f4f4f6" } },
       header: {
         type: "box", layout: "vertical", paddingAll: "14px",
         contents: [{ type: "text", text: "✅ ดำเนินการเสร็จสิ้นแล้วครับ", weight: "bold", size: "md", color: "#2a9d8f" }],
@@ -62,7 +62,7 @@ function pendingCard(ticket) {
     altText: `🟡 ${ticket.ticketNo} ส่งกลับรอดำเนินการครับ`,
     contents: {
       type: "bubble",
-      styles: { header: { backgroundColor: "#fff3cd" }, body: { backgroundColor: "#ffffff" } },
+      styles: { header: { backgroundColor: "#fff3cd" }, body: { backgroundColor: "#f4f4f6" } },
       header: {
         type: "box", layout: "vertical", paddingAll: "14px",
         contents: [{ type: "text", text: "🟡 ส่งกลับรอดำเนินการครับ", weight: "bold", size: "md", color: "#856404" }],
@@ -94,7 +94,7 @@ function ratingCard(ticketId) {
     altText: "⭐ กรุณาให้คะแนนการบริการ IT Support ครับ",
     contents: {
       type: "bubble",
-      styles: { header: { backgroundColor: "#fff8dc" }, body: { backgroundColor: "#ffffff" } },
+      styles: { header: { backgroundColor: "#fff8dc" }, body: { backgroundColor: "#f4f4f6" } },
       header: {
         type: "box", layout: "vertical", paddingAll: "14px",
         contents: [{ type: "text", text: "⭐ ให้คะแนนการบริการ", weight: "bold", size: "md", color: "#b8860b" }],
@@ -134,7 +134,7 @@ function bookingCancelledCard(booking) {
     altText: `📢 การจองห้อง ${booking.bookingNo} ถูกยกเลิกครับ`,
     contents: {
       type: "bubble",
-      styles: { header: { backgroundColor: "#ffe0e0" }, body: { backgroundColor: "#ffffff" } },
+      styles: { header: { backgroundColor: "#ffe0e0" }, body: { backgroundColor: "#f4f4f6" } },
       header: {
         type: "box", layout: "vertical", paddingAll: "14px",
         contents: [{ type: "text", text: "📢 การจองถูกยกเลิกครับ", weight: "bold", size: "md", color: "#c62828" }],
