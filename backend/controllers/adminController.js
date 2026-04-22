@@ -3,6 +3,7 @@ const categoryService = require("../services/categoryService");
 const bookingService = require("../services/bookingService");
 const calendarService = require("../services/calendarService");
 const audit = require("../services/auditService");
+const { assignedCard, completedCard, pendingCard, ratingCard, bookingCancelledCard } = require("../views/flex/statusMessages");
 
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
@@ -36,10 +37,7 @@ async function assignTicket(req, res) {
   const { assignee } = req.body;
   if (!assignee) return res.status(400).json({ error: "assignee required" });
   const ticket = await ticketService.updateTicket(req.params.id, { status: "in_progress", assignee });
-  await notifyUser(ticket.lineUserId, [{
-    type: "text",
-    text: `🔵 ได้รับงานแล้วครับ!\n\n📋 ${ticket.ticketNo}\n📌 ${ticket.title}\n👷 ผู้รับผิดชอบ: ${assignee}\n\nกำลังดำเนินการแก้ไขให้ครับ 🙏`,
-  }]);
+  await notifyUser(ticket.lineUserId, [assignedCard(ticket)]);
   audit.log({ ...audit.fromReq(req), action: "TICKET_ASSIGNED", resourceType: "ticket", resourceId: ticket.id, detail: `${ticket.ticketNo} → ${assignee}` });
   res.json(ticket);
 }
@@ -54,21 +52,11 @@ async function updateTicketStatus(req, res) {
 
   // Notify user on status change
   if (status === "in_progress") {
-    await notifyUser(ticket.lineUserId, [{
-      type: "text",
-      text: `🔵 ได้รับงานแล้วครับ!\n\n📋 ${ticket.ticketNo}\n📌 ${ticket.title}\n👷 ผู้รับผิดชอบ: ${ticket.assignee || "ทีม IT"}\n\nกำลังดำเนินการแก้ไขให้ครับ 🙏`,
-    }]);
+    await notifyUser(ticket.lineUserId, [assignedCard(ticket)]);
   } else if (status === "completed") {
-    const ratingMenu = require("../views/flex/ratingMenu");
-    await notifyUser(ticket.lineUserId, [
-      { type: "text", text: `✅ ${ticket.ticketNo} ดำเนินการเสร็จสิ้นแล้วครับ\n📝 ผลการดำเนินการ : ${ticket.resolution || "เสร็จเรียบร้อย"}` },
-      ratingMenu(ticket.id),
-    ]);
+    await notifyUser(ticket.lineUserId, [completedCard(ticket), ratingCard(ticket.id)]);
   } else if (status === "pending") {
-    await notifyUser(ticket.lineUserId, [{
-      type: "text",
-      text: `🟡 ${ticket.ticketNo} ถูกส่งกลับสู่สถานะรอดำเนินการครับ`,
-    }]);
+    await notifyUser(ticket.lineUserId, [pendingCard(ticket)]);
   }
 
   audit.log({ ...audit.fromReq(req), action: "TICKET_STATUS_CHANGED", resourceType: "ticket", resourceId: ticket.id, detail: `${ticket.ticketNo}: → ${status || "updated"}` });
@@ -103,11 +91,7 @@ async function closeWithCost(req, res) {
     repairVendor: repairVendor || null,
   });
 
-  const ratingMenu = require("../views/flex/ratingMenu");
-  await notifyUser(ticket.lineUserId, [
-    { type: "text", text: `✅ ${ticket.ticketNo} ดำเนินการเสร็จสิ้นแล้วครับ\n📝 ผลการดำเนินการ : ${resolution}` },
-    ratingMenu(ticket.id),
-  ]);
+  await notifyUser(ticket.lineUserId, [completedCard(ticket), ratingCard(ticket.id)]);
   audit.log({ ...audit.fromReq(req), action: "TICKET_CLOSED", resourceType: "ticket", resourceId: ticket.id, detail: `${ticket.ticketNo}: ${resolution}` });
   res.json(ticket);
 }
@@ -118,11 +102,7 @@ async function closeTicket(req, res) {
   const ticket = await ticketService.updateTicket(req.params.id, {
     status: "completed", resolution, completedAt: new Date(),
   });
-  const ratingMenu = require("../views/flex/ratingMenu");
-  await notifyUser(ticket.lineUserId, [
-    { type: "text", text: `✅ ${ticket.ticketNo} ได้รับการแก้ไขเรียบร้อยแล้วครับ\n📝 ผลการดำเนินการ : ${resolution}` },
-    ratingMenu(ticket.id),
-  ]);
+  await notifyUser(ticket.lineUserId, [completedCard(ticket), ratingCard(ticket.id)]);
   audit.log({ ...audit.fromReq(req), action: "TICKET_CLOSED", resourceType: "ticket", resourceId: ticket.id, detail: `${ticket.ticketNo}: ${resolution}` });
   res.json(ticket);
 }
@@ -297,13 +277,7 @@ async function listRooms(req, res) {
 async function cancelBookingAdmin(req, res) {
   try {
     const booking = await bookingService.adminCancelBooking(req.params.id, req.adminUser?.email);
-    const fmt = (dt) => new Date(dt).toLocaleString("th-TH", {
-      timeZone: "Asia/Bangkok", dateStyle: "short", timeStyle: "short",
-    });
-    await notifyUser(booking.lineUserId, [{
-      type: "text",
-      text: `📢 การจองของคุณถูกยกเลิกโดยผู้ดูแลระบบครับ\n\n📋 ${booking.bookingNo}\n🏢 ห้อง: ${booking.room?.name || "-"}\n📝 ${booking.title}\n🕐 ${fmt(booking.startAt)} – ${fmt(booking.endAt)}\n\nหากมีข้อสงสัยกรุณาติดต่อเจ้าหน้าที่ครับ 🙏`,
-    }]);
+    await notifyUser(booking.lineUserId, [bookingCancelledCard(booking)]);
     audit.log({ ...audit.fromReq(req), action: "BOOKING_CANCELLED", resourceType: "booking", resourceId: booking.id, detail: `${booking.bookingNo} ${booking.room?.name || ""}: ${booking.title}` });
     res.json(booking);
   } catch (err) {
