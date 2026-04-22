@@ -3,7 +3,7 @@ const categoryService = require("../services/categoryService");
 const bookingService = require("../services/bookingService");
 const calendarService = require("../services/calendarService");
 const audit = require("../services/auditService");
-const { assignedCard, completedCard, pendingCard, ratingCard, bookingCancelledCard } = require("../views/flex/statusMessages");
+const { assignedCard, completedWithRatingCard, pendingCard, bookingCancelledCard } = require("../views/flex/statusMessages");
 
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
@@ -54,7 +54,7 @@ async function updateTicketStatus(req, res) {
   if (status === "in_progress") {
     await notifyUser(ticket.lineUserId, [assignedCard(ticket)]);
   } else if (status === "completed") {
-    await notifyUser(ticket.lineUserId, [completedCard(ticket), ratingCard(ticket.id)]);
+    await notifyUser(ticket.lineUserId, [completedWithRatingCard(ticket)]);
   } else if (status === "pending") {
     await notifyUser(ticket.lineUserId, [pendingCard(ticket)]);
   }

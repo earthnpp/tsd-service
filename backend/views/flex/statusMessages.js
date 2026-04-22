@@ -42,7 +42,16 @@ function assignedCard(ticket) {
   };
 }
 
-function completedCard(ticket) {
+// Merged: completed info + rating buttons in one bubble
+function completedWithRatingCard(ticket) {
+  const stars = [
+    { n: 1, label: "1", color: "#aaaaaa" },
+    { n: 2, label: "2", color: "#e9730e" },
+    { n: 3, label: "3", color: "#e9c46a" },
+    { n: 4, label: "4", color: "#2a9d8f" },
+    { n: 5, label: "5", color: "#457b9d" },
+  ];
+
   return {
     type: "flex",
     altText: `✅ ${ticket.ticketNo} ดำเนินการเสร็จสิ้นแล้วครับ`,
@@ -67,7 +76,26 @@ function completedCard(ticket) {
           row("หัวข้อ", ticket.title || "-"),
           row("ผลการดำเนินการ", ticket.resolution || "เสร็จเรียบร้อย"),
           { type: "separator", margin: "md" },
-          { type: "text", text: "ขอบคุณที่ใช้บริการ IT Support ครับ 🙏", size: "sm", color: "#888888", wrap: true, margin: "md" },
+          { type: "text", text: "⭐ ให้คะแนนความพึงพอใจ", weight: "bold", size: "sm", color: "#b8860b", margin: "md" },
+          {
+            type: "box",
+            layout: "horizontal",
+            spacing: "xs",
+            contents: stars.map(({ n, label, color }) => ({
+              type: "button",
+              style: "primary",
+              color,
+              height: "sm",
+              flex: 1,
+              action: {
+                type: "postback",
+                label,
+                data: `action=submit_rating&ticketId=${ticket.id}&rating=${n}`,
+                displayText: `${n} ดาว`,
+              },
+            })),
+            margin: "sm",
+          },
         ],
         paddingAll: "20px",
       },
@@ -103,62 +131,6 @@ function pendingCard(ticket) {
         ],
         paddingAll: "20px",
       },
-    },
-  };
-}
-
-function ratingCard(ticketId) {
-  return {
-    type: "flex",
-    altText: "⭐ กรุณาให้คะแนนการบริการ IT Support ครับ",
-    contents: {
-      type: "bubble",
-      styles: { header: { backgroundColor: "#fff8dc" }, body: { backgroundColor: "#f4f4f6" } },
-      header: {
-        type: "box",
-        layout: "vertical",
-        contents: [
-          { type: "text", text: "⭐ ให้คะแนนการบริการ", weight: "bold", size: "lg", color: "#b8860b" },
-        ],
-        paddingAll: "16px",
-      },
-      body: {
-        type: "box",
-        layout: "vertical",
-        spacing: "md",
-        contents: [
-          { type: "text", text: "กรุณาให้คะแนนความพึงพอใจครับ", size: "sm", color: "#888888", wrap: true },
-          {
-            type: "box",
-            layout: "horizontal",
-            contents: [
-              starBtn("😞", 1, "#aaaaaa", ticketId),
-              starBtn("😐", 2, "#e9730e", ticketId),
-              starBtn("🙂", 3, "#e9c46a", ticketId),
-              starBtn("😊", 4, "#2a9d8f", ticketId),
-              starBtn("🤩", 5, "#457b9d", ticketId),
-            ],
-            margin: "md",
-          },
-        ],
-        paddingAll: "20px",
-      },
-    },
-  };
-}
-
-function starBtn(emoji, n, color, ticketId) {
-  return {
-    type: "button",
-    style: "primary",
-    color,
-    height: "sm",
-    flex: 1,
-    action: {
-      type: "postback",
-      label: `${emoji}${n}`,
-      data: `action=submit_rating&ticketId=${ticketId}&rating=${n}`,
-      displayText: `${emoji} ${n} ดาว`,
     },
   };
 }
@@ -200,4 +172,4 @@ function bookingCancelledCard(booking) {
   };
 }
 
-module.exports = { assignedCard, completedCard, pendingCard, ratingCard, bookingCancelledCard };
+module.exports = { assignedCard, completedWithRatingCard, pendingCard, bookingCancelledCard };
