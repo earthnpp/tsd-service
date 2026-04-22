@@ -28,9 +28,7 @@ services:
       start_period: 120s
 
   backend:
-    build:
-      context: ./backend
-      network: host
+    image: ghcr.io/earthnpp/tsd-backend:latest
     container_name: helpdesk-backend
     restart: unless-stopped
     environment:
@@ -54,12 +52,7 @@ services:
       - helpdesk-net
 
   frontend:
-    build:
-      context: ./frontend
-      network: host
-      args:
-        - VITE_LIFF_ID=${LIFF_ID}
-        - VITE_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+    image: ghcr.io/earthnpp/tsd-frontend:latest
     container_name: helpdesk-frontend
     restart: unless-stopped
     ports:
