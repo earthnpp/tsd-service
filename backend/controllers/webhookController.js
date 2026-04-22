@@ -371,6 +371,13 @@ async function onPostback(event, userId) {
   if (action === "submit_rating") {
     const ticketId = Number(params.get("ticketId"));
     const rating = Number(params.get("rating"));
+    const existing = await ticketService.getTicketById(ticketId);
+    if (existing?.rating) {
+      return client.replyMessage({
+        replyToken,
+        messages: [{ type: "text", text: "คุณได้ให้คะแนนไปแล้วครับ 🙏" }],
+      });
+    }
     await ticketService.updateTicket(ticketId, { rating });
     await sessionService.clearSession(userId);
     const stars = "⭐".repeat(rating);
