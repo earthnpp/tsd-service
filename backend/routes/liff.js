@@ -41,7 +41,7 @@ router.post("/ticket", writeLimiter, (req, res, next) => {
   upload.single("image")(req, res, (err) => {
     if (err) {
       const msg = err.code === "LIMIT_FILE_SIZE"
-        ? "ไฟล์รูปใหญ่เกินไป (สูงสุด 15MB)"
+        ? "ไฟล์รูปใหญ่เกินไป (สูงสุด 10MB)"
         : "อัปโหลดรูปไม่สำเร็จ: " + err.message;
       return res.status(400).json({ error: msg });
     }

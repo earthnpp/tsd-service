@@ -3,28 +3,28 @@ import liff from "@line/liff";
 
 const LIFF_ID = import.meta.env.VITE_LIFF_ID;
 
-function compressImage(file, maxWidth = 1920, quality = 0.82) {
+const MAX_FILE_MB = 10;
+const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
+
+function compressImage(file, maxWidth = 1280, quality = 0.78) {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        let { width, height } = img;
-        if (width > maxWidth) {
-          height = Math.round(height * maxWidth / width);
-          width = maxWidth;
-        }
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("compress failed")), "image/jpeg", quality);
-      };
-      img.onerror = reject;
-      img.src = e.target.result;
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > maxWidth) {
+        height = Math.round(height * maxWidth / width);
+        width = maxWidth;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("compress failed")), "image/jpeg", quality);
     };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("load failed")); };
+    img.src = url;
   });
 }
 
@@ -36,6 +36,7 @@ export default function LiffApp() {
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageInputKey, setImageInputKey] = useState(0);
+  const [compressing, setCompressing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
@@ -60,14 +61,32 @@ export default function LiffApp() {
   async function handleImage(e) {
     const file = e.target.files[0];
     if (!file) return;
+
+    // Block unsupported types before even trying
+    if (file.size > 50 * 1024 * 1024) {
+      setError("รูปใหญ่เกินไป กรุณาเลือกรูปที่มีขนาดเล็กกว่านี้"); return;
+    }
+
+    setCompressing(true);
+    setError("");
     try {
       const compressed = await compressImage(file);
+      if (compressed.size > MAX_FILE_BYTES) {
+        setError(`รูปยังใหญ่เกินไปหลังบีบอัด (สูงสุด ${MAX_FILE_MB}MB) กรุณาเลือกรูปอื่น`);
+        setCompressing(false); return;
+      }
       setImage(compressed);
       setImagePreview(URL.createObjectURL(compressed));
     } catch {
+      // Canvas compression failed (e.g. HEIC on some devices) — try raw file
+      if (file.size > MAX_FILE_BYTES) {
+        setError(`ไม่สามารถบีบอัดรูปได้ และขนาดไฟล์เกิน ${MAX_FILE_MB}MB กรุณาเลือกรูปอื่น`);
+        setCompressing(false); return;
+      }
       setImage(file);
       setImagePreview(URL.createObjectURL(file));
     }
+    setCompressing(false);
   }
 
   function handleRemoveImage() {
@@ -78,6 +97,7 @@ export default function LiffApp() {
   }
 
   async function handleSubmit() {
+    if (compressing) { setError("กรุณารอจนกว่าการบีบอัดรูปจะเสร็จ"); return; }
     if (!form.name.trim() || !form.email.trim() || !form.department.trim() || !form.category || !form.subcategory || !form.description.trim()) {
       setError("กรุณากรอกข้อมูลที่มี * ให้ครบถ้วน"); return;
     }
@@ -207,9 +227,16 @@ export default function LiffApp() {
                 style={{ width: "100%", maxHeight: 200, objectFit: "contain", borderRadius: 8, background: "#f0f0f0", display: "block" }} />
               <button onClick={handleRemoveImage} style={s.removeBtn} type="button">✕ ลบรูป</button>
             </div>
+          ) : compressing ? (
+            <div style={{ ...s.imageBox, pointerEvents: "none" }}>
+              <div style={{ color: "#aaa", textAlign: "center", padding: "24px 0", fontSize: 14 }}>
+                <div style={s.spinner} />
+                <div style={{ marginTop: 10 }}>กำลังบีบอัดรูป...</div>
+              </div>
+            </div>
           ) : (
             <label style={s.imageBox}>
-              <input key={imageInputKey} type="file" accept="image/*" onChange={handleImage} style={{ display: "none" }} />
+              <input key={imageInputKey} type="file" accept="image/*" capture="environment" onChange={handleImage} style={{ display: "none" }} />
               <div style={{ color: "#aaa", textAlign: "center", padding: "24px 0", fontSize: 14 }}>
                 <div style={{ fontSize: 36 }}>📷</div>
                 แตะเพื่อเลือกหรือถ่ายรูป
