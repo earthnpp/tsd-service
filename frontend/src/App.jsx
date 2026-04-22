@@ -848,7 +848,7 @@ function SettingsPanel({ categories, onReload, assignees, onReloadAssignees }) {
 }
 
 function ContactSettings() {
-  const [form, setForm] = useState({ contact_name: "", contact_phone: "", contact_email: "", contact_hours: "", contact_line: "" });
+  const [form, setForm] = useState({ contact_name: "", contact_phone: "", contact_email: "", contact_hours: "", contact_line: "", allowed_email_domains: "" });
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -879,7 +879,15 @@ function ContactSettings() {
         {field("contact_hours", "เวลาทำการ",       "เช่น จ–ศ 08:00–18:00")}
         {field("contact_line",  "LINE ID (ถ้ามี)", "เช่น @itsupport")}
       </div>
-      <button onClick={save} style={{ ...btnStyle(saved ? "#2a9d8f" : "#1a1a2e"), minWidth: 120 }}>
+
+      <hr style={{ margin: "16px 0", borderColor: "#f0f0f0" }} />
+      <strong style={{ fontSize: 14, display: "block", marginBottom: 6 }}>🔒 จำกัด Email Domain (LIFF)</strong>
+      <p style={{ fontSize: 12, color: "#888", margin: "0 0 10px" }}>
+        ใส่ domain ที่อนุญาต คั่นด้วยจุลภาค — ว่างเปล่า = อนุญาตทุก domain
+      </p>
+      {field("allowed_email_domains", "Allowed Domains", "เช่น thestandard.co,standard.co")}
+
+      <button onClick={save} style={{ ...btnStyle(saved ? "#2a9d8f" : "#1a1a2e"), minWidth: 120, marginTop: 14 }}>
         {saved ? "✅ บันทึกแล้ว" : "บันทึก"}
       </button>
     </div>

@@ -18,6 +18,18 @@ async function verifyLineToken(accessToken) {
   return res.json(); // { client_id, expires_in, scope }
 }
 
+async function checkEmailDomain(email) {
+  const row = await prisma.systemConfig.findUnique({ where: { key: "allowed_email_domains" } });
+  if (!row?.value?.trim()) return; // ไม่ได้ตั้งค่า = อนุญาตทุก domain
+  const allowed = row.value.split(",").map(d => d.trim().toLowerCase()).filter(Boolean);
+  const domain = email.trim().toLowerCase().split("@")[1];
+  if (!allowed.includes(domain)) {
+    const err = new Error("เฉพาะอีเมลของพนักงานเท่านั้นที่สามารถใช้งานได้ครับ");
+    err.code = "DOMAIN_NOT_ALLOWED";
+    throw err;
+  }
+}
+
 async function getLineUserId(accessToken) {
   const res = await fetch("https://api.line.me/v2/profile", {
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -44,6 +56,7 @@ async function createTicket(req, res) {
     if (!name?.trim() || !email?.trim() || !department?.trim() || !category || !subcategory || !description?.trim()) {
       return res.status(400).json({ error: "กรุณากรอกข้อมูลที่จำเป็นให้ครบ" });
     }
+    await checkEmailDomain(email);
 
     const lines = description.trim().split("\n").map(l => l.trim()).filter(Boolean);
     const title = lines[0] || description;
@@ -130,6 +143,7 @@ async function createBooking(req, res) {
     if (!roomId || !startDate || !startTime || !endDate || !endTime || !title?.trim() || !name?.trim() || !email?.trim() || !department?.trim()) {
       return res.status(400).json({ error: "กรุณากรอกข้อมูลที่จำเป็นให้ครบ" });
     }
+    await checkEmailDomain(email);
 
     const startAt = new Date(`${startDate}T${startTime}:00+07:00`);
     const endAt   = new Date(`${endDate}T${endTime}:00+07:00`);
