@@ -28,7 +28,9 @@ services:
       start_period: 120s
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      network: host
     container_name: helpdesk-backend
     restart: unless-stopped
     environment:
@@ -54,6 +56,7 @@ services:
   frontend:
     build:
       context: ./frontend
+      network: host
       args:
         - VITE_LIFF_ID=${LIFF_ID}
         - VITE_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
