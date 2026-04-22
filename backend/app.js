@@ -11,6 +11,8 @@ const authRouter    = require("./routes/auth");
 
 const app = express();
 
+app.set("trust proxy", 1);
+
 // ── Security headers ────────────────────────────────────────
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }, // allow /uploads to be loaded by LINE
