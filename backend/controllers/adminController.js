@@ -391,14 +391,23 @@ async function updateConfig(req, res) {
 
 async function testNotifyGroup(req, res) {
   const notify = require("../services/notifyService");
-  const row = await prisma.systemConfig.findUnique({ where: { key: "notify_group_id" } });
-  const groupId = row?.value?.trim();
-  if (!groupId) return res.status(400).json({ error: "ยังไม่ได้ตั้งค่า notify_group_id" });
+  const { type = "ticket" } = req.query;
+  const key = type === "booking" ? "notify_booking_group_id" : "notify_ticket_group_id";
+  const row = await prisma.systemConfig.findUnique({ where: { key } });
+  if (!row?.value?.trim()) return res.status(400).json({ error: `ยังไม่ได้ตั้งค่า ${key}` });
   try {
-    await notify.notifyNewTicket({
-      ticketNo: "TEST-0000", title: "ทดสอบระบบแจ้งเตือน", category: "ทดสอบ", subcategory: "ระบบ",
-      displayName: "Admin", department: "-", createdAt: new Date(),
-    });
+    if (type === "booking") {
+      await notify.notifyNewBooking({
+        bookingNo: "BK-TEST", title: "ทดสอบแจ้งเตือนจองห้อง",
+        room: { name: "ห้องทดสอบ" }, displayName: "Admin", department: "-",
+        startAt: new Date(), endAt: new Date(Date.now() + 3600000),
+      });
+    } else {
+      await notify.notifyNewTicket({
+        ticketNo: "TEST-0000", title: "ทดสอบระบบแจ้งเตือน", category: "ทดสอบ", subcategory: "ระบบ",
+        displayName: "Admin", department: "-", createdAt: new Date(),
+      });
+    }
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

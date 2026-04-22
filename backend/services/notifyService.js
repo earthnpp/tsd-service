@@ -6,19 +6,19 @@ const client = new line.messagingApi.MessagingApiClient({
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
 });
 
-async function getGroupId() {
-  const row = await prisma.systemConfig.findUnique({ where: { key: "notify_group_id" } });
+async function getConfigValue(key) {
+  const row = await prisma.systemConfig.findUnique({ where: { key } });
   return row?.value?.trim() || null;
 }
 
-async function push(messages) {
+async function pushTo(configKey, messages) {
   if (!process.env.LINE_CHANNEL_ACCESS_TOKEN) return;
-  const groupId = await getGroupId();
+  const groupId = await getConfigValue(configKey);
   if (!groupId) return;
   try {
     await client.pushMessage({ to: groupId, messages });
   } catch (err) {
-    console.error("[Notify] push failed:", err.message);
+    console.error(`[Notify] push to ${configKey} failed:`, err.message);
   }
 }
 
@@ -29,7 +29,7 @@ function fmtDateTime(dt) {
 }
 
 async function notifyNewTicket(ticket) {
-  await push([{
+  await pushTo("notify_ticket_group_id", [{
     type: "flex",
     altText: `🎫 Ticket ใหม่: ${ticket.ticketNo}`,
     contents: {
@@ -60,7 +60,7 @@ async function notifyNewTicket(ticket) {
 async function notifyNewBooking(booking) {
   const start = fmtDateTime(booking.startAt);
   const end   = new Date(booking.endAt).toLocaleTimeString("th-TH", { timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit" });
-  await push([{
+  await pushTo("notify_booking_group_id", [{
     type: "flex",
     altText: `🏢 จองห้องใหม่: ${booking.bookingNo}`,
     contents: {
