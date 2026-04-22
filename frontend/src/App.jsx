@@ -418,19 +418,29 @@ function TicketDetail({ ticket: t, resolution, setResolution, onAssign, onClose,
 
   async function saveCost() {
     setSavingCost(true);
-    await api.updateTicketCost(t.id, buildCostPayload());
-    setSavingCost(false);
-    showToast("✅ บันทึกค่าใช้จ่ายเรียบร้อยแล้ว");
-    onRefresh();
+    try {
+      await api.updateTicketCost(t.id, buildCostPayload());
+      showToast("✅ บันทึกค่าใช้จ่ายเรียบร้อยแล้ว");
+      onRefresh();
+    } catch (err) {
+      showToast("❌ เกิดข้อผิดพลาด กรุณาลองใหม่");
+    } finally {
+      setSavingCost(false);
+    }
   }
 
   async function handleCloseWithCost() {
     if (!closeResolution.trim()) { showToast("❌ กรุณาระบุสรุปการแก้ไขก่อนปิดงาน"); return; }
     setSavingCost(true);
-    await api.closeWithCost(t.id, { resolution: closeResolution, ...buildCostPayload() });
-    setSavingCost(false);
-    showToast("✅ ปิดงานและบันทึกค่าใช้จ่ายเรียบร้อย");
-    onRefresh();
+    try {
+      await api.closeWithCost(t.id, { resolution: closeResolution, ...buildCostPayload() });
+      showToast("✅ ปิดงานและบันทึกค่าใช้จ่ายเรียบร้อย");
+      onRefresh();
+    } catch (err) {
+      showToast("❌ เกิดข้อผิดพลาด กรุณาลองใหม่");
+    } finally {
+      setSavingCost(false);
+    }
   }
 
   return (

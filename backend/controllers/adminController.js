@@ -91,7 +91,7 @@ async function closeWithCost(req, res) {
     repairVendor: repairVendor || null,
   });
 
-  await notifyUser(ticket.lineUserId, [completedCard(ticket), ratingCard(ticket.id)]);
+  await notifyUser(ticket.lineUserId, [completedWithRatingCard(ticket)]);
   audit.log({ ...audit.fromReq(req), action: "TICKET_CLOSED", resourceType: "ticket", resourceId: ticket.id, detail: `${ticket.ticketNo}: ${resolution}` });
   res.json(ticket);
 }
@@ -102,7 +102,7 @@ async function closeTicket(req, res) {
   const ticket = await ticketService.updateTicket(req.params.id, {
     status: "completed", resolution, completedAt: new Date(),
   });
-  await notifyUser(ticket.lineUserId, [completedCard(ticket), ratingCard(ticket.id)]);
+  await notifyUser(ticket.lineUserId, [completedWithRatingCard(ticket)]);
   audit.log({ ...audit.fromReq(req), action: "TICKET_CLOSED", resourceType: "ticket", resourceId: ticket.id, detail: `${ticket.ticketNo}: ${resolution}` });
   res.json(ticket);
 }
