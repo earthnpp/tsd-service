@@ -372,11 +372,15 @@ async function onPostback(event, userId) {
     const ticketId = Number(params.get("ticketId"));
     const rating = Number(params.get("rating"));
     const existing = await ticketService.getTicketById(ticketId);
-    if (!existing?.rating) {
-      await ticketService.updateTicket(ticketId, { rating });
-      await sessionService.clearSession(userId);
-    }
-    return; // ไม่ reply — กดแล้วเงียบ ไม่มี bubble ขึ้น
+    if (existing?.rating) return; // กดซ้ำ — เงียบสนิท
+    await ticketService.updateTicket(ticketId, { rating });
+    await sessionService.clearSession(userId);
+    const stars = "⭐".repeat(rating);
+    client.pushMessage({
+      to: userId,
+      messages: [{ type: "text", text: `${stars}\nขอบคุณสำหรับการให้คะแนนความพึงพอใจครับ 🙏` }],
+    }).catch(() => {});
+    return;
   }
 
   // ── Booking Actions ────────────────────────────────────────
