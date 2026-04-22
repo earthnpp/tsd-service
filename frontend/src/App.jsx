@@ -849,14 +849,16 @@ function ContactSettings() {
 function NotificationSettings() {
   const [ticketGroup,  setTicketGroup]  = useState("");
   const [bookingGroup, setBookingGroup] = useState("");
+  const [adminUrl,     setAdminUrl]     = useState("");
   const [saved,   setSaved]   = useState(false);
-  const [testing, setTesting] = useState(null); // "ticket" | "booking" | null
+  const [testing, setTesting] = useState(null);
   const [testMsg, setTestMsg] = useState({});
 
   useEffect(() => {
     api.getConfig().then(cfg => {
       if (cfg.notify_ticket_group_id)  setTicketGroup(cfg.notify_ticket_group_id);
       if (cfg.notify_booking_group_id) setBookingGroup(cfg.notify_booking_group_id);
+      if (cfg.admin_url)               setAdminUrl(cfg.admin_url);
     }).catch(() => {});
   }, []);
 
@@ -864,6 +866,7 @@ function NotificationSettings() {
     await api.updateConfig({
       notify_ticket_group_id:  ticketGroup.trim(),
       notify_booking_group_id: bookingGroup.trim(),
+      admin_url:               adminUrl.trim(),
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -915,6 +918,19 @@ function NotificationSettings() {
         <strong>วิธีรับ Group ID:</strong>  เพิ่มบอทเข้ากลุ่ม → พิมพ์{" "}
         <code style={{ background: "#e8edf8", padding: "1px 5px", borderRadius: 3 }}>group id</code>{" "}
         → บอทตอบกลับพร้อม ID ให้คัดลอก
+      </div>
+
+      {/* Admin URL */}
+      <div style={{ background: "#f8f9fa", borderRadius: 10, padding: "14px 16px", marginBottom: 10 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#333", marginBottom: 6 }}>
+          🔗 URL ระบบ Admin (สำหรับแนบลิงก์ใน card)
+        </div>
+        <input value={adminUrl} onChange={e => setAdminUrl(e.target.value)}
+          placeholder="https://service.thestandard.co"
+          style={{ ...inputStyle, width: "100%", fontSize: 13, boxSizing: "border-box" }} />
+        <div style={{ fontSize: 11, color: "#aaa", marginTop: 5 }}>
+          กรอก URL หน้า admin เพื่อให้ card แจ้งเตือนมีปุ่ม "เปิดดูในระบบ"
+        </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>

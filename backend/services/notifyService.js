@@ -28,13 +28,34 @@ function fmtDateTime(dt) {
   });
 }
 
+function footer(url) {
+  if (!url) return undefined;
+  return {
+    type: "box", layout: "vertical", paddingAll: "12px",
+    contents: [{
+      type: "button",
+      style: "primary",
+      color: "#1a1a2e",
+      height: "sm",
+      action: { type: "uri", label: "เปิดดูในระบบ →", uri: url },
+    }],
+  };
+}
+
 async function notifyNewTicket(ticket) {
+  const adminUrl = await getConfigValue("admin_url");
+  const url = adminUrl ? `${adminUrl}/#tickets` : null;
+
   await pushTo("notify_ticket_group_id", [{
     type: "flex",
     altText: `🎫 Ticket ใหม่: ${ticket.ticketNo}`,
     contents: {
       type: "bubble",
-      styles: { header: { backgroundColor: "#fff0f1" }, body: { backgroundColor: "#ffffff" } },
+      styles: {
+        header: { backgroundColor: "#fff0f1" },
+        body:   { backgroundColor: "#ffffff" },
+        footer: { backgroundColor: "#f9f9f9" },
+      },
       header: {
         type: "box", layout: "vertical", paddingAll: "14px",
         contents: [
@@ -53,19 +74,30 @@ async function notifyNewTicket(ticket) {
           row("⏰ เวลา", fmtDateTime(ticket.createdAt)),
         ],
       },
+      ...(url ? { footer: footer(url) } : {}),
     },
   }]);
 }
 
 async function notifyNewBooking(booking) {
+  const adminUrl = await getConfigValue("admin_url");
+  const url = adminUrl ? `${adminUrl}/#bookings` : null;
+
   const start = fmtDateTime(booking.startAt);
-  const end   = new Date(booking.endAt).toLocaleTimeString("th-TH", { timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit" });
+  const end   = new Date(booking.endAt).toLocaleTimeString("th-TH", {
+    timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit",
+  });
+
   await pushTo("notify_booking_group_id", [{
     type: "flex",
     altText: `🏢 จองห้องใหม่: ${booking.bookingNo}`,
     contents: {
       type: "bubble",
-      styles: { header: { backgroundColor: "#e8f5ff" }, body: { backgroundColor: "#ffffff" } },
+      styles: {
+        header: { backgroundColor: "#e8f5ff" },
+        body:   { backgroundColor: "#ffffff" },
+        footer: { backgroundColor: "#f9f9f9" },
+      },
       header: {
         type: "box", layout: "vertical", paddingAll: "14px",
         contents: [
@@ -84,6 +116,7 @@ async function notifyNewBooking(booking) {
           ...(booking.notes ? [row("📌 หมายเหตุ", booking.notes)] : []),
         ],
       },
+      ...(url ? { footer: footer(url) } : {}),
     },
   }]);
 }
