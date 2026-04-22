@@ -289,9 +289,8 @@ async function onPostback(event, userId) {
         altText: "💬 ถาม IT Assistant",
         contents: {
           type: "bubble",
-          styles: { header: { backgroundColor: "#1a3a5c" }, body: { backgroundColor: "#f4f4f6" } },
           header: {
-            type: "box", layout: "vertical", paddingAll: "16px",
+            type: "box", layout: "vertical", paddingAll: "16px", backgroundColor: "#1a3a5c",
             contents: [
               { type: "text", text: "💬 IT Assistant", weight: "bold", size: "lg", color: "#ffffff" },
               { type: "text", text: "ถามปัญหา IT ได้เลยครับ", size: "sm", color: "#a8c8e8", margin: "xs" },
