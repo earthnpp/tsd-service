@@ -1956,6 +1956,15 @@ function smallBtn(bg, tiny = false) {
 function UserPermissionRow({ u, onDelete, onUpdated }) {
   const perms = Array.isArray(u.permissions) ? u.permissions : [];
   const [saving, setSaving] = useState(false);
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
 
   async function toggle(key) {
     const next = perms.includes(key) ? perms.filter(k => k !== key) : [...perms, key];
@@ -1969,35 +1978,56 @@ function UserPermissionRow({ u, onDelete, onUpdated }) {
 
   return (
     <div style={{ borderRadius: 10, background: "#f8f9ff", border: "1px solid #eee", padding: "12px 14px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 14, fontWeight: 600 }}>{u.name || u.email}</div>
           {u.name && <div style={{ fontSize: 12, color: "#888" }}>{u.email}</div>}
         </div>
+
+        {/* Permission dropdown trigger */}
+        <div ref={ref} style={{ position: "relative" }}>
+          <button onClick={() => setOpen(o => !o)} style={{
+            display: "flex", alignItems: "center", gap: 6,
+            padding: "5px 12px", borderRadius: 7, border: "1px solid #ddd",
+            background: "#fff", cursor: "pointer", fontSize: 12, color: "#444",
+          }}>
+            ⚙️ สิทธิ์ ({perms.length}/{ALL_TABS.length}) {open ? "▲" : "▼"}
+          </button>
+
+          {open && (
+            <div style={{
+              position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 100,
+              background: "#fff", border: "1px solid #ddd", borderRadius: 10,
+              boxShadow: "0 4px 16px #0002", padding: "8px 4px", minWidth: 180,
+            }}>
+              {ALL_TABS.map(({ key, label }) => {
+                const checked = perms.includes(key);
+                return (
+                  <label key={key} style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "7px 14px", cursor: saving ? "default" : "pointer",
+                    borderRadius: 7, opacity: saving ? 0.6 : 1,
+                    background: checked ? "#f0f4ff" : "transparent",
+                    userSelect: "none",
+                  }}
+                    onMouseEnter={e => { if (!saving) e.currentTarget.style.background = checked ? "#e8eeff" : "#f5f5f5"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = checked ? "#f0f4ff" : "transparent"; }}
+                  >
+                    <input type="checkbox" checked={checked} disabled={saving}
+                      onChange={() => toggle(key)}
+                      style={{ width: 14, height: 14, accentColor: "#1a1a2e", cursor: "pointer" }} />
+                    <span style={{ fontSize: 13, color: "#333" }}>{label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         <div style={{ fontSize: 11, color: "#bbb", whiteSpace: "nowrap" }}>
           {new Date(u.createdAt).toLocaleDateString("th-TH")}
         </div>
         <button onClick={() => onDelete(u.id)} style={smallBtn("#e63946")}>🗑️</button>
-      </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        {ALL_TABS.map(({ key, label }) => {
-          const checked = perms.includes(key);
-          return (
-            <label key={key} style={{
-              display: "flex", alignItems: "center", gap: 5, cursor: saving ? "default" : "pointer",
-              fontSize: 12, padding: "4px 10px", borderRadius: 20,
-              background: checked ? "#1a1a2e" : "#eee",
-              color: checked ? "#fff" : "#555",
-              opacity: saving ? 0.6 : 1,
-              userSelect: "none",
-            }}>
-              <input type="checkbox" checked={checked} disabled={saving}
-                onChange={() => toggle(key)}
-                style={{ width: 12, height: 12, accentColor: "#e63946" }} />
-              {label}
-            </label>
-          );
-        })}
       </div>
     </div>
   );
@@ -2063,8 +2093,7 @@ function UsersPanel() {
       </div>
 
       <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px #0001" }}>
-        <strong style={{ display: "block", marginBottom: 4 }}>รายชื่อที่อนุญาต ({users.length})</strong>
-        <p style={{ fontSize: 12, color: "#aaa", margin: "0 0 14px" }}>กด checkbox เพื่อเปิด/ปิด module — บันทึกอัตโนมัติ</p>
+        <strong style={{ display: "block", marginBottom: 14 }}>รายชื่อที่อนุญาต ({users.length})</strong>
         {users.length === 0 && (
           <p style={{ color: "#bbb", fontSize: 13, textAlign: "center", padding: "16px 0" }}>
             ยังไม่มีรายชื่อ — กรุณาเพิ่มอีเมลด้านบน
