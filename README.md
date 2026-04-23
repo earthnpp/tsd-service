@@ -1,6 +1,6 @@
-# IT Helpdesk — LINE OA + Admin Dashboard
+# STD-Service — IT Helpdesk & Service Portal
 
-ระบบแจ้งปัญหา IT ผ่าน LINE Official Account พร้อม Admin Dashboard สำหรับจัดการ Ticket และจองห้องประชุม
+ระบบ IT Helpdesk ผ่าน LINE Official Account + Service Portal สำหรับพนักงาน The Standard
 
 **Stack:** Node.js 20 + Express · MySQL 8.0 + Prisma ORM · React 18 + Vite · Nginx · Docker Compose
 
@@ -10,312 +10,263 @@
 
 ```
 STD-Service/
-├── docker-compose.yml              ← Multi-container orchestration
+├── docker-compose.yml
 ├── .env                            ← สร้างจาก .env.example (ไม่ commit)
-├── .env.example                    ← Template ตัวแปรสภาพแวดล้อม
 │
 ├── backend/                        ← Node.js + Express REST API (Port 3000)
-│   ├── app.js                      ← Entry point, middleware, security setup
-│   ├── Dockerfile
-│   ├── package.json
+│   ├── app.js
 │   ├── controllers/
-│   │   ├── webhookController.js    ← จัดการ LINE webhook events ทั้งหมด
-│   │   ├── adminController.js      ← Admin API handlers
-│   │   ├── authController.js       ← Google OAuth authentication
-│   │   └── liffController.js       ← LINE LIFF endpoints
+│   │   ├── webhookController.js    ← LINE webhook events ทั้งหมด
+│   │   ├── adminController.js      ← Admin API
+│   │   ├── authController.js       ← Google OAuth (admin)
+│   │   ├── liffController.js       ← LIFF: ticket, booking, AI chat, domain check
+│   │   └── portalController.js     ← Portal login + PortalCard CRUD
 │   ├── services/
-│   │   ├── ticketService.js        ← CRUD Ticket + daily limit
-│   │   ├── bookingService.js       ← ตรรกะการจองห้องประชุม + Google Calendar sync
-│   │   ├── calendarService.js      ← Google Calendar API integration
-│   │   ├── categoryService.js      ← จัดการหมวดหมู่และหมวดย่อย
-│   │   └── sessionService.js       ← สถานะการสนทนา LINE bot
+│   │   ├── ticketService.js
+│   │   ├── bookingService.js       ← Google Calendar sync
+│   │   ├── calendarService.js
+│   │   ├── categoryService.js
+│   │   ├── sessionService.js
+│   │   └── auditService.js
 │   ├── routes/
-│   │   ├── webhook.js              ← POST /webhook (LINE)
-│   │   ├── api.js                  ← Admin API routes (JWT-protected)
-│   │   ├── liff.js                 ← LIFF public endpoints + rate limiting
-│   │   └── auth.js                 ← Google OAuth routes
+│   │   ├── api.js                  ← Admin routes (JWT + requirePermission)
+│   │   ├── portal.js               ← Portal auth + public cards
+│   │   ├── liff.js
+│   │   ├── auth.js
+│   │   └── webhook.js
 │   ├── views/flex/                 ← LINE Flex Message templates
-│   │   ├── mainMenu.js
-│   │   ├── categoryMenu.js
-│   │   ├── subcategoryMenu.js
-│   │   ├── ticketConfirm.js
-│   │   ├── ticketStatus.js
-│   │   ├── bookingViews.js
-│   │   └── ratingMenu.js
-│   ├── config/
-│   │   └── google-credentials.json ← Service account key (ไม่ commit)
 │   └── prisma/
-│       ├── schema.prisma           ← Data models
-│       └── migrations/             ← 10 migration files
+│       ├── schema.prisma
+│       └── migrations/             ← 15 migration files
 │
-└── frontend/                       ← React Admin Dashboard (Port 8080)
-    ├── Dockerfile                  ← Multi-stage: build → Nginx
-    ├── nginx.conf                  ← Reverse proxy config
-    ├── vite.config.js
-    ├── .env.example
+└── frontend/                       ← React (Port 8080 via Nginx)
+    ├── nginx.conf
     └── src/
-        ├── main.jsx                ← React entry point
-        ├── App.jsx                 ← Admin Dashboard (Sidebar layout)
-        ├── LoginPage.jsx           ← Google OAuth login
+        ├── main.jsx                ← Routing: path-based (ไม่ใช้ react-router)
+        ├── PortalApp.jsx           ← Landing Page (/)
+        ├── App.jsx                 ← Admin Console (/admin)
+        ├── LoginPage.jsx           ← Admin Google OAuth login
         ├── LiffApp.jsx             ← LIFF หน้าหลัก
         ├── LiffBooking.jsx         ← LIFF จองห้องประชุม
-        ├── LiffCalendar.jsx        ← LIFF ดูปฏิทินห้องประชุม
-        └── services/api.js         ← API client library
+        ├── LiffCalendar.jsx        ← LIFF ปฏิทินห้องประชุม
+        ├── LiffAI.jsx              ← LIFF AI chat (/liff/ai)
+        └── services/api.js         ← API client
 ```
 
 ---
 
-## Database Schema (Prisma)
+## Routing
 
-| Model | คำอธิบาย |
-|-------|----------|
-| `Ticket` | Ticket แจ้งปัญหา IT (status, priority, assignee, cost, rating) |
-| `UserSession` | สถานะการสนทนา LINE bot ต่อ user |
-| `Category` / `Subcategory` | หมวดหมู่ปัญหา (Hardware/Software/Network/Account ฯลฯ) |
-| `Assignee` | รายชื่อ IT staff สำหรับ assign ticket |
-| `TicketCounter` | ตัวนับเลข Ticket (รูปแบบ HLP-0001) |
-| `FaqItem` | คลังคำถามที่พบบ่อย + viewCount + resolvedCount |
-| `Room` | ห้องประชุม + Google Calendar ID |
-| `RoomBooking` | การจองห้องประชุม + Google Event ID |
-| `BookingCounter` | ตัวนับเลขการจอง (รูปแบบ BK-0001) |
-| `AllowedUser` | Whitelist อีเมลที่เข้าถึง Admin ได้ |
-| `SystemConfig` | Key-value config (ข้อมูลติดต่อ IT, ฯลฯ) |
+| Path | หน้า | เข้าได้ |
+|------|------|---------|
+| `/` | Service Portal (Landing Page) | @thestandard.co ทุกคน |
+| `/admin` | Admin Console | AllowedUser whitelist เท่านั้น |
+| `/liff/ai` | AI Assistant chat | LINE LIFF |
+| `/liff/booking` | จองห้องประชุม | LINE LIFF |
+| `/liff/calendar` | ปฏิทินห้องประชุม | LINE LIFF |
+| `/liff/*` | LIFF หลัก (แจ้ง Ticket) | LINE LIFF |
+
+> Portal login → ถ้ามีสิทธิ์ admin จะเห็นปุ่ม **"Admin Console"** → `/admin` โดยไม่ต้อง login ซ้ำ
 
 ---
 
 ## ฟีเจอร์หลัก
 
+### Service Portal (`/`)
+- Login ด้วย Google — ตรวจสอบเฉพาะ @thestandard.co
+- Grid of **Service Cards** (icon + ชื่อ + description + URL)
+- Admin จัดการ cards ผ่าน Admin Console → Settings → Landing Page
+
 ### LINE OA (User)
+- Rich Menu 6 ปุ่ม (Text action → `richMenuMap` → postback handler)
+- **ถาม AI** → เปิด LIFF AI chat
+- **แจ้งปัญหา** → LIFF form: หมวดหมู่ → Asset Tag → อธิบาย → รูปภาพ (optional)
+- **ดู Ticket** → Flex Message สถานะ ticket ล่าสุด
+- **จองห้องประชุม** → LIFF booking form
+- **รายการจอง** / **ติดต่อ IT** → ดึงข้อมูลจาก DB
+- Rating: กดดาว → บันทึกเงียบ (ไม่ reply), กดซ้ำ → เงียบ (ตรวจสอบจาก DB)
+
+### AI Assistant (`/liff/ai`)
+- Chat กับ AI สำหรับแก้ปัญหา IT เบื้องต้น
+- รองรับ Anthropic Claude และ OpenAI GPT
+- Config ทั้งหมดใน Admin Settings → AI Assistant (provider, API key, model, system prompt)
+
+### Admin Console (`/admin`) — Sidebar Layout
+- **Dashboard** (default): KPI cards, 7-day trend chart, satisfaction rating, category/assignee breakdown
+- **Tickets**: filter, search, assign, priority, close, cost breakdown, export CSV
+- **Bookings**: จอง/ยกเลิก + Google Calendar sync
+- **Users**: AllowedUser whitelist + per-user module permissions (checkbox UI)
+- **Export**: Tickets & Bookings CSV
+- **Audit Logs**: ประวัติการกระทำทั้งหมด
+- **Settings** (sub-tabs):
+  - 📞 ติดต่อ — ข้อมูล IT ที่แสดงใน LINE
+  - 🔔 แจ้งเตือน — LINE Group ID
+  - 👷 เจ้าหน้าที่ — IT Staff
+  - 📂 หมวดหมู่ — Category / Subcategory
+  - 🤖 AI Assistant — Provider, API Key, Model, System Prompt
+  - 🏢 ห้องประชุม — ห้อง + Google Calendar
+  - 🌐 Landing Page — จัดการ Service Cards
+
+---
+
+## Database Schema
+
+| Model | คำอธิบาย |
+|-------|----------|
+| `Ticket` | Ticket IT (status, priority, assignee, cost, rating) |
+| `UserSession` | สถานะ LINE bot conversation ต่อ user |
+| `Category` / `Subcategory` | หมวดหมู่ปัญหา |
+| `Assignee` | IT Staff |
+| `TicketCounter` | ตัวนับ HLP-XXXX |
+| `FaqItem` | FAQ (เก็บไว้ใน DB แต่ไม่ได้ใช้ใน bot แล้ว) |
+| `Room` | ห้องประชุม + Google Calendar ID |
+| `RoomBooking` | การจอง + Google Event ID |
+| `BookingCounter` | ตัวนับ BK-XXXX |
+| `AllowedUser` | Admin whitelist + `permissions Json` |
+| `SystemConfig` | Key-value config ทุกอย่าง (AI key, contact info ฯลฯ) |
+| `AuditLog` | ประวัติการกระทำของ admin |
+| `PortalCard` | Service cards ที่แสดงใน Landing Page |
+
+---
+
+## Permissions System
+
 ```
-User แตะ "แจ้งปัญหา IT"
-  → เลือกหมวดหมู่ (Hardware / Software / Network / Account)
-  → เลือกประเภทย่อย
-  → พิมพ์หัวข้อปัญหา
-  → เลือกสถานที่ (Quick Reply)
-  → ระบุ Asset Tag
-  → อธิบายปัญหา (ข้อความหรือรูปภาพ)
-  → ได้รับ Ticket Confirmation Card พร้อมเลข HLP-XXXX
-
-Admin Assign + ปิด Ticket
-  → User ได้รับ LINE Notification
-  → ระบบส่ง prompt ให้คะแนน (1–5 ดาว)
+null        → full access (INITIAL_ADMIN_EMAIL)
+[]          → ไม่มีสิทธิ์เลย
+["tickets"] → เข้าได้เฉพาะ tickets module
 ```
 
-### Admin Dashboard (React — Sidebar Layout)
-- จัดการ Ticket: ดู, กรอง, ค้นหา, assign, เปลี่ยนสถานะ, ปิด, export CSV
-- บันทึกค่าใช้จ่ายซ่อม (จำนวน, VAT, vendor)
-- สถิติ Real-time (pending / in-progress / completed)
-- จัดการหมวดหมู่ & FAQ
-- จัดการห้องประชุมและการจอง + Google Calendar sync
-- ตั้งค่า Calendar ID ทุกห้องพร้อมกัน
-- จัดการ IT Staff (Assignee)
-- ควบคุมสิทธิ์เข้าถึง (AllowedUser whitelist)
-- แก้ไขข้อมูลติดต่อ IT ที่แสดงใน LINE ได้จาก UI
-- URL Hash navigation (รีเพจแล้วอยู่หน้าเดิม)
-
-### Google Calendar Integration
-- สร้าง Calendar ใหม่ผ่าน service account อัตโนมัติ
-- Event format: `ชื่อห้อง : หัวข้อการจอง`
-- Description: ผู้จอง / รายละเอียด / หมายเลขการจอง
-- ยกเลิกการจองใน system → ลบ event ใน Calendar อัตโนมัติ
-
-### Rate Limiting & Deduplication
-- จำกัด Ticket ต่อ user: 3 ต่อวัน (ตั้งค่าได้ผ่าน `DAILY_TICKET_LIMIT`)
-- LIFF write endpoints (ticket/booking): 20 requests / 5 นาที ต่อ IP
-- Auth endpoints: 10 requests / 15 นาที
-- Admin API: 300 requests / นาที
+**Modules:** `dashboard` · `tickets` · `bookings` · `settings` · `users` · `export` · `audit`
 
 ---
 
 ## API Endpoints
 
-### Admin (ต้องใช้ JWT Token หรือ `ADMIN_SECRET`)
-
+### Portal (ต้องมี portal JWT)
 | Method | Path | คำอธิบาย |
 |--------|------|----------|
-| GET | `/api/tickets` | รายการ Ticket (รองรับ filter/search) |
-| GET | `/api/tickets/:id` | ดู Ticket เดี่ยว |
+| POST | `/api/portal/auth` | Google login (domain check) |
+| GET | `/api/portal/cards` | ดึง active cards |
+
+### Admin (ต้องมี JWT หรือ `ADMIN_SECRET`)
+| Method | Path | คำอธิบาย |
+|--------|------|----------|
+| GET | `/api/tickets` | รายการ Ticket |
 | GET | `/api/tickets/export` | Export CSV |
-| PATCH | `/api/tickets/:id/assign` | Assign IT Staff |
-| PATCH | `/api/tickets/:id/status` | อัปเดตสถานะ |
+| PATCH | `/api/tickets/:id/assign` | Assign |
 | PATCH | `/api/tickets/:id/close` | ปิด Ticket |
-| PATCH | `/api/tickets/:id/cost` | บันทึกค่าใช้จ่าย |
+| PATCH | `/api/tickets/:id/close-cost` | ปิด + บันทึกค่าใช้จ่าย |
 | GET | `/api/stats` | สถิติ Dashboard |
-| GET/POST/PUT/DELETE | `/api/categories` | จัดการหมวดหมู่ |
-| POST/PUT/DELETE | `/api/categories/:id/subcategories` | จัดการหมวดย่อย |
-| GET/POST/PUT/DELETE | `/api/faq` | จัดการ FAQ |
-| GET/POST/PUT/DELETE | `/api/rooms` | จัดการห้องประชุม |
-| GET | `/api/bookings` | รายการการจอง |
-| PATCH | `/api/bookings/:id/cancel` | ยกเลิกการจอง |
-| GET/POST/DELETE | `/api/allowed-users` | จัดการ Whitelist |
-| GET/POST/PUT/DELETE | `/api/assignees` | จัดการ IT Staff |
-| GET | `/api/config` | ดึง System Config |
-| PUT | `/api/config` | อัปเดต System Config |
-| GET | `/api/calendar/test` | ทดสอบ Google credentials |
+| GET/POST/PUT/DELETE | `/api/categories` | หมวดหมู่ |
+| GET/POST/PUT/DELETE | `/api/assignees` | IT Staff |
+| GET/POST/PUT/DELETE | `/api/rooms` | ห้องประชุม |
+| GET/PATCH | `/api/bookings` | การจอง |
+| GET/POST/DELETE/PUT | `/api/allowed-users` | Admin whitelist |
+| GET/PUT | `/api/config` | System Config |
+| GET/POST/PUT/DELETE | `/api/portal-cards` | Portal Cards (admin) |
+| GET | `/api/audit-logs` | Audit Logs |
 
 ### Public
-
 | Method | Path | คำอธิบาย |
 |--------|------|----------|
-| POST | `/webhook` | LINE Webhook (signature verified) |
-| POST | `/api/auth/google` | Google OAuth callback |
-| GET | `/api/liff/*` | LIFF endpoints |
-| GET | `/api/line-image/:messageId` | Image proxy จาก LINE |
+| POST | `/webhook` | LINE Webhook |
+| POST | `/api/auth/google` | Admin Google OAuth |
+| POST | `/api/liff/ticket` | สร้าง Ticket จาก LIFF |
+| POST | `/api/liff/booking` | จองห้องจาก LIFF |
+| POST | `/api/liff/ai` | AI chat |
 | GET | `/health` | Health check |
 
 ---
 
 ## Environment Variables
 
-### `.env` (root)
-
 ```env
 # MySQL
-MYSQL_ROOT_PASSWORD=rootpassword
+MYSQL_ROOT_PASSWORD=
 MYSQL_DATABASE=helpdesk
 MYSQL_USER=helpdesk_user
-MYSQL_PASSWORD=helpdesk_pass
-DATABASE_URL="mysql://helpdesk_user:helpdesk_pass@db:3306/helpdesk"
+MYSQL_PASSWORD=
+DATABASE_URL="mysql://helpdesk_user:PASSWORD@db:3306/helpdesk"
 
-# LINE Platform
-LINE_CHANNEL_SECRET=your_channel_secret_here
-LINE_CHANNEL_ACCESS_TOKEN=your_channel_access_token_here
-LIFF_ID=your_liff_id_here
+# LINE
+LINE_CHANNEL_SECRET=
+LINE_CHANNEL_ACCESS_TOKEN=
+LIFF_ID=
 
 # Security
-ADMIN_SECRET=change_this_to_a_strong_secret
-JWT_SECRET=change_this_to_a_random_secret_string
-CORS_ORIGIN=https://your-domain.com          # เว้นว่างไว้ = same-origin only
+ADMIN_SECRET=
+JWT_SECRET=
+CORS_ORIGIN=https://your-domain.com
 
 # Google
-GOOGLE_CLIENT_ID=your_google_oauth_client_id_here
-GOOGLE_CREDENTIALS={"type":"service_account",...}   # Service Account JSON (stringify หรือ base64)
-INITIAL_ADMIN_EMAIL=your_admin@gmail.com
+GOOGLE_CLIENT_ID=
+GOOGLE_CREDENTIALS={"type":"service_account",...}
+INITIAL_ADMIN_EMAIL=your@email.com
 
 # Optional
-PORT=3000
-NODE_ENV=production
 DAILY_TICKET_LIMIT=3
-MASTER_CALENDAR_ID=your_google_calendar_id
+MASTER_CALENDAR_ID=
 ```
 
 ---
 
-## Security
-
-| Layer | มาตรการ |
-|-------|---------|
-| HTTP Headers | Helmet.js (XSS, HSTS, clickjacking protection) |
-| CORS | จำกัดเฉพาะ `CORS_ORIGIN` ที่กำหนด |
-| Rate Limiting | Auth 10/15min · LIFF write 20/5min · Admin 300/min |
-| Auth | JWT + Google OAuth + AllowedUser whitelist |
-| LINE Webhook | Signature verification (HMAC-SHA256) |
-| File Upload | Validate MIME type (images only) + 10MB limit |
-| Database | Prisma parameterized queries (SQL injection safe) |
-| Secrets | `.env` gitignored, service account key gitignored |
-| Network | MySQL port ปิดจาก external · Backend bind to 127.0.0.1 |
-
----
-
-## Deploy บน Portainer
-
-### 1. เตรียมเซิร์ฟเวอร์
+## Deploy บน Portainer (NAS)
 
 ```bash
-git clone <repo-url> /opt/stacks/STD-Service
-cd /opt/stacks/STD-Service
-cp .env.example .env
-nano .env   # ใส่ค่า secrets ทั้งหมด
-```
+# 1. clone + config
+git clone https://github.com/earthnpp/tsd-service /opt/stacks/STD-Service
+cd /opt/stacks/STD-Service && cp .env.example .env
+# แก้ .env ใส่ค่าจริง
 
-### 2. สร้าง external network (ถ้ายังไม่มี)
-
-```bash
+# 2. external network (ครั้งแรก)
 docker network create management_xtech_net
+
+# 3. deploy ผ่าน Portainer Stacks หรือ
+docker compose up -d
+
+# 4. update หลัง GitHub Actions build เสร็จ
+docker compose pull && docker compose up -d
 ```
 
-### 3. Deploy ผ่าน Portainer Stacks
+**ตั้งค่า LINE Webhook:** `https://your-domain.com/webhook`
 
-1. **Stacks** → **Add stack** → ตั้งชื่อ `helpdesk`
-2. เลือก **Repository** หรือ **Upload** `docker-compose.yml`
-3. **Environment variables** → Load จากไฟล์ `.env`
-4. กด **Deploy the stack**
-
-### 4. ตั้งค่า LINE Webhook
-
-1. [LINE Developers Console](https://developers.line.biz/) → Channel → Messaging API
-2. Webhook URL: `https://your-domain.com/webhook`
-3. เปิด **Use webhook** → ปิด **Auto-reply messages**
-4. กด **Verify**
-
-> **หมายเหตุ:** LIFF channel ต้อง Publish (ไม่ใช่ Developing) ถึงจะใช้งานได้กับทุกคน
+> LIFF ต้อง Publish (ไม่ใช่ Developing) ถึงจะใช้กับทุกคนได้
 
 ---
 
-### Ports
+## Ports
 
-| Service | Container Port | Host Port | หมายเหตุ |
-|---------|---------------|-----------|---------|
-| Frontend (Nginx) | 80 | **8080** | Public |
-| Backend (Express) | 3000 | **127.0.0.1:3001** | Localhost debug only |
-| Database (MySQL) | 3306 | — | Internal only (ไม่ expose) |
-
-### Volumes
-
-| Volume | เก็บข้อมูล |
-|--------|-----------|
-| `db_data` | MySQL database files |
-| `uploads_data` | รูปภาพที่ user อัปโหลดผ่าน LIFF |
-
-### Networks
-
-| Network | ประเภท | คำอธิบาย |
-|---------|--------|----------|
-| `helpdesk-net` | bridge (internal) | การสื่อสารระหว่าง containers |
-| `management_xtech_net` | external | เชื่อมต่อกับ infrastructure ภายนอก |
-
----
-
-## Google Calendar Setup
-
-1. สร้าง Service Account ใน Google Cloud Console
-2. Enable **Google Calendar API** ในโปรเจกต์
-3. ดาวน์โหลด JSON key → แปลง base64: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("key.json")) | clip`
-4. ใส่ใน `GOOGLE_CREDENTIALS` ใน Portainer environment variables
-5. Admin Dashboard → Settings → ห้องประชุม → กด **"สร้าง Calendar"** ต่อห้อง
-6. ทดสอบ: `GET /api/calendar/test` (ใส่ header `x-admin-token`)
-
----
-
-## การพัฒนาแบบ Local (ngrok)
-
-```bash
-cp .env.example .env        # ใส่ LINE credentials
-docker compose up -d --build
-ngrok http 3001             # นำ URL ไปตั้งเป็น webhook ใน LINE Console
-```
+| Service | Host Port |
+|---------|-----------|
+| Frontend (Nginx) | 8080 |
+| Backend (debug only) | 127.0.0.1:3001 |
+| MySQL | ไม่ expose |
 
 ---
 
 ## Troubleshooting
 
-**Backend ไม่ start / database error**
 ```bash
+# ดู logs
 docker compose logs backend
-docker compose restart backend
-```
+docker compose logs frontend
 
-**Migration ไม่รัน**
-```bash
+# รัน migration ด้วยตัวเอง
 docker compose exec backend npx prisma migrate deploy
-```
 
-**ทดสอบ Google Calendar credentials**
-```bash
+# ทดสอบ Google Calendar
 curl -H "x-admin-token: YOUR_ADMIN_SECRET" http://localhost:3001/api/calendar/test
-```
 
-**Rebuild หลังแก้ code**
-```bash
+# Rebuild
 docker compose up -d --build
 ```
+
+---
+
+## Google Calendar Setup
+
+1. สร้าง Service Account ใน Google Cloud Console → Enable Calendar API
+2. Download JSON key → stringify เป็น string เดียว
+3. ใส่ใน `GOOGLE_CREDENTIALS` ใน `.env`
+4. Admin Console → Settings → ห้องประชุม → กด **"สร้าง Calendar"** ต่อห้อง
