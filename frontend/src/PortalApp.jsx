@@ -47,9 +47,8 @@ function PortalLogin({ onLogin }) {
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #0f2544 0%, #1a3a5c 60%, #1d4e89 100%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "system-ui, sans-serif", padding: 20 }}>
       <div style={{ marginBottom: 32, textAlign: "center" }}>
-        <div style={{ fontSize: 56, marginBottom: 12 }}>🏢</div>
-        <h1 style={{ margin: 0, color: "#fff", fontSize: 28, fontWeight: 800, letterSpacing: -0.5 }}>The Standard</h1>
-        <p style={{ margin: "6px 0 0", color: "#a8c8e8", fontSize: 15 }}>Service Portal</p>
+        <img src="/logo.png" alt="The Standard" style={{ height: 60, marginBottom: 16, filter: "brightness(0) invert(1)" }} />
+        <p style={{ margin: 0, color: "#a8c8e8", fontSize: 15 }}>Service Portal</p>
       </div>
 
       <div style={{ background: "#fff", borderRadius: 20, padding: "36px 32px", boxShadow: "0 8px 40px #0004", textAlign: "center", maxWidth: 360, width: "100%" }}>
@@ -161,10 +160,9 @@ export default function PortalApp() {
     <div style={{ minHeight: "100vh", background: "#f0f4f8", fontFamily: "system-ui, sans-serif" }}>
       {/* Header */}
       <header style={{ background: "linear-gradient(90deg, #0f2544 0%, #1a3a5c 100%)", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 60 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 22 }}>🏢</span>
-          <span style={{ color: "#fff", fontWeight: 800, fontSize: 17, letterSpacing: -0.3 }}>The Standard</span>
-          <span style={{ color: "#a8c8e8", fontSize: 13, marginLeft: 4 }}>Service Portal</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <img src="/logo.png" alt="The Standard" style={{ height: 28, filter: "brightness(0) invert(1)" }} />
+          <span style={{ color: "#a8c8e8", fontSize: 13, borderLeft: "1px solid #457b9d", paddingLeft: 12 }}>Service Portal</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {user.isAdmin && (

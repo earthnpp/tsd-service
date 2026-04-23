@@ -149,10 +149,8 @@ export default function App({ user, onLogout }) {
       <div className={`sidebar${sidebarOpen ? " open" : ""}`}>
         {/* Logo */}
         <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid #ffffff18" }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: "#fff", lineHeight: 1.3 }}>
-            🖥️ Standard Service
-          </div>
-          <div style={{ fontSize: 11, color: "#aaa", marginTop: 3 }}>Admin Console</div>
+          <img src="/logo.png" alt="The Standard" style={{ height: 24, filter: "brightness(0) invert(1)", display: "block", marginBottom: 4 }} />
+          <div style={{ fontSize: 11, color: "#aaa" }}>Admin Console</div>
         </div>
 
         {/* Menu */}
