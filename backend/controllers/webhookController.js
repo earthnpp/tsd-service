@@ -299,7 +299,7 @@ async function onPostback(event, userId) {
           body: {
             type: "box", layout: "vertical", paddingAll: "16px", spacing: "sm",
             contents: [
-              { type: "text", text: "🤖 AI จะช่วยแก้ปัญหาเบื้องต้นให้ครับ\nถ้าแก้ไม่ได้จะแนะนำให้แจ้ง Ticket", size: "sm", color: "#555", wrap: true },
+              { type: "text", text: "🤖 AI จะช่วยแก้ปัญหาเบื้องต้นให้ครับ\nถ้าแก้ไม่ได้จะแนะนำให้แจ้ง Ticket", size: "sm", color: "#555555", wrap: true },
             ],
           },
           footer: {
