@@ -201,20 +201,22 @@ export default function App({ user, onLogout }) {
               </div>
             </div>
           ) : (
-            <button onClick={() => window.location.href = "/"} style={{
-              width: "100%", background: "transparent", color: "#a8c8e8",
-              border: "1px solid #a8c8e855", borderRadius: 6, padding: "6px 0",
-              cursor: "pointer", fontSize: 13, marginBottom: 6,
-            }}>
-              ← กลับ Portal
-            </button>
-          <button onClick={() => setLogoutConfirm(true)} style={{
-              width: "100%", background: "transparent", color: "#f4a261",
-              border: "1px solid #f4a26155", borderRadius: 6, padding: "6px 0",
-              cursor: "pointer", fontSize: 13,
-            }}>
-              ออกจากระบบ
-            </button>
+            <>
+              <button onClick={() => window.location.href = "/"} style={{
+                width: "100%", background: "transparent", color: "#a8c8e8",
+                border: "1px solid #a8c8e855", borderRadius: 6, padding: "6px 0",
+                cursor: "pointer", fontSize: 13, marginBottom: 6,
+              }}>
+                ← กลับ Portal
+              </button>
+              <button onClick={() => setLogoutConfirm(true)} style={{
+                width: "100%", background: "transparent", color: "#f4a261",
+                border: "1px solid #f4a26155", borderRadius: 6, padding: "6px 0",
+                cursor: "pointer", fontSize: 13,
+              }}>
+                ออกจากระบบ
+              </button>
+            </>
           )}
         </div>
       </div>
