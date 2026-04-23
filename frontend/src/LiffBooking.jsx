@@ -7,7 +7,8 @@ const DAY_SHORT = ["อา","จ","อ","พ","พฤ","ศ","ส"];
 const SLOTS = Array.from({ length: 27 }, (_, i) => {
   const total = 8 * 60 + i * 30; // 08:00 – 21:00 step 30 min
   return `${String(Math.floor(total / 60)).padStart(2,"0")}:${total % 60 === 0 ? "00" : "30"}`;
-}); // 08:00 … 21:00
+});
+const ROOM_COLORS = ["#457b9d", "#e63946", "#2a9d8f", "#f4a261", "#9c6fbe", "#e9c46a"];
 
 function toISO(date) { return date.toISOString().slice(0,10); }
 function fmtDate(iso) {
@@ -15,6 +16,9 @@ function fmtDate(iso) {
   return `${DAY_SHORT[d.getDay()]} ${d.getDate()} ${MONTH_TH[d.getMonth()].slice(0,3)}.`;
 }
 function fmtHour(iso) { const d = new Date(iso); return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; }
+function toThaiDate(isoStr) {
+  return new Date(new Date(isoStr).getTime() + 7 * 3600000).toISOString().slice(0, 10);
+}
 
 export default function LiffBooking() {
   const today = toISO(new Date());
@@ -42,6 +46,18 @@ export default function LiffBooking() {
   const [error, setError] = useState("");
   const titleRef = useRef(null);
 
+  // Desktop-only state
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== "undefined" && window.innerWidth >= 768);
+  const [desktopCalYear, setDesktopCalYear] = useState(new Date().getFullYear());
+  const [desktopCalMonth, setDesktopCalMonth] = useState(new Date().getMonth());
+  const [calBookings, setCalBookings] = useState([]);
+
+  useEffect(() => {
+    const handler = () => setIsDesktop(window.innerWidth >= 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+
   useEffect(() => {
     liff.init({ liffId: LIFF_ID }).then(async () => {
       if (!liff.isLoggedIn()) { liff.login(); return; }
@@ -56,6 +72,14 @@ export default function LiffBooking() {
     }).catch(err => { setError(err.message); setReady(true); });
   }, []);
 
+  // Fetch all-room bookings for desktop calendar
+  useEffect(() => {
+    fetch(`/api/liff/bookings-calendar?year=${desktopCalYear}&month=${desktopCalMonth + 1}`)
+      .then(r => r.json())
+      .then(data => setCalBookings(data.bookings || []))
+      .catch(() => setCalBookings([]));
+  }, [desktopCalYear, desktopCalMonth]);
+
   // Fetch busy slots when room + startDate changes
   useEffect(() => {
     if (!roomId || !startDate) { setBusySlots([]); return; }
@@ -63,13 +87,11 @@ export default function LiffBooking() {
       .then(r => r.json()).then(setBusySlots).catch(() => setBusySlots([]));
   }, [roomId, startDate]);
 
-  // เวลานั้นๆ อยู่ในช่วง busy ไหม (สำหรับ start time)
   function isStartBusy(slot) {
     const t = new Date(`${startDate}T${slot}:00+07:00`);
     return busySlots.some(b => new Date(b.startAt) <= t && new Date(b.endAt) > t);
   }
 
-  // range [startTime, endSlot] จะ overlap กับ busy ไหม (สำหรับ end time)
   function isEndBusy(slot) {
     if (!startTime) return false;
     const rangeStart = new Date(`${startDate}T${startTime}:00+07:00`);
@@ -77,14 +99,29 @@ export default function LiffBooking() {
     return busySlots.some(b => new Date(b.startAt) < rangeEnd && new Date(b.endAt) > rangeStart);
   }
 
-  // Calendar grid
+  // Mobile calendar grid
   const firstDow = new Date(calYear, calMonth, 1).getDay();
   const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
   const cells = Array(firstDow).fill(null).concat(Array.from({ length: daysInMonth }, (_, i) => i + 1));
   while (cells.length % 7 !== 0) cells.push(null);
 
+  // Desktop calendar grid
+  const deskFirstDow = new Date(desktopCalYear, desktopCalMonth, 1).getDay();
+  const deskDaysInMonth = new Date(desktopCalYear, desktopCalMonth + 1, 0).getDate();
+  const deskCells = Array(deskFirstDow).fill(null).concat(Array.from({ length: deskDaysInMonth }, (_, i) => i + 1));
+  while (deskCells.length % 7 !== 0) deskCells.push(null);
+
+  const roomColorMap = Object.fromEntries(rooms.map((r, i) => [String(r.id), ROOM_COLORS[i % ROOM_COLORS.length]]));
+
+  function getBookingsForDay(iso) {
+    return calBookings.filter(b => {
+      const bStart = toThaiDate(b.startAt);
+      const bEnd = toThaiDate(b.endAt);
+      return bStart <= iso && bEnd >= iso;
+    });
+  }
+
   function openCal(phase) {
-    // sync calendar view to the relevant date
     const ref = phase === "start" ? startDate : endDate;
     const d = new Date(ref + "T00:00:00");
     setCalYear(d.getFullYear());
@@ -97,7 +134,6 @@ export default function LiffBooking() {
     const iso = `${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
     if (showCal === "start") {
       setStartDate(iso);
-      // ถ้า endDate อยู่ก่อน startDate ให้ reset endDate
       if (endDate < iso) setEndDate(iso);
       setStartTime(""); setEndTime("");
     } else {
@@ -107,18 +143,34 @@ export default function LiffBooking() {
     setShowCal(null);
   }
 
+  function pickDesktopDay(day) {
+    const iso = `${desktopCalYear}-${String(desktopCalMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    if (iso < today) return;
+    setStartDate(iso);
+    setEndDate(iso);
+    setStartTime(""); setEndTime("");
+  }
+
   function prevCal() { if (calMonth === 0) { setCalYear(y=>y-1); setCalMonth(11); } else setCalMonth(m=>m-1); }
   function nextCal() { if (calMonth === 11) { setCalYear(y=>y+1); setCalMonth(0); } else setCalMonth(m=>m+1); }
 
+  function prevDesktopCal() {
+    if (desktopCalMonth === 0) { setDesktopCalYear(y=>y-1); setDesktopCalMonth(11); }
+    else setDesktopCalMonth(m=>m-1);
+  }
+  function nextDesktopCal() {
+    if (desktopCalMonth === 11) { setDesktopCalYear(y=>y+1); setDesktopCalMonth(0); }
+    else setDesktopCalMonth(m=>m+1);
+  }
+
   function pickStart(h) {
     setStartTime(h);
-    setEndTime(""); // reset เสมอ เพราะ end options เปลี่ยนตาม start
+    setEndTime("");
   }
 
   const isMultiDay = startDate !== endDate;
-  // endSlots: กรอง slot ที่ไม่ valid ออก
   const endSlots = SLOTS.filter(h => {
-    if (!isMultiDay && h <= startTime) return false; // วันเดียวกันต้องมากกว่า start
+    if (!isMultiDay && h <= startTime) return false;
     return true;
   });
 
@@ -167,6 +219,215 @@ export default function LiffBooking() {
 
   const todayISO = today;
 
+  // ==================== DESKTOP LAYOUT ====================
+  if (isDesktop) {
+    return (
+      <div style={{ fontFamily: "'Noto Sans Thai', sans-serif", minHeight: "100vh", background: "#f0f2ff", paddingBottom: 48 }}>
+        <div style={s.header}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {profile?.pictureUrl && <img src={profile.pictureUrl} alt="" style={{ width: 28, height: 28, borderRadius: "50%", border: "1px solid #aaaacc" }} />}
+            <span style={{ fontWeight: 700, fontSize: 16, color: "#fff" }}>🗓️ จองห้องประชุม</span>
+          </div>
+          <a href="/liff/calendar" style={s.calBtn}>📅 ปฏิทินทั้งหมด</a>
+        </div>
+
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 24px 48px" }}>
+          {/* Top: Monthly calendar */}
+          <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 2px 12px #0001", padding: "24px", marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", marginBottom: 20 }}>
+              <span style={{ fontWeight: 700, fontSize: 18, color: "#1a1a2e" }}>📅 ปฏิทินการจอง</span>
+              {startDate && (
+                <span style={{ marginLeft: 16, fontSize: 14, color: "#457b9d", background: "#ebf4ff", padding: "4px 12px", borderRadius: 20, fontWeight: 600 }}>
+                  เลือก: {fmtDate(startDate)}
+                </span>
+              )}
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 16 }}>
+              <button onClick={prevDesktopCal} style={s.deskNavBtn}>‹</button>
+              <span style={{ fontWeight: 700, fontSize: 18, minWidth: 200, textAlign: "center" }}>
+                {MONTH_TH[desktopCalMonth]} {desktopCalYear + 543}
+              </span>
+              <button onClick={nextDesktopCal} style={s.deskNavBtn}>›</button>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, marginBottom: 4 }}>
+              {DAY_SHORT.map(d => (
+                <div key={d} style={{ textAlign: "center", fontSize: 13, color: "#999", fontWeight: 600, padding: "4px 0" }}>{d}</div>
+              ))}
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4 }}>
+              {deskCells.map((day, i) => {
+                if (!day) return <div key={i} style={{ minHeight: 80 }} />;
+                const iso = `${desktopCalYear}-${String(desktopCalMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+                const isPast = iso < todayISO;
+                const isSelected = iso === startDate;
+                const isToday = iso === todayISO;
+                const dayBookings = getBookingsForDay(iso);
+                return (
+                  <div key={i} onClick={() => !isPast && pickDesktopDay(day)}
+                    style={{
+                      minHeight: 80,
+                      padding: "6px",
+                      borderRadius: 8,
+                      border: isSelected ? "2px solid #457b9d" : isToday ? "1px solid #457b9d" : "1px solid #f0f0f0",
+                      background: isSelected ? "#ebf4ff" : isToday ? "#f5f9ff" : isPast ? "#fafafa" : "#fff",
+                      cursor: isPast ? "default" : "pointer",
+                      transition: "background 0.1s",
+                    }}>
+                    <div style={{
+                      fontSize: 13,
+                      fontWeight: isToday || isSelected ? 700 : 400,
+                      color: isPast ? "#ccc" : isSelected ? "#457b9d" : isToday ? "#457b9d" : "#333",
+                      marginBottom: 3,
+                    }}>{day}</div>
+                    {dayBookings.slice(0, 3).map((b, bi) => (
+                      <div key={bi} style={{
+                        fontSize: 10,
+                        background: roomColorMap[String(b.roomId)] || "#457b9d",
+                        color: "#fff",
+                        borderRadius: 3,
+                        padding: "1px 4px",
+                        marginBottom: 2,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}>
+                        {fmtHour(b.startAt)}–{fmtHour(b.endAt)}
+                      </div>
+                    ))}
+                    {dayBookings.length > 3 && (
+                      <div style={{ fontSize: 10, color: "#888" }}>+{dayBookings.length - 3} เพิ่ม</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {rooms.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 16, paddingTop: 16, borderTop: "1px solid #f0f0f0" }}>
+                {rooms.map((r, i) => (
+                  <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ width: 12, height: 12, borderRadius: 3, background: ROOM_COLORS[i % ROOM_COLORS.length] }} />
+                    <span style={{ fontSize: 12, color: "#555" }}>{r.name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Bottom: Booking form */}
+          <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 2px 12px #0001", padding: "24px" }}>
+            <div style={{ fontWeight: 700, fontSize: 18, color: "#1a1a2e", marginBottom: 20 }}>
+              ✍️ ฟอร์มการจอง
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={s.deskLabel}>ชื่อการประชุม <span style={{ color: "#e63946" }}>*</span></label>
+                <input ref={titleRef} value={title} onChange={e => setTitle(e.target.value)}
+                  placeholder="ชื่อการประชุม" style={s.deskInput} />
+              </div>
+              <div>
+                <label style={s.deskLabel}>ชื่อ-นามสกุล <span style={{ color: "#e63946" }}>*</span></label>
+                <input value={name} onChange={e => setName(e.target.value)} placeholder="ชื่อ-นามสกุล" style={s.deskInput} />
+              </div>
+              <div>
+                <label style={s.deskLabel}>อีเมล <span style={{ color: "#e63946" }}>*</span></label>
+                <input value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="example@thestandard.co" type="email" style={s.deskInput} />
+              </div>
+              <div>
+                <label style={s.deskLabel}>ฝ่าย / แผนก <span style={{ color: "#e63946" }}>*</span></label>
+                <input value={department} onChange={e => setDepartment(e.target.value)}
+                  placeholder="เช่น Marketing, Finance" style={s.deskInput} />
+              </div>
+              <div>
+                <label style={s.deskLabel}>ห้องประชุม</label>
+                <select value={roomId} onChange={e => { setRoomId(e.target.value); setStartTime(""); setEndTime(""); }}
+                  style={s.deskInput}>
+                  {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={s.deskLabel}>รายละเอียดเพิ่มเติม</label>
+                <textarea value={notes} onChange={e => setNotes(e.target.value)}
+                  placeholder="ระบุรายละเอียดเพิ่มเติม เช่น จำนวนผู้เข้าร่วม อุปกรณ์ที่ต้องการ (ถ้ามี)"
+                  rows={2} style={{ ...s.deskInput, resize: "vertical" }} />
+              </div>
+            </div>
+
+            {/* Date + Time section */}
+            <div style={{ background: "#f8f9ff", borderRadius: 12, padding: "16px", marginBottom: 16 }}>
+              <div style={{ fontWeight: 600, fontSize: 14, color: "#1a1a2e", marginBottom: 12 }}>📅 วันและเวลา</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={s.deskLabel}>วันเริ่มต้น</label>
+                  <input type="date" value={startDate}
+                    onChange={e => { setStartDate(e.target.value); if (endDate < e.target.value) setEndDate(e.target.value); setStartTime(""); setEndTime(""); }}
+                    min={today} style={s.deskInput} />
+                </div>
+                <div>
+                  <label style={s.deskLabel}>วันสิ้นสุด</label>
+                  <input type="date" value={endDate}
+                    onChange={e => { setEndDate(e.target.value); setEndTime(""); }}
+                    min={startDate} style={s.deskInput} />
+                </div>
+                <div>
+                  <label style={s.deskLabel}>เวลาเริ่มต้น</label>
+                  <select value={startTime} onChange={e => pickStart(e.target.value)} style={s.deskInput}>
+                    <option value="">-- เลือก --</option>
+                    {SLOTS.slice(0, -1).map(h => (
+                      <option key={h} value={h} disabled={!isMultiDay && isStartBusy(h)}>
+                        {h}{!isMultiDay && isStartBusy(h) ? " (ไม่ว่าง)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={s.deskLabel}>เวลาสิ้นสุด</label>
+                  <select value={endTime} onChange={e => setEndTime(e.target.value)}
+                    style={s.deskInput} disabled={!startTime}>
+                    <option value="">-- เลือก --</option>
+                    {endSlots.map(h => (
+                      <option key={h} value={h} disabled={!isMultiDay && isEndBusy(h)}>
+                        {h}{!isMultiDay && isEndBusy(h) ? " (ไม่ว่าง)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {!isMultiDay && busySlots.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: 13, color: "#e63946", fontWeight: 600, marginBottom: 6 }}>⚠️ มีการจองในวันที่เลือก</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {busySlots.map((b, i) => (
+                      <div key={i} style={{ fontSize: 12, color: "#666", background: "#fff0f0", borderRadius: 6, padding: "4px 10px" }}>
+                        {fmtHour(b.startAt)} – {fmtHour(b.endAt)} · {b.title}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {!isMultiDay && roomId && startDate && busySlots.length === 0 && (
+                <div style={{ marginTop: 10, fontSize: 13, color: "#2a9d8f" }}>✅ ห้องว่างทั้งวัน</div>
+              )}
+            </div>
+
+            {error && <p style={{ color: "#e63946", fontSize: 13, margin: "0 0 12px" }}>{error}</p>}
+
+            <button onClick={handleSubmit} disabled={submitting}
+              style={{ ...s.btn, maxWidth: 360, opacity: submitting ? 0.7 : 1 }}>
+              {submitting ? "⏳ กำลังจอง..." : "✅ ยืนยันการจอง"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ==================== MOBILE LAYOUT (unchanged) ====================
   return (
     <div style={s.page}>
       {/* Header */}
@@ -271,7 +532,6 @@ export default function LiffBooking() {
                   if (!day) return <div key={i} />;
                   const iso = `${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
                   const isPast = iso < todayISO;
-                  // end date: can't pick before startDate
                   const isDisabled = isPast || (showCal === "end" && iso < startDate);
                   const isSelected = showCal === "start" ? iso === startDate : iso === endDate;
                   const isInRange = iso > startDate && iso < endDate;
@@ -386,4 +646,8 @@ const s = {
   btn: { width: "100%", padding: "15px", background: "#1a1a2e", color: "#fff", border: "none", borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: "pointer" },
   center: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", fontFamily: "sans-serif", textAlign: "center", padding: 24 },
   spinner: { width: 40, height: 40, border: "4px solid #e0e0f0", borderTop: "4px solid #1a1a2e", borderRadius: "50%", animation: "spin 1s linear infinite" },
+  // Desktop styles
+  deskNavBtn: { background: "none", border: "1px solid #e0e0f0", borderRadius: 8, width: 36, height: 36, cursor: "pointer", fontSize: 18, color: "#1a1a2e", display: "flex", alignItems: "center", justifyContent: "center" },
+  deskLabel: { fontSize: 13, color: "#555", display: "block", marginBottom: 6 },
+  deskInput: { width: "100%", padding: "9px 12px", border: "1px solid #e0e0f0", borderRadius: 8, fontSize: 14, fontFamily: "inherit", background: "#fff", color: "#1a1a2e", outline: "none", boxSizing: "border-box" },
 };

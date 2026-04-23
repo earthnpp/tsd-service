@@ -112,13 +112,18 @@ async function getRoomSlots(req, res) {
 async function getBookingsCalendar(req, res) {
   const { PrismaClient } = require("@prisma/client");
   const prisma = new PrismaClient();
-  const year  = parseInt(req.query.year)  || new Date().getFullYear();
-  const month = parseInt(req.query.month) || new Date().getMonth() + 1;
-  const start = new Date(year, month - 1, 1);
-  const end   = new Date(year, month, 0, 23, 59, 59, 999);
+  const year   = parseInt(req.query.year)   || new Date().getFullYear();
+  const month  = parseInt(req.query.month)  || new Date().getMonth() + 1;
+  const roomId = req.query.roomId ? parseInt(req.query.roomId) : undefined;
+  const start  = new Date(year, month - 1, 1);
+  const end    = new Date(year, month, 0, 23, 59, 59, 999);
 
   const bookings = await prisma.roomBooking.findMany({
-    where: { startAt: { gte: start, lte: end }, status: "confirmed" },
+    where: {
+      startAt: { gte: start, lte: end },
+      status: "confirmed",
+      ...(roomId ? { roomId } : {}),
+    },
     include: { room: true },
     orderBy: { startAt: "asc" },
   });
