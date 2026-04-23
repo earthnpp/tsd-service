@@ -2,6 +2,7 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const adminController = require("../controllers/adminController");
 const auditController = require("../controllers/auditController");
+const portalController = require("../controllers/portalController");
 
 const router = express.Router();
 
@@ -103,5 +104,11 @@ router.put("/allowed-users/:id/permissions",    requirePermission("users"), admi
 router.get("/audit-logs",         requirePermission("audit"), auditController.listAuditLogs);
 router.get("/audit-logs/export",  requirePermission("audit"), auditController.exportAuditLogs);
 router.get("/audit-logs/actions", requirePermission("audit"), auditController.getAuditActions);
+
+// Portal Cards (admin manage)
+router.get("/portal-cards",        requirePermission("settings"), portalController.adminListCards);
+router.post("/portal-cards",       requirePermission("settings"), portalController.adminCreateCard);
+router.put("/portal-cards/:id",    requirePermission("settings"), portalController.adminUpdateCard);
+router.delete("/portal-cards/:id", requirePermission("settings"), portalController.adminDeleteCard);
 
 module.exports = router;

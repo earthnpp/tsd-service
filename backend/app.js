@@ -8,6 +8,7 @@ const webhookRouter = require("./routes/webhook");
 const apiRouter     = require("./routes/api");
 const liffRouter    = require("./routes/liff");
 const authRouter    = require("./routes/auth");
+const portalRouter  = require("./routes/portal");
 
 const app = express();
 
@@ -77,6 +78,7 @@ app.use("/uploads", express.static("/app/uploads"));
 
 // ── Routes ───────────────────────────────────────────────────
 app.use("/api/auth", authLimiter, authRouter);
+app.use("/api/portal", portalRouter);
 app.use("/api/liff", liffRouter);  // per-route limiter applied in liff.js
 app.use("/api", adminLimiter, apiRouter);
 

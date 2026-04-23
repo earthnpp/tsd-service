@@ -99,6 +99,12 @@ export const api = {
   deleteAllowedUser: (id) => request(`/allowed-users/${id}`, { method: "DELETE" }),
   updateUserPermissions: (id, permissions) => request(`/allowed-users/${id}/permissions`, { method: "PUT", body: JSON.stringify({ permissions }) }),
 
+  // Portal Cards
+  getPortalCards: () => request("/portal-cards"),
+  createPortalCard: (data) => request("/portal-cards", { method: "POST", body: JSON.stringify(data) }),
+  updatePortalCard: (id, data) => request(`/portal-cards/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deletePortalCard: (id) => request(`/portal-cards/${id}`, { method: "DELETE" }),
+
   // Audit Logs
   getAuditLogs: (params = {}) => {
     const q = new URLSearchParams();

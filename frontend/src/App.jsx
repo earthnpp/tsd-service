@@ -849,6 +849,7 @@ const SETTING_TABS = [
   { key: "category",     label: "📂 หมวดหมู่" },
   { key: "ai",           label: "🤖 AI Assistant" },
   { key: "room",         label: "🏢 ห้องประชุม" },
+  { key: "portal",       label: "🌐 Landing Page" },
 ];
 
 function SettingsPanel({ categories, onReload, assignees, onReloadAssignees }) {
@@ -885,6 +886,7 @@ function SettingsPanel({ categories, onReload, assignees, onReloadAssignees }) {
       {section === "category"     && <CategorySettings categories={categories} onReload={onReload} />}
       {section === "ai"           && <AiSettings />}
       {section === "room"         && <RoomSettings rooms={rooms} onReload={loadRooms} />}
+      {section === "portal"       && <PortalCardSettings />}
     </div>
   );
 }
@@ -1137,6 +1139,137 @@ function NotificationSettings() {
       <button onClick={save} style={{ ...btnStyle(saved ? "#2a9d8f" : "#1a1a2e"), minWidth: 120 }}>
         {saved ? "✅ บันทึกแล้ว" : "บันทึก"}
       </button>
+    </div>
+  );
+}
+
+// ── Portal Card Settings ──────────────────────────────────────
+const CARD_COLORS = ["#1a3a5c", "#e63946", "#457b9d", "#2a9d8f", "#f4a261", "#6d6875", "#264653", "#e9c46a"];
+
+function PortalCardSettings() {
+  const [cards, setCards] = useState([]);
+  const [editing, setEditing] = useState(null);  // card id or "new"
+  const [form, setForm] = useState({ title: "", description: "", icon: "🔗", url: "", color: "#1a3a5c", isActive: true, order: 0 });
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    try { setCards(await api.getPortalCards()); } catch {}
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  function startEdit(card) {
+    setEditing(card.id);
+    setForm({ title: card.title, description: card.description || "", icon: card.icon, url: card.url, color: card.color, isActive: card.isActive, order: card.order });
+  }
+
+  function startNew() {
+    setEditing("new");
+    setForm({ title: "", description: "", icon: "🔗", url: "", color: "#1a3a5c", isActive: true, order: (cards.length + 1) * 10 });
+  }
+
+  async function save() {
+    if (!form.title || !form.url) return;
+    setSaving(true);
+    try {
+      if (editing === "new") {
+        await api.createPortalCard(form);
+      } else {
+        await api.updatePortalCard(editing, form);
+      }
+      setEditing(null);
+      await load();
+    } catch { } finally { setSaving(false); }
+  }
+
+  async function del(id) {
+    if (!confirm("ลบการ์ดนี้?")) return;
+    await api.deletePortalCard(id);
+    await load();
+  }
+
+  async function toggleActive(card) {
+    await api.updatePortalCard(card.id, { ...card, isActive: !card.isActive });
+    await load();
+  }
+
+  const inputStyle = { border: "1px solid #ddd", borderRadius: 8, padding: "8px 12px", fontSize: 13, width: "100%", outline: "none", boxSizing: "border-box" };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <strong style={{ fontSize: 15 }}>🌐 Landing Page — Service Cards</strong>
+        <button onClick={startNew} style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8, background: "#1a3a5c", color: "#fff", border: "none", cursor: "pointer", fontWeight: 600 }}>
+          + เพิ่ม Card
+        </button>
+      </div>
+
+      {/* Card list */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {cards.map(card => (
+          <div key={card.id} style={{ background: "#fff", borderRadius: 12, padding: "14px 16px", boxShadow: "0 1px 4px #0001", display: "flex", alignItems: "center", gap: 12, borderLeft: `4px solid ${card.color}`, opacity: card.isActive ? 1 : 0.5 }}>
+            <span style={{ fontSize: 28 }}>{card.icon}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 600, fontSize: 14, color: "#1a1a2e" }}>{card.title}</div>
+              {card.description && <div style={{ fontSize: 12, color: "#888", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{card.description}</div>}
+              <div style={{ fontSize: 11, color: "#aaa", marginTop: 2 }}>{card.url}</div>
+            </div>
+            <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+              <button onClick={() => toggleActive(card)} style={{ fontSize: 12, padding: "4px 10px", borderRadius: 6, border: "1px solid #ddd", cursor: "pointer", background: card.isActive ? "#e8f5e9" : "#fafafa", color: card.isActive ? "#2a9d8f" : "#aaa" }}>
+                {card.isActive ? "เปิด" : "ปิด"}
+              </button>
+              <button onClick={() => startEdit(card)} style={{ fontSize: 12, padding: "4px 10px", borderRadius: 6, border: "1px solid #ddd", cursor: "pointer", background: "#fff" }}>แก้ไข</button>
+              <button onClick={() => del(card.id)} style={{ fontSize: 12, padding: "4px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "#fde8e8", color: "#e63946" }}>ลบ</button>
+            </div>
+          </div>
+        ))}
+        {cards.length === 0 && <p style={{ color: "#aaa", fontSize: 13, textAlign: "center" }}>ยังไม่มี card</p>}
+      </div>
+
+      {/* Edit / New form */}
+      {editing !== null && (
+        <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 4px #0002", display: "flex", flexDirection: "column", gap: 12 }}>
+          <strong style={{ fontSize: 14 }}>{editing === "new" ? "➕ เพิ่ม Card ใหม่" : "✏️ แก้ไข Card"}</strong>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div>
+              <label style={{ fontSize: 12, color: "#666", display: "block", marginBottom: 4, fontWeight: 600 }}>ชื่อ *</label>
+              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="IT Helpdesk" style={inputStyle} />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, color: "#666", display: "block", marginBottom: 4, fontWeight: 600 }}>Icon (emoji)</label>
+              <input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="🔗" style={{ ...inputStyle, textAlign: "center", fontSize: 20 }} />
+            </div>
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: "#666", display: "block", marginBottom: 4, fontWeight: 600 }}>URL *</label>
+            <input value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} placeholder="https://... หรือ /liff/booking" style={inputStyle} />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: "#666", display: "block", marginBottom: 4, fontWeight: 600 }}>คำอธิบาย</label>
+            <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="อธิบาย service สั้นๆ" style={inputStyle} />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: "#666", display: "block", marginBottom: 4, fontWeight: 600 }}>สี</label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {CARD_COLORS.map(c => (
+                <div key={c} onClick={() => setForm(f => ({ ...f, color: c }))} style={{ width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer", border: form.color === c ? "3px solid #1a1a2e" : "2px solid transparent", boxSizing: "border-box" }} />
+              ))}
+              <input type="color" value={form.color} onChange={e => setForm(f => ({ ...f, color: e.target.value }))} style={{ width: 28, height: 28, border: "none", borderRadius: "50%", cursor: "pointer", padding: 0 }} title="เลือกสีเอง" />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input type="number" value={form.order} onChange={e => setForm(f => ({ ...f, order: Number(e.target.value) }))} style={{ ...inputStyle, width: 80 }} placeholder="ลำดับ" />
+            <label style={{ fontSize: 13, color: "#555", display: "flex", alignItems: "center", gap: 6 }}>
+              <input type="checkbox" checked={form.isActive} onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} /> แสดงใน Portal
+            </label>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={save} disabled={saving || !form.title || !form.url} style={{ padding: "8px 20px", borderRadius: 8, background: "#1a3a5c", color: "#fff", border: "none", cursor: "pointer", fontWeight: 600, fontSize: 13 }}>
+              {saving ? "⏳..." : "💾 บันทึก"}
+            </button>
+            <button onClick={() => setEditing(null)} style={{ padding: "8px 16px", borderRadius: 8, background: "#f4f4f6", color: "#555", border: "none", cursor: "pointer", fontSize: 13 }}>ยกเลิก</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import LiffBooking from "./LiffBooking";
 import LiffCalendar from "./LiffCalendar";
 import LiffAI from "./LiffAI";
 import LoginPage from "./LoginPage";
+import PortalApp from "./PortalApp";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
@@ -16,9 +17,16 @@ const isLiffBooking  = path.startsWith("/liff/booking");
 const isLiffCalendar = path.startsWith("/liff/calendar");
 const isLiffAI       = path.startsWith("/liff/ai");
 const isLiff         = path.startsWith("/liff");
+const isAdmin        = path.startsWith("/admin");
 
 function AdminRoot() {
   const [user, setUser] = useState(() => {
+    // รองรับ token ที่ส่งมาจาก Portal
+    const fromPortal = sessionStorage.getItem("admin_token_from_portal");
+    if (fromPortal) {
+      sessionStorage.removeItem("admin_token_from_portal");
+      localStorage.setItem("admin_token", fromPortal);
+    }
     const token = localStorage.getItem("admin_token");
     const email = localStorage.getItem("admin_email");
     const name  = localStorage.getItem("admin_name");
@@ -45,15 +53,14 @@ function AdminRoot() {
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    {isLiffCalendar ? <LiffCalendar />
-      : isLiffBooking ? <LiffBooking />
-      : isLiffAI ? <LiffAI />
-      : isLiff ? <LiffApp />
-      : (
-        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-          <AdminRoot />
-        </GoogleOAuthProvider>
-      )
-    }
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      {isLiffCalendar ? <LiffCalendar />
+        : isLiffBooking ? <LiffBooking />
+        : isLiffAI ? <LiffAI />
+        : isLiff ? <LiffApp />
+        : isAdmin ? <AdminRoot />
+        : <PortalApp />
+      }
+    </GoogleOAuthProvider>
   </StrictMode>
 );
