@@ -3,6 +3,8 @@ import { GoogleLogin } from "@react-oauth/google";
 
 const STORAGE_KEY = "portal_token";
 const STORAGE_USER = "portal_user";
+const RED = "#CC0000";
+const BLACK = "#111111";
 
 function saveSession(data) {
   localStorage.setItem(STORAGE_KEY, data.token);
@@ -45,15 +47,13 @@ function PortalLogin({ onLogin }) {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #0f2544 0%, #1a3a5c 60%, #1d4e89 100%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "system-ui, sans-serif", padding: 20 }}>
-      <div style={{ marginBottom: 32, textAlign: "center" }}>
-        <img src="/logo.png" alt="The Standard" style={{ height: 60, marginBottom: 16, filter: "brightness(0) invert(1)" }} />
-        <p style={{ margin: 0, color: "#a8c8e8", fontSize: 15 }}>Service Portal</p>
-      </div>
+    <div style={{ minHeight: "100vh", background: "#F5F5F5", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "system-ui, sans-serif", padding: 20 }}>
+      <div style={{ background: "#fff", borderRadius: 4, padding: "40px 36px", boxShadow: "0 4px 24px rgba(0,0,0,0.10)", textAlign: "center", maxWidth: 380, width: "100%" }}>
+        <img src="/logo-brand.png" alt="The Standard" style={{ height: 56, marginBottom: 0, display: "block", margin: "0 auto 0" }} />
+        <div style={{ height: 3, background: RED, width: 48, margin: "14px auto 24px" }} />
 
-      <div style={{ background: "#fff", borderRadius: 20, padding: "36px 32px", boxShadow: "0 8px 40px #0004", textAlign: "center", maxWidth: 360, width: "100%" }}>
-        <h2 style={{ margin: "0 0 6px", color: "#1a1a2e", fontSize: 18, fontWeight: 700 }}>เข้าสู่ระบบ</h2>
-        <p style={{ margin: "0 0 24px", color: "#888", fontSize: 13 }}>ใช้บัญชี @thestandard.co</p>
+        <h2 style={{ margin: "0 0 6px", color: BLACK, fontSize: 17, fontWeight: 700 }}>เข้าสู่ระบบ Service Portal</h2>
+        <p style={{ margin: "0 0 24px", color: "#777", fontSize: 13 }}>ใช้บัญชี @thestandard.co</p>
 
         {loading ? (
           <p style={{ color: "#888", fontSize: 14 }}>⏳ กำลังยืนยัน...</p>
@@ -69,8 +69,9 @@ function PortalLogin({ onLogin }) {
           </div>
         )}
 
-        {error && <p style={{ marginTop: 16, color: "#e63946", fontSize: 13 }}>{error}</p>}
+        {error && <p style={{ marginTop: 16, color: RED, fontSize: 13 }}>{error}</p>}
       </div>
+      <p style={{ marginTop: 20, color: "#aaa", fontSize: 12 }}>© {new Date().getFullYear()} The Standard · IT Department</p>
     </div>
   );
 }
@@ -91,24 +92,24 @@ function ServiceCard({ card }) {
       onClick={handleClick}
       style={{
         background: "#fff",
-        borderRadius: 16,
+        borderRadius: 4,
         padding: "24px 20px",
         cursor: isPlaceholder ? "default" : "pointer",
         transition: "transform 0.15s, box-shadow 0.15s",
-        boxShadow: "0 2px 12px #0001",
+        boxShadow: "0 1px 6px rgba(0,0,0,0.07)",
         display: "flex",
         flexDirection: "column",
         gap: 8,
-        opacity: isPlaceholder ? 0.55 : 1,
+        opacity: isPlaceholder ? 0.5 : 1,
         position: "relative",
         overflow: "hidden",
-        borderTop: `4px solid ${card.color || "#1a3a5c"}`,
+        borderTop: `4px solid ${card.color || RED}`,
       }}
-      onMouseEnter={e => { if (!isPlaceholder) { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 8px 24px #0002"; } }}
-      onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 2px 12px #0001"; }}
+      onMouseEnter={e => { if (!isPlaceholder) { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.12)"; } }}
+      onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 1px 6px rgba(0,0,0,0.07)"; }}
     >
-      <div style={{ fontSize: 36 }}>{card.icon}</div>
-      <div style={{ fontWeight: 700, fontSize: 16, color: "#1a1a2e" }}>{card.title}</div>
+      <div style={{ fontSize: 32 }}>{card.icon}</div>
+      <div style={{ fontWeight: 700, fontSize: 15, color: BLACK }}>{card.title}</div>
       {card.description && (
         <div style={{ fontSize: 13, color: "#666", lineHeight: 1.5 }}>{card.description}</div>
       )}
@@ -124,6 +125,7 @@ export default function PortalApp() {
   const [user, setUser] = useState(() => loadSession());
   const [cards, setCards] = useState([]);
   const [loadingCards, setLoadingCards] = useState(false);
+  const [logoutConfirm, setLogoutConfirm] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -145,10 +147,10 @@ export default function PortalApp() {
     clearSession();
     setUser(null);
     setCards([]);
+    setLogoutConfirm(false);
   }
 
   function goToAdmin() {
-    // ส่ง admin token ผ่าน sessionStorage เพื่อใช้ใน /admin
     const adminToken = user.token;
     sessionStorage.setItem("admin_token_from_portal", adminToken);
     window.location.href = "/admin";
@@ -157,48 +159,55 @@ export default function PortalApp() {
   if (!user) return <PortalLogin onLogin={handleLogin} />;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f0f4f8", fontFamily: "system-ui, sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "#F5F5F5", fontFamily: "system-ui, sans-serif" }}>
       {/* Header */}
-      <header style={{ background: "linear-gradient(90deg, #0f2544 0%, #1a3a5c 100%)", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 60 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <img src="/logo.png" alt="The Standard" style={{ height: 28, filter: "brightness(0) invert(1)" }} />
-          <span style={{ color: "#a8c8e8", fontSize: 13, borderLeft: "1px solid #457b9d", paddingLeft: 12 }}>Service Portal</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <header style={{ background: BLACK, padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 56, position: "sticky", top: 0, zIndex: 100 }}>
+        <img src="/logo-brand.png" alt="The Standard" style={{ height: 24, filter: "brightness(0) invert(1)" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {user.isAdmin && (
-            <button onClick={goToAdmin} style={{ fontSize: 13, padding: "6px 14px", borderRadius: 20, background: "#e63946", color: "#fff", border: "none", cursor: "pointer", fontWeight: 600 }}>
-              ⚙️ Admin Console
+            <button onClick={goToAdmin} style={{ fontSize: 13, padding: "6px 14px", borderRadius: 2, background: RED, color: "#fff", border: "none", cursor: "pointer", fontWeight: 600 }}>
+              ⚙️ Admin
             </button>
           )}
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {user.picture && <img src={user.picture} referrerPolicy="no-referrer" style={{ width: 32, height: 32, borderRadius: "50%", border: "2px solid #457b9d" }} />}
-            <span style={{ color: "#a8c8e8", fontSize: 13 }}>{user.name || user.email}</span>
-          </div>
-          <button onClick={handleLogout} style={{ fontSize: 12, padding: "5px 12px", borderRadius: 20, background: "transparent", color: "#a8c8e8", border: "1px solid #457b9d", cursor: "pointer" }}>
-            ออกจากระบบ
-          </button>
+          {user.picture && <img src={user.picture} referrerPolicy="no-referrer" style={{ width: 28, height: 28, borderRadius: "50%", border: `2px solid ${RED}` }} />}
+          <span style={{ color: "#ccc", fontSize: 13 }}>{user.name?.split(" ")[0] || user.email}</span>
+
+          {logoutConfirm ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#222", borderRadius: 2, padding: "4px 8px" }}>
+              <span style={{ color: "#ccc", fontSize: 12 }}>ออกจากระบบ?</span>
+              <button onClick={handleLogout} style={{ background: RED, color: "#fff", border: "none", borderRadius: 2, padding: "4px 10px", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>ยืนยัน</button>
+              <button onClick={() => setLogoutConfirm(false)} style={{ background: "transparent", color: "#aaa", border: "1px solid #444", borderRadius: 2, padding: "4px 10px", cursor: "pointer", fontSize: 12 }}>ยกเลิก</button>
+            </div>
+          ) : (
+            <button onClick={() => setLogoutConfirm(true)} style={{ fontSize: 12, padding: "5px 12px", borderRadius: 2, background: "transparent", color: "#aaa", border: "1px solid #444", cursor: "pointer" }}>
+              ออกจากระบบ
+            </button>
+          )}
         </div>
       </header>
 
       {/* Hero */}
-      <div style={{ background: "linear-gradient(135deg, #0f2544 0%, #1a3a5c 100%)", padding: "40px 24px 48px", textAlign: "center" }}>
-        <h1 style={{ margin: 0, color: "#fff", fontSize: 26, fontWeight: 800 }}>ยินดีต้อนรับ, {user.name?.split(" ")[0] || "คุณ"} 👋</h1>
-        <p style={{ margin: "8px 0 0", color: "#a8c8e8", fontSize: 15 }}>เลือก Service ที่ต้องการใช้งาน</p>
+      <div style={{ background: BLACK, padding: "48px 24px 52px", textAlign: "center" }}>
+        <h1 style={{ margin: "0 0 8px", color: "#fff", fontSize: 28, fontWeight: 800, letterSpacing: -0.5 }}>
+          สวัสดี, {user.name?.split(" ")[0] || "คุณ"}
+        </h1>
+        <div style={{ height: 3, background: RED, width: 40, margin: "0 auto 12px" }} />
+        <p style={{ margin: 0, color: "#888", fontSize: 15 }}>เลือก Service ที่ต้องการใช้งาน</p>
       </div>
 
       {/* Cards Grid */}
-      <div style={{ maxWidth: 960, margin: "0 auto", padding: "32px 20px" }}>
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: "32px 20px 48px" }}>
         {loadingCards ? (
-          <p style={{ textAlign: "center", color: "#888" }}>⏳ กำลังโหลด...</p>
+          <p style={{ textAlign: "center", color: "#aaa" }}>⏳ กำลังโหลด...</p>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
             {cards.map(card => <ServiceCard key={card.id} card={card} />)}
           </div>
         )}
       </div>
 
       {/* Footer */}
-      <footer style={{ textAlign: "center", padding: "24px", color: "#aaa", fontSize: 12 }}>
+      <footer style={{ textAlign: "center", padding: "20px", color: "#bbb", fontSize: 12, background: BLACK }}>
         © {new Date().getFullYear()} The Standard · IT Department
       </footer>
     </div>

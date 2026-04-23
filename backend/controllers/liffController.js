@@ -1,5 +1,6 @@
 const { PrismaClient } = require("@prisma/client");
 const line = require("@line/bot-sdk");
+const jwt = require("jsonwebtoken");
 const ticketService = require("../services/ticketService");
 const categoryService = require("../services/categoryService");
 const bookingService = require("../services/bookingService");
@@ -138,11 +139,22 @@ async function getBookingsCalendar(req, res) {
 
 async function createBooking(req, res) {
   try {
-    const accessToken = req.headers["x-line-access-token"];
-    if (!accessToken) return res.status(401).json({ error: "No LINE token" });
+    const lineToken   = req.headers["x-line-access-token"];
+    const portalToken = req.headers["x-portal-token"];
 
-    await verifyLineToken(accessToken);
-    const { userId, displayName } = await getLineUserId(accessToken);
+    let userId = null;
+    let displayName = null;
+
+    if (lineToken) {
+      await verifyLineToken(lineToken);
+      ({ userId, displayName } = await getLineUserId(lineToken));
+    } else if (portalToken) {
+      const decoded = jwt.verify(portalToken, process.env.JWT_SECRET);
+      if (!decoded.isPortal) return res.status(401).json({ error: "Invalid portal token" });
+      displayName = decoded.name;
+    } else {
+      return res.status(401).json({ error: "No auth token" });
+    }
 
     const { roomId, startDate, startTime, endDate, endTime, title, notes, name, email, department } = req.body;
     if (!roomId || !startDate || !startTime || !endDate || !endTime || !title?.trim() || !name?.trim() || !email?.trim() || !department?.trim()) {
@@ -168,10 +180,9 @@ async function createBooking(req, res) {
       endAt,
     });
 
-    client.pushMessage({
-      to: userId,
-      messages: [bookingSuccess(booking)],
-    }).catch(() => {});
+    if (userId) {
+      client.pushMessage({ to: userId, messages: [bookingSuccess(booking)] }).catch(() => {});
+    }
 
     // Notify admin group
     notifyService.notifyNewBooking(booking).catch(() => {});

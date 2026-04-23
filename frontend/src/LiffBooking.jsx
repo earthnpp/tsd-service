@@ -22,6 +22,13 @@ function toThaiDate(isoStr) {
 
 export default function LiffBooking() {
   const today = toISO(new Date());
+
+  // On desktop (non-LINE browser) with an active portal session → skip LIFF
+  const isLineApp = /Line\//i.test(navigator.userAgent);
+  const _portalToken = localStorage.getItem("portal_token");
+  const _portalUser = (() => { try { return JSON.parse(localStorage.getItem("portal_user") || "null"); } catch { return null; } })();
+  const skipLiff = !isLineApp && !!_portalToken && !!_portalUser;
+
   const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState(null);
   const [rooms, setRooms] = useState([]);
@@ -59,6 +66,16 @@ export default function LiffBooking() {
   }, []);
 
   useEffect(() => {
+    if (skipLiff) {
+      setName(_portalUser.name || "");
+      setEmail(_portalUser.email || "");
+      fetch("/api/liff/rooms")
+        .then(r => r.json())
+        .then(data => { setRooms(data); if (data.length) setRoomId(String(data[0].id)); })
+        .catch(() => {})
+        .finally(() => setReady(true));
+      return;
+    }
     liff.init({ liffId: LIFF_ID }).then(async () => {
       if (!liff.isLoggedIn()) { liff.login(); return; }
       const p = await liff.getProfile();
@@ -186,10 +203,13 @@ export default function LiffBooking() {
     if (endAt <= startAt) { setError("เวลาสิ้นสุดต้องหลังจากเวลาเริ่มต้น"); return; }
     setSubmitting(true); setError("");
     try {
-      const token = liff.getAccessToken();
+      const headers = { "Content-Type": "application/json" };
+      if (skipLiff) headers["x-portal-token"] = _portalToken;
+      else headers["x-line-access-token"] = liff.getAccessToken();
+
       const res = await fetch("/api/liff/booking", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-line-access-token": token },
+        headers,
         body: JSON.stringify({
           roomId, startDate, startTime, endDate, endTime,
           title: title.trim(), notes: notes.trim() || undefined,
@@ -202,7 +222,7 @@ export default function LiffBooking() {
       }
       const data = await res.json();
       setBookingNo(data.bookingNo); setDone(true);
-      setTimeout(() => { try { liff.closeWindow(); } catch {} }, 3000);
+      if (!skipLiff) setTimeout(() => { try { liff.closeWindow(); } catch {} }, 3000);
     } catch (err) { setError(err.message); }
     finally { setSubmitting(false); }
   }
@@ -213,7 +233,10 @@ export default function LiffBooking() {
       <div style={{ fontSize: 64 }}>✅</div>
       <h2 style={{ color: "#1a1a2e", margin: "12px 0 4px" }}>จองห้องเรียบร้อยครับ</h2>
       <p style={{ color: "#333" }}>หมายเลข: <strong>{bookingNo}</strong></p>
-      <p style={{ color: "#888", fontSize: 13 }}>กำลังปิดหน้าต่าง...</p>
+      {skipLiff
+        ? <a href="/" style={{ color: "#457b9d", fontSize: 14 }}>← กลับ Portal</a>
+        : <p style={{ color: "#888", fontSize: 13 }}>กำลังปิดหน้าต่าง...</p>
+      }
     </div>
   );
 
@@ -225,10 +248,13 @@ export default function LiffBooking() {
       <div style={{ fontFamily: "'Noto Sans Thai', sans-serif", minHeight: "100vh", background: "#f0f2ff", paddingBottom: 48 }}>
         <div style={s.header}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {profile?.pictureUrl && <img src={profile.pictureUrl} alt="" style={{ width: 28, height: 28, borderRadius: "50%", border: "1px solid #aaaacc" }} />}
+            {(profile?.pictureUrl || _portalUser?.picture) && <img src={profile?.pictureUrl || _portalUser?.picture} alt="" referrerPolicy="no-referrer" style={{ width: 28, height: 28, borderRadius: "50%", border: "1px solid #aaaacc" }} />}
             <span style={{ fontWeight: 700, fontSize: 16, color: "#fff" }}>🗓️ จองห้องประชุม</span>
           </div>
-          <a href="/liff/calendar" style={s.calBtn}>📅 ปฏิทินทั้งหมด</a>
+          <div style={{ display: "flex", gap: 8 }}>
+            {skipLiff && <a href="/" style={{ ...s.calBtn, color: "#ffcccc" }}>← Portal</a>}
+            <a href="/liff/calendar" style={s.calBtn}>📅 ปฏิทินทั้งหมด</a>
+          </div>
         </div>
 
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 24px 48px" }}>

@@ -44,7 +44,7 @@ function AdminRoot() {
     localStorage.removeItem("admin_email");
     localStorage.removeItem("admin_name");
     localStorage.removeItem("admin_permissions");
-    setUser(null);
+    window.location.href = "/";
   }
 
   if (!user) return <LoginPage onLogin={handleLogin} />;
