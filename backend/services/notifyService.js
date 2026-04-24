@@ -190,4 +190,41 @@ async function pushDirect(groupId, type) {
   await client.pushMessage({ to: groupId, messages });
 }
 
-module.exports = { notifyNewTicket, notifyNewBooking, pushDirect };
+async function notifyBookingCancelled(booking) {
+  const adminUrl = await getConfigValue("admin_url");
+  const url = adminUrl ? `${adminUrl}/admin#bookings` : null;
+
+  await pushTo("notify_booking_group_id", [{
+    type: "flex",
+    altText: `❌ ยกเลิกการจอง: ${booking.bookingNo}`,
+    contents: {
+      type: "bubble",
+      styles: {
+        header: { backgroundColor: "#fff0f0" },
+        body:   { backgroundColor: "#f4f4f6" },
+        ...(url ? { footer: { backgroundColor: "#f9f9f9" } } : {}),
+      },
+      header: {
+        type: "box", layout: "vertical", paddingAll: "14px",
+        contents: [
+          { type: "text", text: "❌ การจองห้องถูกยกเลิก", weight: "bold", size: "md", color: "#e63946" },
+        ],
+      },
+      body: {
+        type: "box", layout: "vertical", spacing: "sm", paddingAll: "16px",
+        contents: [
+          row("📋 เลขที่",  booking.bookingNo),
+          row("🏢 ห้อง",   booking.room?.name || "-"),
+          row("📝 หัวข้อ", booking.title || "-"),
+          row("👤 ผู้จอง", booking.displayName || "-"),
+          row("🏢 แผนก",  booking.department || "-"),
+          row("❌ ยกเลิกโดย", booking.cancelledBy || "Admin"),
+          row("⏰ เวลา",   fmtDateTime(booking.cancelledAt || new Date())),
+        ],
+      },
+      ...(url ? { footer: footer(url) } : {}),
+    },
+  }]);
+}
+
+module.exports = { notifyNewTicket, notifyNewBooking, notifyBookingCancelled, pushDirect };

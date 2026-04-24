@@ -46,11 +46,14 @@ export default function LiffApp() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
+  const [myTickets, setMyTickets] = useState([]);
 
   useEffect(() => {
     if (skipLiff) {
       setForm(f => ({ ...f, name: _portalUser.name || "", email: _portalUser.email || "" }));
       fetch("/api/liff/categories").then(r => r.json()).then(setCategories).catch(() => {}).finally(() => setReady(true));
+      fetch("/api/liff/my-tickets", { headers: { "x-portal-token": _portalToken } })
+        .then(r => r.json()).then(data => { if (Array.isArray(data)) setMyTickets(data); }).catch(() => {});
       return;
     }
     liff.init({ liffId: LIFF_ID })
@@ -269,9 +272,46 @@ export default function LiffApp() {
         <button onClick={handleSubmit} disabled={submitting} style={{ ...s.btn, opacity: submitting ? 0.7 : 1 }}>
           {submitting ? "⏳ กำลังส่ง..." : "✅ ยืนยันการแจ้งปัญหา"}
         </button>
+
+        {/* ── ประวัติการแจ้งซ่อม (portal desktop เท่านั้น) ── */}
+        {skipLiff && (
+          <div style={{ marginTop: 28 }}>
+            <div style={{ fontWeight: 700, fontSize: 15, color: "#1a1a2e", marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid #e8eaed" }}>
+              📋 ประวัติการแจ้งซ่อมของคุณ
+            </div>
+            {myTickets.length === 0 ? (
+              <p style={{ color: "#aaa", fontSize: 13, textAlign: "center", padding: "16px 0" }}>ยังไม่มีประวัติการแจ้งซ่อม</p>
+            ) : myTickets.map(t => (
+              <div key={t.id} style={{ background: "#fff", border: "1px solid #e8eaed", borderRadius: 10, padding: "12px 14px", marginBottom: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                  <span style={{ fontWeight: 700, fontSize: 13, color: "#457b9d" }}>{t.ticketNo}</span>
+                  <span style={{ ...ticketStatusStyle(t.status), borderRadius: 999, padding: "2px 10px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>
+                    {ticketStatusLabel(t.status)}
+                  </span>
+                </div>
+                <div style={{ fontSize: 14, color: "#1a1a2e", fontWeight: 500, marginBottom: 2 }}>{t.title}</div>
+                <div style={{ fontSize: 12, color: "#888" }}>{t.category} › {t.subcategory}</div>
+                <div style={{ fontSize: 11, color: "#bbb", marginTop: 4 }}>
+                  {new Date(t.createdAt).toLocaleString("th-TH", { timeZone: "Asia/Bangkok", dateStyle: "short", timeStyle: "short" })}
+                  {t.assignee && ` · ผู้รับผิดชอบ: ${t.assignee}`}
+                </div>
+                {t.resolution && <div style={{ fontSize: 12, color: "#2a9d8f", marginTop: 4, background: "#e8f8f5", borderRadius: 6, padding: "4px 8px" }}>✅ {t.resolution}</div>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
+function ticketStatusLabel(s) {
+  return s === "pending" ? "รอดำเนินการ" : s === "in_progress" ? "กำลังดำเนินการ" : "เสร็จสิ้น";
+}
+function ticketStatusStyle(s) {
+  if (s === "pending")    return { background: "#fff4e6", color: "#f4a261" };
+  if (s === "in_progress") return { background: "#ebf4ff", color: "#457b9d" };
+  return { background: "#e8f8f5", color: "#2a9d8f" };
 }
 
 function Field({ label, required, children }) {

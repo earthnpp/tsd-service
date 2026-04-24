@@ -249,4 +249,41 @@ async function aiChat(req, res) {
   }
 }
 
-module.exports = { getCategories, createTicket, getRooms, getRoomSlots, createBooking, getBookingsCalendar, aiChat };
+async function getMyTickets(req, res) {
+  try {
+    const portalToken = req.headers["x-portal-token"];
+    if (!portalToken) return res.status(401).json({ error: "Unauthorized" });
+    const decoded = jwt.verify(portalToken, process.env.JWT_SECRET);
+    if (!decoded.isPortal) return res.status(401).json({ error: "Invalid portal token" });
+    const email = decoded.email.toLowerCase();
+    const tickets = await prisma.ticket.findMany({
+      where: { email },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+    res.json(tickets);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+async function getMyBookings(req, res) {
+  try {
+    const portalToken = req.headers["x-portal-token"];
+    if (!portalToken) return res.status(401).json({ error: "Unauthorized" });
+    const decoded = jwt.verify(portalToken, process.env.JWT_SECRET);
+    if (!decoded.isPortal) return res.status(401).json({ error: "Invalid portal token" });
+    const email = decoded.email.toLowerCase();
+    const bookings = await prisma.roomBooking.findMany({
+      where: { email },
+      include: { room: true },
+      orderBy: { startAt: "desc" },
+      take: 20,
+    });
+    res.json(bookings);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+module.exports = { getCategories, createTicket, getRooms, getRoomSlots, createBooking, getBookingsCalendar, aiChat, getMyTickets, getMyBookings };

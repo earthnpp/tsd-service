@@ -3,6 +3,7 @@ const categoryService = require("../services/categoryService");
 const bookingService = require("../services/bookingService");
 const calendarService = require("../services/calendarService");
 const audit = require("../services/auditService");
+const notify = require("../services/notifyService");
 const { assignedCard, completedWithRatingCard, pendingCard, bookingCancelledCard } = require("../views/flex/statusMessages");
 
 const { PrismaClient } = require("@prisma/client");
@@ -277,7 +278,12 @@ async function listRooms(req, res) {
 async function cancelBookingAdmin(req, res) {
   try {
     const booking = await bookingService.adminCancelBooking(req.params.id, req.adminUser?.email);
-    await notifyUser(booking.lineUserId, [bookingCancelledCard(booking)]);
+    // แจ้งเตือน LINE user ที่จอง (เฉพาะ LINE user ไม่ใช่ portal)
+    if (booking.lineUserId && !booking.lineUserId.startsWith("portal:")) {
+      notifyUser(booking.lineUserId, [bookingCancelledCard(booking)]).catch(() => {});
+    }
+    // แจ้งเตือนกลุ่ม LINE admin
+    notify.notifyBookingCancelled(booking).catch(() => {});
     audit.log({ ...audit.fromReq(req), action: "BOOKING_CANCELLED", resourceType: "booking", resourceId: booking.id, detail: `${booking.bookingNo} ${booking.room?.name || ""}: ${booking.title}` });
     res.json(booking);
   } catch (err) {

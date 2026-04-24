@@ -60,6 +60,7 @@ export default function LiffBooking() {
   const [desktopCalYear, setDesktopCalYear] = useState(new Date().getFullYear());
   const [desktopCalMonth, setDesktopCalMonth] = useState(new Date().getMonth());
   const [calBookings, setCalBookings] = useState([]);
+  const [myBookings, setMyBookings] = useState([]);
 
   useEffect(() => {
     const handler = () => setIsDesktop(window.innerWidth >= 768);
@@ -76,6 +77,8 @@ export default function LiffBooking() {
         .then(data => { setRooms(data); if (data.length) setRoomId(String(data[0].id)); })
         .catch(() => {})
         .finally(() => setReady(true));
+      fetch("/api/liff/my-bookings", { headers: { "x-portal-token": _portalToken } })
+        .then(r => r.json()).then(data => { if (Array.isArray(data)) setMyBookings(data); }).catch(() => {});
       return;
     }
     liff.init({ liffId: LIFF_ID }).then(async () => {
@@ -514,6 +517,42 @@ export default function LiffBooking() {
               {submitting ? "⏳ กำลังจอง..." : "✅ ยืนยันการจอง"}
             </button>
           </div>
+
+          {/* ── ประวัติการจองของคุณ ── */}
+          {skipLiff && myBookings.length > 0 && (
+            <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 2px 12px #0001", padding: "24px", marginTop: 20 }}>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "#1a1a2e", marginBottom: 16, paddingBottom: 12, borderBottom: "2px solid #e8eaed" }}>
+                🗓️ ประวัติการจองของคุณ
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {myBookings.map(b => {
+                  const isCancelled = b.status === "cancelled";
+                  const start = new Date(b.startAt).toLocaleString("th-TH", { timeZone: "Asia/Bangkok", dateStyle: "short", timeStyle: "short" });
+                  const end   = new Date(b.endAt).toLocaleTimeString("th-TH", { timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit" });
+                  return (
+                    <div key={b.id} style={{ padding: "12px 16px", borderRadius: 10, background: isCancelled ? "#fff5f5" : "#f8f9ff", border: `1px solid ${isCancelled ? "#ffcccc" : "#e8eaed"}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                          <span style={{ fontWeight: 700, fontSize: 13, color: "#457b9d" }}>{b.bookingNo}</span>
+                          <span style={{ fontSize: 11, color: "#888" }}>🏢 {b.room?.name || "-"}</span>
+                        </div>
+                        <div style={{ fontWeight: 600, fontSize: 14, color: "#1a1a2e", marginBottom: 2 }}>{b.title}</div>
+                        <div style={{ fontSize: 12, color: "#666" }}>⏰ {start} – {end} น.</div>
+                        {isCancelled && b.cancelledBy && (
+                          <div style={{ fontSize: 11, color: "#e63946", marginTop: 4 }}>ยกเลิกโดย {b.cancelledBy}</div>
+                        )}
+                      </div>
+                      <span style={{ borderRadius: 999, padding: "3px 12px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
+                        background: isCancelled ? "#fff0f0" : "#e8f8f5",
+                        color: isCancelled ? "#e63946" : "#2a9d8f" }}>
+                        {isCancelled ? "ยกเลิกแล้ว" : "ยืนยันแล้ว"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );

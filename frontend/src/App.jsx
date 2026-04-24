@@ -1727,6 +1727,8 @@ function BookingsPanel() {
   const [rooms, setRooms] = useState([]);
   const [selectedDay, setSelectedDay] = useState(now.getDate());
   const [popup, setPopup] = useState(null); // { booking, x, y }
+  const [cancelConfirm, setCancelConfirm] = useState(null); // { id, bookingNo, title, room }
+  const [cancelSuccess, setCancelSuccess] = useState(null); // { bookingNo }
 
   const loadRooms = useCallback(async () => { try { setRooms(await api.getRooms()); } catch {} }, []);
   const loadMonth = useCallback(async () => {
@@ -1741,11 +1743,19 @@ function BookingsPanel() {
     return () => document.removeEventListener("mousedown", close);
   }, []);
 
-  async function handleCancel(id) {
-    if (!confirm("ยืนยันการยกเลิกจองนี้?")) return;
-    await api.cancelBooking(id);
+  function handleCancel(id) {
+    const b = monthBookings.find(x => x.id === id);
+    setCancelConfirm({ id, bookingNo: b?.bookingNo, title: b?.title, room: b?.room?.name });
     setPopup(null);
-    loadMonth();
+  }
+
+  async function confirmCancel() {
+    try {
+      await api.cancelBooking(cancelConfirm.id);
+      setCancelSuccess({ bookingNo: cancelConfirm.bookingNo });
+      loadMonth();
+    } catch {}
+    setCancelConfirm(null);
   }
 
   function openPopup(e, booking) {
@@ -1809,8 +1819,50 @@ function BookingsPanel() {
   const selBookings = selectedDay ? (byDay[selectedDay] || []) : [];
   const selCancelledBookings = selectedDay ? (cancelledByDay[selectedDay] || []) : [];
 
+  const overlayStyle = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 };
+  const modalStyle  = { background: "#fff", borderRadius: 20, padding: "40px 36px", textAlign: "center", maxWidth: 380, width: "90%", boxShadow: "0 12px 48px rgba(0,0,0,0.25)" };
+
   return (
     <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 4px #0001", overflow: "hidden" }}>
+
+      {/* ── Modal: ยืนยันยกเลิก ── */}
+      {cancelConfirm && (
+        <div style={overlayStyle} onClick={() => setCancelConfirm(null)}>
+          <div style={modalStyle} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 56, marginBottom: 4 }}>🗑️</div>
+            <h3 style={{ margin: "8px 0 6px", fontSize: 18, color: "#1a1a2e" }}>ยืนยันการยกเลิกจอง?</h3>
+            <p style={{ margin: "0 0 4px", color: "#555", fontSize: 14 }}><strong>{cancelConfirm.bookingNo}</strong></p>
+            <p style={{ margin: "0 0 4px", color: "#555", fontSize: 13 }}>{cancelConfirm.title}</p>
+            {cancelConfirm.room && <p style={{ margin: "0 0 20px", color: "#888", fontSize: 12 }}>🏢 {cancelConfirm.room}</p>}
+            <p style={{ margin: "0 0 24px", color: "#e63946", fontSize: 13 }}>การดำเนินการนี้ไม่สามารถย้อนกลับได้</p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button onClick={() => setCancelConfirm(null)}
+                style={{ padding: "10px 28px", borderRadius: 10, border: "1px solid #ddd", background: "#f4f4f6", color: "#555", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                ไม่ยกเลิก
+              </button>
+              <button onClick={confirmCancel}
+                style={{ padding: "10px 28px", borderRadius: 10, border: "none", background: "#e63946", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                ยืนยันยกเลิก
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: ยกเลิกสำเร็จ ── */}
+      {cancelSuccess && (
+        <div style={overlayStyle} onClick={() => setCancelSuccess(null)}>
+          <div style={modalStyle} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 64, marginBottom: 4 }}>✅</div>
+            <h3 style={{ margin: "8px 0 8px", fontSize: 20, color: "#1a1a2e" }}>ยกเลิกการจองเรียบร้อยแล้ว</h3>
+            <p style={{ margin: "0 0 24px", color: "#888", fontSize: 14 }}>หมายเลข <strong style={{ color: "#457b9d" }}>{cancelSuccess.bookingNo}</strong> ถูกยกเลิกแล้ว</p>
+            <button onClick={() => setCancelSuccess(null)}
+              style={{ padding: "12px 48px", borderRadius: 12, border: "none", background: "#1a1a2e", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+              ตกลง
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Header ── */}
       <div style={{ padding: "10px 16px 8px", borderBottom: "1px solid #e8eaed", display: "flex", alignItems: "center", gap: 8 }}>
