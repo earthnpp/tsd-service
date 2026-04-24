@@ -910,6 +910,7 @@ function AiSettings() {
   const MODELS = {
     anthropic: ["claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-opus-4-7"],
     openai:    ["gpt-4o-mini", "gpt-4o", "o1-mini", "o1"],
+    gemini:    ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-1.5-pro"],
   };
 
   const knownModels = MODELS[form.ai_provider] || [];
@@ -944,6 +945,7 @@ function AiSettings() {
             style={{ ...inputStyle, fontSize: 13, width: "100%" }}>
             <option value="anthropic">Anthropic (Claude)</option>
             <option value="openai">OpenAI (GPT)</option>
+            <option value="gemini">Google (Gemini)</option>
           </select>
         </div>
         <div>
