@@ -51,6 +51,8 @@ export default function LiffBooking() {
   const [done, setDone] = useState(false);
   const [bookingNo, setBookingNo] = useState("");
   const [error, setError] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [dayPopup, setDayPopup] = useState(null); // null | { iso, bookings }
   const titleRef = useRef(null);
 
   // Desktop-only state
@@ -162,6 +164,8 @@ export default function LiffBooking() {
 
   function pickDesktopDay(day) {
     const iso = `${desktopCalYear}-${String(desktopCalMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    const dayBks = getBookingsForDay(iso);
+    if (dayBks.length > 0) setDayPopup({ iso, bookings: dayBks });
     if (iso < today) return;
     setStartDate(iso);
     setEndDate(iso);
@@ -221,10 +225,23 @@ export default function LiffBooking() {
         throw new Error(b.error || "จองไม่สำเร็จ");
       }
       const data = await res.json();
-      setBookingNo(data.bookingNo); setDone(true);
-      if (!skipLiff) setTimeout(() => { try { liff.closeWindow(); } catch {} }, 3000);
+      setBookingNo(data.bookingNo);
+      if (isDesktop) {
+        setShowSuccessModal(true);
+        // รีเฟรชปฏิทินหลังจองสำเร็จ
+        fetch(`/api/liff/bookings-calendar?year=${desktopCalYear}&month=${desktopCalMonth + 1}`)
+          .then(r => r.json()).then(d => setCalBookings(d.bookings || [])).catch(() => {});
+      } else {
+        setDone(true);
+        if (!skipLiff) setTimeout(() => { try { liff.closeWindow(); } catch {} }, 3000);
+      }
     } catch (err) { setError(err.message); }
     finally { setSubmitting(false); }
+  }
+
+  function closeSuccessModal() {
+    setShowSuccessModal(false);
+    setTitle(""); setStartTime(""); setEndTime(""); setNotes(""); setError("");
   }
 
   if (!ready) return <div style={s.center}><div style={s.spinner}/></div>;
@@ -246,6 +263,55 @@ export default function LiffBooking() {
   if (isDesktop) {
     return (
       <div style={{ fontFamily: "'Noto Sans Thai', sans-serif", minHeight: "100vh", background: "#f0f2ff", paddingBottom: 48 }}>
+
+        {/* ─── Sweet Alert: จองสำเร็จ ─── */}
+        {showSuccessModal && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}
+            onClick={closeSuccessModal}>
+            <div style={{ background: "#fff", borderRadius: 20, padding: "48px 40px", textAlign: "center", maxWidth: 380, width: "90%", boxShadow: "0 12px 48px rgba(0,0,0,0.25)" }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ fontSize: 72, marginBottom: 4, lineHeight: 1 }}>✅</div>
+              <h2 style={{ color: "#1a1a2e", margin: "12px 0 8px", fontSize: 22, fontWeight: 800 }}>จองห้องเรียบร้อยแล้วครับ</h2>
+              <p style={{ color: "#666", margin: "0 0 6px", fontSize: 14 }}>หมายเลขการจอง</p>
+              <p style={{ color: "#457b9d", margin: "0 0 28px", fontSize: 22, fontWeight: 700 }}>{bookingNo}</p>
+              <button onClick={closeSuccessModal}
+                style={{ padding: "12px 48px", background: "#1a1a2e", color: "#fff", border: "none", borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: "pointer" }}>
+                ตกลง
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ─── Day Popup: รายการจองในวันที่เลือก ─── */}
+        {dayPopup && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}
+            onClick={() => setDayPopup(null)}>
+            <div style={{ background: "#fff", borderRadius: 16, padding: "24px", maxWidth: 460, width: "90%", maxHeight: "70vh", overflowY: "auto", boxShadow: "0 8px 40px rgba(0,0,0,0.2)" }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <div style={{ fontWeight: 700, fontSize: 16, color: "#1a1a2e" }}>
+                  📅 {fmtDate(dayPopup.iso)} — รายการจอง
+                </div>
+                <button onClick={() => setDayPopup(null)}
+                  style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#aaa", lineHeight: 1, padding: 0 }}>✕</button>
+              </div>
+              {dayPopup.bookings.length === 0 ? (
+                <p style={{ color: "#2a9d8f", textAlign: "center", padding: "24px 0", fontSize: 15 }}>✅ ไม่มีการจองในวันนี้</p>
+              ) : dayPopup.bookings.map((b, i) => (
+                <div key={i} style={{ padding: "12px 14px", borderRadius: 10, background: "#f8f9ff", marginBottom: 8, borderLeft: `4px solid ${roomColorMap[String(b.roomId)] || "#457b9d"}` }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "#1a1a2e", marginBottom: 4 }}>{b.title}</div>
+                  <div style={{ fontSize: 13, color: "#555" }}>⏰ {fmtHour(b.startAt)} – {fmtHour(b.endAt)} น.</div>
+                  <div style={{ fontSize: 12, color: "#888", marginTop: 3, display: "flex", gap: 10 }}>
+                    <span>🏢 {b.room?.name || "-"}</span>
+                    <span>👤 {b.displayName || "-"}</span>
+                    {b.department && <span>· {b.department}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div style={s.header}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {(profile?.pictureUrl || _portalUser?.picture) && <img src={profile?.pictureUrl || _portalUser?.picture} alt="" referrerPolicy="no-referrer" style={{ width: 28, height: 28, borderRadius: "50%", border: "1px solid #aaaacc" }} />}
@@ -292,14 +358,14 @@ export default function LiffBooking() {
                 const isToday = iso === todayISO;
                 const dayBookings = getBookingsForDay(iso);
                 return (
-                  <div key={i} onClick={() => !isPast && pickDesktopDay(day)}
+                  <div key={i} onClick={() => pickDesktopDay(day)}
                     style={{
                       minHeight: 80,
                       padding: "6px",
                       borderRadius: 8,
                       border: isSelected ? "2px solid #457b9d" : isToday ? "1px solid #457b9d" : "1px solid #f0f0f0",
                       background: isSelected ? "#ebf4ff" : isToday ? "#f5f9ff" : isPast ? "#fafafa" : "#fff",
-                      cursor: isPast ? "default" : "pointer",
+                      cursor: (!isPast || dayBookings.length > 0) ? "pointer" : "default",
                       transition: "background 0.1s",
                     }}>
                     <div style={{
