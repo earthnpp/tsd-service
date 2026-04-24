@@ -59,6 +59,7 @@ async function createTicket(req, res) {
     } else if (portalToken) {
       const decoded = jwt.verify(portalToken, process.env.JWT_SECRET);
       if (!decoded.isPortal) return res.status(401).json({ error: "Invalid portal token" });
+      userId = `portal:${decoded.email}`;
       displayName = decoded.name;
     } else {
       return res.status(401).json({ error: "No auth token" });
@@ -92,7 +93,8 @@ async function createTicket(req, res) {
       imageUrl,
     });
 
-    if (userId) {
+    // ส่ง LINE notification เฉพาะ user ที่มาจาก LINE (ไม่ใช่ portal)
+    if (userId && !userId.startsWith("portal:")) {
       client.pushMessage({ to: userId, messages: [ticketConfirm(ticket)] }).catch(() => {});
     }
 
@@ -158,6 +160,7 @@ async function createBooking(req, res) {
     } else if (portalToken) {
       const decoded = jwt.verify(portalToken, process.env.JWT_SECRET);
       if (!decoded.isPortal) return res.status(401).json({ error: "Invalid portal token" });
+      userId = `portal:${decoded.email}`;
       displayName = decoded.name;
     } else {
       return res.status(401).json({ error: "No auth token" });
@@ -187,7 +190,7 @@ async function createBooking(req, res) {
       endAt,
     });
 
-    if (userId) {
+    if (userId && !userId.startsWith("portal:")) {
       client.pushMessage({ to: userId, messages: [bookingSuccess(booking)] }).catch(() => {});
     }
 

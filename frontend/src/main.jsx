@@ -44,6 +44,8 @@ function AdminRoot() {
     localStorage.removeItem("admin_email");
     localStorage.removeItem("admin_name");
     localStorage.removeItem("admin_permissions");
+    localStorage.removeItem("portal_token");
+    localStorage.removeItem("portal_user");
     window.location.href = "/";
   }
 

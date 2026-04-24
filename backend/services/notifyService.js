@@ -49,7 +49,7 @@ function footer(url) {
 
 async function notifyNewTicket(ticket) {
   const adminUrl = await getConfigValue("admin_url");
-  const url = adminUrl ? `${adminUrl}/#tickets` : null;
+  const url = adminUrl ? `${adminUrl}/admin#tickets` : null;
 
   await pushTo("notify_ticket_group_id", [{
     type: "flex",
@@ -86,7 +86,7 @@ async function notifyNewTicket(ticket) {
 
 async function notifyNewBooking(booking) {
   const adminUrl = await getConfigValue("admin_url");
-  const url = adminUrl ? `${adminUrl}/#bookings` : null;
+  const url = adminUrl ? `${adminUrl}/admin#bookings` : null;
 
   const start = fmtDateTime(booking.startAt);
   const end   = new Date(booking.endAt).toLocaleTimeString("th-TH", {
@@ -139,7 +139,7 @@ function row(label, value) {
 async function pushDirect(groupId, type) {
   if (!process.env.LINE_CHANNEL_ACCESS_TOKEN) throw new Error("LINE_CHANNEL_ACCESS_TOKEN ไม่ได้ตั้งค่า");
   const adminUrl = await getConfigValue("admin_url");
-  const url = adminUrl ? `${adminUrl}/#${type === "booking" ? "bookings" : "tickets"}` : null;
+  const url = adminUrl ? `${adminUrl}/admin#${type === "booking" ? "bookings" : "tickets"}` : null;
 
   const messages = type === "booking" ? [{
     type: "flex",

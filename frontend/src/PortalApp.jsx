@@ -19,6 +19,10 @@ function loadSession() {
 function clearSession() {
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(STORAGE_USER);
+  localStorage.removeItem("admin_token");
+  localStorage.removeItem("admin_email");
+  localStorage.removeItem("admin_name");
+  localStorage.removeItem("admin_permissions");
 }
 
 // ── Login Page ────────────────────────────────────────────────
