@@ -1,6 +1,7 @@
 const { OAuth2Client } = require("google-auth-library");
 const jwt = require("jsonwebtoken");
 const { PrismaClient } = require("@prisma/client");
+const audit = require("../services/auditService");
 
 const prisma = new PrismaClient();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -38,6 +39,15 @@ async function portalLogin(req, res) {
       process.env.JWT_SECRET,
       { expiresIn: "8h" }
     );
+
+    audit.log({
+      actor: email,
+      actorType: "portal",
+      action: "PORTAL_LOGIN",
+      resourceType: "user",
+      detail: `${name} (${email})${isAdmin ? " [admin]" : ""}`,
+      ipAddress: req.ip || req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || null,
+    });
 
     res.json({ token, email, name, picture, isAdmin, adminPermissions });
   } catch (err) {

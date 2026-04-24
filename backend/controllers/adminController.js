@@ -156,6 +156,7 @@ async function deleteCategory(req, res) {
 async function createSubcategory(req, res) {
   try {
     const sub = await categoryService.createSubcategory(req.params.id, req.body.name);
+    audit.log({ ...audit.fromReq(req), action: "SUBCATEGORY_CREATED", resourceType: "subcategory", resourceId: sub.id, detail: sub.name });
     res.json(sub);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -165,6 +166,7 @@ async function createSubcategory(req, res) {
 async function updateSubcategory(req, res) {
   try {
     const sub = await categoryService.updateSubcategory(req.params.id, req.body);
+    audit.log({ ...audit.fromReq(req), action: "SUBCATEGORY_UPDATED", resourceType: "subcategory", resourceId: sub.id, detail: sub.name });
     res.json(sub);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -174,6 +176,7 @@ async function updateSubcategory(req, res) {
 async function deleteSubcategory(req, res) {
   try {
     await categoryService.deleteSubcategory(req.params.id);
+    audit.log({ ...audit.fromReq(req), action: "SUBCATEGORY_DELETED", resourceType: "subcategory", resourceId: req.params.id });
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -295,6 +298,7 @@ async function updateRoomCalendar(req, res) {
   try {
     const { calendarId } = req.body;
     const room = await bookingService.updateRoomCalendar(req.params.id, calendarId);
+    audit.log({ ...audit.fromReq(req), action: "ROOM_CALENDAR_UPDATED", resourceType: "room", resourceId: room.id, detail: `${room.name}: ${calendarId}` });
     res.json(room);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -340,6 +344,7 @@ async function createRoomCalendar(req, res) {
     if (!room) return res.status(404).json({ error: "Room not found" });
     const calendarId = await calendarService.createOwnCalendar(`[TSD] ${room.name}`);
     const updated = await bookingService.updateRoomCalendar(req.params.id, calendarId);
+    audit.log({ ...audit.fromReq(req), action: "ROOM_CALENDAR_CREATED", resourceType: "room", resourceId: updated.id, detail: `${updated.name}: ${calendarId}` });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });

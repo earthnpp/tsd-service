@@ -33,7 +33,7 @@ export default function LoginPage({ onLogin }) {
         background: "#fff", borderRadius: 16, padding: "48px 40px",
         boxShadow: "0 4px 24px #0002", textAlign: "center", maxWidth: 360, width: "100%",
       }}>
-        <div style={{ fontSize: 48, marginBottom: 12 }}>🖥️</div>
+        <img src="/logo-brand.png" alt="The Standard" style={{ height: 100, marginBottom: 12, display: "block", margin: "0 auto 12px" }} />
         <h2 style={{ margin: "0 0 6px", color: "#1a1a2e", fontSize: 22, fontWeight: 700 }}>
           Standard Service
         </h2>

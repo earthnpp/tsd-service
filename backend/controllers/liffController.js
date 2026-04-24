@@ -7,6 +7,7 @@ const bookingService = require("../services/bookingService");
 const ticketConfirm = require("../views/flex/ticketConfirm");
 const { bookingSuccess } = require("../views/flex/bookingViews");
 const notifyService = require("../services/notifyService");
+const audit = require("../services/auditService");
 
 const prisma = new PrismaClient();
 const client = new line.messagingApi.MessagingApiClient({
@@ -100,6 +101,16 @@ async function createTicket(req, res) {
 
     // Notify admin group
     notifyService.notifyNewTicket(ticket).catch(() => {});
+
+    audit.log({
+      actor: userId || "anonymous",
+      actorType: userId?.startsWith("portal:") ? "portal" : "line",
+      action: "TICKET_CREATED",
+      resourceType: "ticket",
+      resourceId: ticket.id,
+      detail: `${ticket.ticketNo}: ${ticket.title}`,
+      ipAddress: req.ip || req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || null,
+    });
 
     res.json({ success: true, ticketNo: ticket.ticketNo });
   } catch (err) {
@@ -197,6 +208,16 @@ async function createBooking(req, res) {
     // Notify admin group
     notifyService.notifyNewBooking(booking).catch(() => {});
 
+    audit.log({
+      actor: userId || "anonymous",
+      actorType: userId?.startsWith("portal:") ? "portal" : "line",
+      action: "BOOKING_CREATED",
+      resourceType: "booking",
+      resourceId: booking.id,
+      detail: `${booking.bookingNo}: ${booking.title}`,
+      ipAddress: req.ip || req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || null,
+    });
+
     res.json({ success: true, bookingNo: booking.bookingNo });
   } catch (err) {
     console.error("LIFF createBooking error:", err);
@@ -240,6 +261,22 @@ async function aiChat(req, res) {
       const data = await r.json();
       if (!r.ok) throw new Error(data.error?.message || "OpenAI API error");
       reply = data.choices?.[0]?.message?.content || "";
+    } else if (provider === "gemini") {
+      const geminiModel = model || "gemini-2.0-flash";
+      const geminiMessages = messages.map(m => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }],
+      }));
+      const geminiBody = { contents: geminiMessages };
+      if (systemPrompt) geminiBody.system_instruction = { parts: [{ text: systemPrompt }] };
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(geminiBody),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error?.message || "Gemini API error");
+      reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     }
 
     res.json({ reply });

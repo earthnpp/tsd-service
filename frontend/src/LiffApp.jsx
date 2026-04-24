@@ -47,6 +47,8 @@ export default function LiffApp() {
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
   const [myTickets, setMyTickets] = useState([]);
+  const [ticketPage, setTicketPage] = useState(0);
+  const [ticketPageSize, setTicketPageSize] = useState(5);
 
   useEffect(() => {
     if (skipLiff) {
@@ -276,28 +278,59 @@ export default function LiffApp() {
         {/* ── ประวัติการแจ้งซ่อม (portal desktop เท่านั้น) ── */}
         {skipLiff && (
           <div style={{ marginTop: 28 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: "#1a1a2e", marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid #e8eaed" }}>
-              📋 ประวัติการแจ้งซ่อมของคุณ
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid #e8eaed" }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: "#1a1a2e" }}>📋 ประวัติการแจ้งซ่อมของคุณ</div>
+              <select
+                value={ticketPageSize}
+                onChange={e => { setTicketPageSize(Number(e.target.value)); setTicketPage(0); }}
+                style={{ fontSize: 12, padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6, background: "#fff", cursor: "pointer" }}>
+                <option value={5}>แสดง 5 รายการ</option>
+                <option value={10}>แสดง 10 รายการ</option>
+                <option value={15}>แสดง 15 รายการ</option>
+              </select>
             </div>
             {myTickets.length === 0 ? (
               <p style={{ color: "#aaa", fontSize: 13, textAlign: "center", padding: "16px 0" }}>ยังไม่มีประวัติการแจ้งซ่อม</p>
-            ) : myTickets.map(t => (
-              <div key={t.id} style={{ background: "#fff", border: "1px solid #e8eaed", borderRadius: 10, padding: "12px 14px", marginBottom: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-                  <span style={{ fontWeight: 700, fontSize: 13, color: "#457b9d" }}>{t.ticketNo}</span>
-                  <span style={{ ...ticketStatusStyle(t.status), borderRadius: 999, padding: "2px 10px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>
-                    {ticketStatusLabel(t.status)}
-                  </span>
-                </div>
-                <div style={{ fontSize: 14, color: "#1a1a2e", fontWeight: 500, marginBottom: 2 }}>{t.title}</div>
-                <div style={{ fontSize: 12, color: "#888" }}>{t.category} › {t.subcategory}</div>
-                <div style={{ fontSize: 11, color: "#bbb", marginTop: 4 }}>
-                  {new Date(t.createdAt).toLocaleString("th-TH", { timeZone: "Asia/Bangkok", dateStyle: "short", timeStyle: "short" })}
-                  {t.assignee && ` · ผู้รับผิดชอบ: ${t.assignee}`}
-                </div>
-                {t.resolution && <div style={{ fontSize: 12, color: "#2a9d8f", marginTop: 4, background: "#e8f8f5", borderRadius: 6, padding: "4px 8px" }}>✅ {t.resolution}</div>}
-              </div>
-            ))}
+            ) : (
+              <>
+                {myTickets.slice(ticketPage * ticketPageSize, (ticketPage + 1) * ticketPageSize).map(t => (
+                  <div key={t.id} style={{ background: "#fff", border: "1px solid #e8eaed", borderRadius: 10, padding: "12px 14px", marginBottom: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                      <span style={{ fontWeight: 700, fontSize: 13, color: "#457b9d" }}>{t.ticketNo}</span>
+                      <span style={{ ...ticketStatusStyle(t.status), borderRadius: 999, padding: "2px 10px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>
+                        {ticketStatusLabel(t.status)}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 14, color: "#1a1a2e", fontWeight: 500, marginBottom: 2 }}>{t.title}</div>
+                    <div style={{ fontSize: 12, color: "#888" }}>{t.category} › {t.subcategory}</div>
+                    <div style={{ fontSize: 11, color: "#bbb", marginTop: 4 }}>
+                      {new Date(t.createdAt).toLocaleString("th-TH", { timeZone: "Asia/Bangkok", dateStyle: "short", timeStyle: "short" })}
+                      {t.assignee && ` · ผู้รับผิดชอบ: ${t.assignee}`}
+                    </div>
+                    {t.resolution && <div style={{ fontSize: 12, color: "#2a9d8f", marginTop: 4, background: "#e8f8f5", borderRadius: 6, padding: "4px 8px" }}>✅ {t.resolution}</div>}
+                  </div>
+                ))}
+                {myTickets.length > ticketPageSize && (
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, fontSize: 13 }}>
+                    <button
+                      onClick={() => setTicketPage(p => Math.max(0, p - 1))}
+                      disabled={ticketPage === 0}
+                      style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #ddd", background: ticketPage === 0 ? "#f5f5f5" : "#fff", color: ticketPage === 0 ? "#bbb" : "#457b9d", cursor: ticketPage === 0 ? "default" : "pointer", fontWeight: 600 }}>
+                      ← ก่อนหน้า
+                    </button>
+                    <span style={{ color: "#888" }}>
+                      หน้า {ticketPage + 1} / {Math.ceil(myTickets.length / ticketPageSize)}
+                    </span>
+                    <button
+                      onClick={() => setTicketPage(p => p + 1)}
+                      disabled={(ticketPage + 1) * ticketPageSize >= myTickets.length}
+                      style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #ddd", background: (ticketPage + 1) * ticketPageSize >= myTickets.length ? "#f5f5f5" : "#fff", color: (ticketPage + 1) * ticketPageSize >= myTickets.length ? "#bbb" : "#457b9d", cursor: (ticketPage + 1) * ticketPageSize >= myTickets.length ? "default" : "pointer", fontWeight: 600 }}>
+                      ถัดไป →
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>

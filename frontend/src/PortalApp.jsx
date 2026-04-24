@@ -53,7 +53,7 @@ function PortalLogin({ onLogin }) {
   return (
     <div style={{ minHeight: "100vh", background: "#F5F5F5", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "system-ui, sans-serif", padding: 20 }}>
       <div style={{ background: "#fff", borderRadius: 4, padding: "40px 36px", boxShadow: "0 4px 24px rgba(0,0,0,0.10)", textAlign: "center", maxWidth: 380, width: "100%" }}>
-        <img src="/logo-brand.png" alt="The Standard" style={{ height: 56, marginBottom: 0, display: "block", margin: "0 auto 0" }} />
+        <img src="/logo-brand.png" alt="The Standard" style={{ height: 100, marginBottom: 0, display: "block", margin: "0 auto 0" }} />
         <div style={{ height: 3, background: RED, width: 48, margin: "14px auto 24px" }} />
 
         <h2 style={{ margin: "0 0 6px", color: BLACK, fontSize: 17, fontWeight: 700 }}>เข้าสู่ระบบ Service Portal</h2>

@@ -61,6 +61,8 @@ export default function LiffBooking() {
   const [desktopCalMonth, setDesktopCalMonth] = useState(new Date().getMonth());
   const [calBookings, setCalBookings] = useState([]);
   const [myBookings, setMyBookings] = useState([]);
+  const [bookingPage, setBookingPage] = useState(0);
+  const [bookingPageSize, setBookingPageSize] = useState(5);
 
   useEffect(() => {
     const handler = () => setIsDesktop(window.innerWidth >= 768);
@@ -521,11 +523,19 @@ export default function LiffBooking() {
           {/* ── ประวัติการจองของคุณ ── */}
           {skipLiff && myBookings.length > 0 && (
             <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 2px 12px #0001", padding: "24px", marginTop: 20 }}>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "#1a1a2e", marginBottom: 16, paddingBottom: 12, borderBottom: "2px solid #e8eaed" }}>
-                🗓️ ประวัติการจองของคุณ
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, paddingBottom: 12, borderBottom: "2px solid #e8eaed" }}>
+                <div style={{ fontWeight: 700, fontSize: 18, color: "#1a1a2e" }}>🗓️ ประวัติการจองของคุณ</div>
+                <select
+                  value={bookingPageSize}
+                  onChange={e => { setBookingPageSize(Number(e.target.value)); setBookingPage(0); }}
+                  style={{ fontSize: 13, padding: "5px 10px", border: "1px solid #e0e0f0", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+                  <option value={5}>แสดง 5 รายการ</option>
+                  <option value={10}>แสดง 10 รายการ</option>
+                  <option value={15}>แสดง 15 รายการ</option>
+                </select>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {myBookings.map(b => {
+                {myBookings.slice(bookingPage * bookingPageSize, (bookingPage + 1) * bookingPageSize).map(b => {
                   const isCancelled = b.status === "cancelled";
                   const start = new Date(b.startAt).toLocaleString("th-TH", { timeZone: "Asia/Bangkok", dateStyle: "short", timeStyle: "short" });
                   const end   = new Date(b.endAt).toLocaleTimeString("th-TH", { timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit" });
@@ -551,6 +561,25 @@ export default function LiffBooking() {
                   );
                 })}
               </div>
+              {myBookings.length > bookingPageSize && (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, fontSize: 13 }}>
+                  <button
+                    onClick={() => setBookingPage(p => Math.max(0, p - 1))}
+                    disabled={bookingPage === 0}
+                    style={{ padding: "7px 16px", borderRadius: 8, border: "1px solid #e0e0f0", background: bookingPage === 0 ? "#f5f5f5" : "#fff", color: bookingPage === 0 ? "#bbb" : "#457b9d", cursor: bookingPage === 0 ? "default" : "pointer", fontWeight: 600 }}>
+                    ← ก่อนหน้า
+                  </button>
+                  <span style={{ color: "#888" }}>
+                    หน้า {bookingPage + 1} / {Math.ceil(myBookings.length / bookingPageSize)}
+                  </span>
+                  <button
+                    onClick={() => setBookingPage(p => p + 1)}
+                    disabled={(bookingPage + 1) * bookingPageSize >= myBookings.length}
+                    style={{ padding: "7px 16px", borderRadius: 8, border: "1px solid #e0e0f0", background: (bookingPage + 1) * bookingPageSize >= myBookings.length ? "#f5f5f5" : "#fff", color: (bookingPage + 1) * bookingPageSize >= myBookings.length ? "#bbb" : "#457b9d", cursor: (bookingPage + 1) * bookingPageSize >= myBookings.length ? "default" : "pointer", fontWeight: 600 }}>
+                    ถัดไป →
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
