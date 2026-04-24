@@ -29,6 +29,12 @@ function compressImage(file, maxWidth = 1280, quality = 0.78) {
 }
 
 export default function LiffApp() {
+  // On desktop (non-LINE browser) with an active portal session → skip LIFF
+  const isLineApp = /Line\//i.test(navigator.userAgent);
+  const _portalToken = localStorage.getItem("portal_token");
+  const _portalUser = (() => { try { return JSON.parse(localStorage.getItem("portal_user") || "null"); } catch { return null; } })();
+  const skipLiff = !isLineApp && !!_portalToken && !!_portalUser;
+
   const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState(null);
   const [categories, setCategories] = useState([]);
@@ -42,6 +48,11 @@ export default function LiffApp() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (skipLiff) {
+      setForm(f => ({ ...f, name: _portalUser.name || "", email: _portalUser.email || "" }));
+      fetch("/api/liff/categories").then(r => r.json()).then(setCategories).catch(() => {}).finally(() => setReady(true));
+      return;
+    }
     liff.init({ liffId: LIFF_ID })
       .then(async () => {
         if (!liff.isLoggedIn()) { liff.login(); return; }
@@ -103,7 +114,10 @@ export default function LiffApp() {
     }
     setSubmitting(true); setError("");
     try {
-      const token = liff.getAccessToken();
+      const headers = {};
+      if (skipLiff) headers["x-portal-token"] = _portalToken;
+      else headers["x-line-access-token"] = liff.getAccessToken();
+
       const fd = new FormData();
       fd.append("name", form.name);
       fd.append("email", form.email);
@@ -115,7 +129,7 @@ export default function LiffApp() {
       if (image) fd.append("image", image);
       const res = await fetch("/api/liff/ticket", {
         method: "POST",
-        headers: { "x-line-access-token": token },
+        headers,
         body: fd,
       });
       if (!res.ok) {
@@ -123,7 +137,7 @@ export default function LiffApp() {
         throw new Error(body.error || "ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่");
       }
       setDone(true);
-      setTimeout(() => { try { liff.closeWindow(); } catch {} }, 2500);
+      if (!skipLiff) setTimeout(() => { try { liff.closeWindow(); } catch {} }, 2500);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -144,6 +158,7 @@ export default function LiffApp() {
       <p style={{ fontSize: 64, margin: 0 }}>✅</p>
       <h2 style={{ color: "#2a9d8f", margin: "12px 0 4px" }}>แจ้งรับบริการเรียบร้อยครับ</h2>
       <p style={{ color: "#666", fontSize: 14 }}>ทีม IT จะรีบดำเนินการให้ครับ 🙏</p>
+      {skipLiff && <a href="/" style={{ color: "#457b9d", fontSize: 14, marginTop: 8 }}>← กลับ Portal</a>}
     </div>
   );
 
@@ -152,12 +167,15 @@ export default function LiffApp() {
       {/* Header */}
       <div style={s.header}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {profile?.pictureUrl && <img src={profile.pictureUrl} alt="" style={s.avatar} />}
+          {(profile?.pictureUrl || _portalUser?.picture) && (
+            <img src={profile?.pictureUrl || _portalUser?.picture} alt="" referrerPolicy="no-referrer" style={s.avatar} />
+          )}
           <div>
             <div style={{ fontWeight: 700, fontSize: 17, color: "#fff" }}>🛠️ แจ้งปัญหา IT</div>
-            <div style={{ fontSize: 12, color: "#aaaacc" }}>{profile?.displayName}</div>
+            <div style={{ fontSize: 12, color: "#aaaacc" }}>{profile?.displayName || _portalUser?.name}</div>
           </div>
         </div>
+        {skipLiff && <a href="/" style={{ fontSize: 12, color: "#aaddff", textDecoration: "none", background: "rgba(255,255,255,0.1)", padding: "6px 12px", borderRadius: 20 }}>← Portal</a>}
       </div>
 
       {/* Form */}

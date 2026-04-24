@@ -47,11 +47,22 @@ async function getCategories(req, res) {
 
 async function createTicket(req, res) {
   try {
-    const accessToken = req.headers["x-line-access-token"];
-    if (!accessToken) return res.status(401).json({ error: "No LINE token" });
+    const lineToken   = req.headers["x-line-access-token"];
+    const portalToken = req.headers["x-portal-token"];
 
-    await verifyLineToken(accessToken);
-    const { userId, displayName } = await getLineUserId(accessToken);
+    let userId = null;
+    let displayName = null;
+
+    if (lineToken) {
+      await verifyLineToken(lineToken);
+      ({ userId, displayName } = await getLineUserId(lineToken));
+    } else if (portalToken) {
+      const decoded = jwt.verify(portalToken, process.env.JWT_SECRET);
+      if (!decoded.isPortal) return res.status(401).json({ error: "Invalid portal token" });
+      displayName = decoded.name;
+    } else {
+      return res.status(401).json({ error: "No auth token" });
+    }
 
     const { name, email, department, category, subcategory, assetTag, description } = req.body;
     if (!name?.trim() || !email?.trim() || !department?.trim() || !category || !subcategory || !description?.trim()) {
@@ -81,11 +92,9 @@ async function createTicket(req, res) {
       imageUrl,
     });
 
-    // Push confirmation to user in LINE
-    client.pushMessage({
-      to: userId,
-      messages: [ticketConfirm(ticket)],
-    }).catch(() => {});
+    if (userId) {
+      client.pushMessage({ to: userId, messages: [ticketConfirm(ticket)] }).catch(() => {});
+    }
 
     // Notify admin group
     notifyService.notifyNewTicket(ticket).catch(() => {});
