@@ -237,7 +237,8 @@ async function aiChat(req, res) {
 
     const provider    = cfg.ai_provider    || "anthropic";
     const apiKey      = cfg.ai_api_key;
-    const model       = cfg.ai_model       || "claude-haiku-4-5-20251001";
+    const defaultModel = provider === "gemini" ? "gemini-2.0-flash" : provider === "openai" ? "gpt-4o-mini" : "claude-haiku-4-5-20251001";
+    const model       = cfg.ai_model       || defaultModel;
     const systemPrompt = cfg.ai_system_prompt || "คุณคือผู้ช่วย IT Support ตอบเป็นภาษาไทย กระชับ เข้าใจง่าย";
 
     if (!apiKey) return res.status(400).json({ error: "ยังไม่ได้ตั้งค่า AI API Key ในระบบครับ" });

@@ -34,10 +34,14 @@ export default function LiffAI() {
     setLoading(true);
 
     try {
+      // ตัด greeting ของ bot ออก (ต้องเริ่มด้วย user เสมอ)
+      const apiMessages = updated
+        .filter((m, i) => !(i === 0 && m.role === "assistant"))
+        .map(m => ({ role: m.role, content: m.content }));
       const res = await fetch("/api/liff/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: updated.map(m => ({ role: m.role, content: m.content })) }),
+        body: JSON.stringify({ messages: apiMessages }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "เกิดข้อผิดพลาด");
