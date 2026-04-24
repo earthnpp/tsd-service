@@ -30,14 +30,18 @@ jobs:
         with:
           context: ./backend
           push: true
-          tags: ghcr.io/earthnpp/tsd-backend:latest
+          tags: |
+            ghcr.io/earthnpp/tsd-backend:latest
+            ghcr.io/earthnpp/tsd-backend:${{ github.sha }}
 
       - name: Build and push frontend
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
           push: true
-          tags: ghcr.io/earthnpp/tsd-frontend:latest
+          tags: |
+            ghcr.io/earthnpp/tsd-frontend:latest
+            ghcr.io/earthnpp/tsd-frontend:${{ github.sha }}
           build-args: |
             VITE_LIFF_ID=${{ secrets.VITE_LIFF_ID }}
             VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}

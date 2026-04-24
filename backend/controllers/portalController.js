@@ -5,7 +5,7 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-const ALLOWED_DOMAIN = "@thestandard.co";
+const ALLOWED_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN || "@thestandard.co";
 
 // POST /api/portal/auth — Google login (domain check only)
 async function portalLogin(req, res) {
