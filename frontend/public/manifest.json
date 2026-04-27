@@ -1,7 +1,7 @@
 {
-  "name": "The Standard Service Portal",
+  "name": "THE STANDARD Service Portal",
   "short_name": "TSD Service",
-  "description": "ศูนย์กลาง Service ของ The Standard",
+  "description": "ศูนย์กลาง Service ของ THE STANDARD",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

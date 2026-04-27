@@ -149,7 +149,7 @@ export default function App({ user, onLogout }) {
       <div className={`sidebar${sidebarOpen ? " open" : ""}`}>
         {/* Logo */}
         <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid #ffffff18" }}>
-          <img src="/logo.png" alt="The Standard" style={{ height: 24, filter: "brightness(0) invert(1)", display: "block", marginBottom: 4 }} />
+          <img src="/logo.png" alt="THE STANDARD" style={{ height: 24, filter: "brightness(0) invert(1)", display: "block", marginBottom: 4 }} />
           <div style={{ fontSize: 11, color: "#aaa" }}>Admin Console</div>
         </div>
 
@@ -903,7 +903,7 @@ function AiSettings() {
   const [saved, setSaved] = useState(false);
   const [showKey, setShowKey] = useState(false);
 
-  const DEFAULT_PROMPT = `คุณคือผู้ช่วย IT Support เบื้องต้นของ The Standard ชื่อ "IT Assistant"
+  const DEFAULT_PROMPT = `คุณคือผู้ช่วย IT Support เบื้องต้นของ THE STANDARD ชื่อ "IT Assistant"
 ช่วยแก้ปัญหาคอมพิวเตอร์และระบบ IT เบื้องต้น ตอบเป็นภาษาไทย กระชับ เข้าใจง่าย
 ถ้าแก้ไม่ได้หรือเกิน scope ให้แนะนำแจ้ง Ticket ห้ามตอบเรื่องนอก IT`;
 

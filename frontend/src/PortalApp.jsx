@@ -53,7 +53,7 @@ function PortalLogin({ onLogin }) {
   return (
     <div style={{ minHeight: "100vh", background: "#F5F5F5", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "system-ui, sans-serif", padding: 20 }}>
       <div style={{ background: "#fff", borderRadius: 4, padding: "40px 36px", boxShadow: "0 4px 24px rgba(0,0,0,0.10)", textAlign: "center", maxWidth: 380, width: "100%" }}>
-        <img src="/logo-brand.png" alt="The Standard" style={{ height: 100, marginBottom: 0, display: "block", margin: "0 auto 0" }} />
+        <img src="/logo-brand.png" alt="THE STANDARD" style={{ height: 100, marginBottom: 0, display: "block", margin: "0 auto 0" }} />
         <div style={{ height: 3, background: RED, width: 48, margin: "14px auto 24px" }} />
 
         <h2 style={{ margin: "0 0 6px", color: BLACK, fontSize: 17, fontWeight: 700 }}>เข้าสู่ระบบ Service Portal</h2>
@@ -75,7 +75,7 @@ function PortalLogin({ onLogin }) {
 
         {error && <p style={{ marginTop: 16, color: RED, fontSize: 13 }}>{error}</p>}
       </div>
-      <p style={{ marginTop: 20, color: "#aaa", fontSize: 12 }}>© {new Date().getFullYear()} The Standard · IT Department</p>
+      <p style={{ marginTop: 20, color: "#aaa", fontSize: 12 }}>© {new Date().getFullYear()} THE STANDARD · IT Department</p>
     </div>
   );
 }
@@ -166,7 +166,7 @@ export default function PortalApp() {
     <div style={{ minHeight: "100vh", background: "#F5F5F5", fontFamily: "system-ui, sans-serif" }}>
       {/* Header */}
       <header style={{ background: BLACK, padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 56, position: "sticky", top: 0, zIndex: 100 }}>
-        <img src="/logo-brand.png" alt="The Standard" style={{ height: 24, filter: "brightness(0) invert(1)" }} />
+        <img src="/logo-brand.png" alt="THE STANDARD" style={{ height: 24, filter: "brightness(0) invert(1)" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {user.isAdmin && (
             <button onClick={goToAdmin} style={{ fontSize: 13, padding: "6px 14px", borderRadius: 2, background: RED, color: "#fff", border: "none", cursor: "pointer", fontWeight: 600 }}>
@@ -212,7 +212,7 @@ export default function PortalApp() {
 
       {/* Footer */}
       <footer style={{ textAlign: "center", padding: "20px", color: "#bbb", fontSize: 12, background: BLACK }}>
-        © {new Date().getFullYear()} The Standard · IT Department
+        © {new Date().getFullYear()} THE STANDARD · IT Department
       </footer>
     </div>
   );
