@@ -30,6 +30,15 @@ function PortalLogin({ onLogin }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Google OAuth ไม่รองรับ LINE in-app browser → เปิดใน external browser อัตโนมัติ
+  useEffect(() => {
+    if (/Line\//i.test(navigator.userAgent)) {
+      const url = window.location.href;
+      const sep = url.includes("?") ? "&" : "?";
+      window.location.replace(url + sep + "openExternalBrowser=1");
+    }
+  }, []);
+
   async function handleSuccess(credentialResponse) {
     setLoading(true);
     setError("");
