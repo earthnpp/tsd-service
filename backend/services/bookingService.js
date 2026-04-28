@@ -95,19 +95,28 @@ async function cancelBooking(bookingId, lineUserId) {
 }
 
 async function getBookingsByUser(lineUserId, limit = 5) {
-  const now = new Date();
-  // Show upcoming confirmed + recently cancelled (within 7 days)
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   return prisma.roomBooking.findMany({
     where: {
       lineUserId,
-      OR: [
-        { status: "confirmed", endAt: { gte: now } },
-        { status: "cancelled", cancelledAt: { gte: weekAgo } },
-      ],
+      startAt: { gte: monthAgo },
     },
     include: { room: true },
-    orderBy: { startAt: "asc" },
+    orderBy: { startAt: "desc" },
+    take: limit,
+  });
+}
+
+async function getBookingsByUserOrEmail(lineUserId, email, limit = 5) {
+  const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const where = {
+    startAt: { gte: monthAgo },
+    OR: [{ lineUserId }, ...(email ? [{ email: email.toLowerCase() }] : [])],
+  };
+  return prisma.roomBooking.findMany({
+    where,
+    include: { room: true },
+    orderBy: { startAt: "desc" },
     take: limit,
   });
 }
@@ -207,7 +216,7 @@ async function getBookingsForMonth(year, month) {
 
 module.exports = {
   getRooms, createRoom, updateRoom, deleteRoom, getRoomSlots,
-  createBooking, cancelBooking, getBookingsByUser,
+  createBooking, cancelBooking, getBookingsByUser, getBookingsByUserOrEmail,
   getAllBookings, adminCancelBooking, updateRoomCalendar,
   getBookingsForMonth,
 };
