@@ -58,14 +58,15 @@ export default function LiffApp() {
         .then(r => r.json()).then(data => { if (Array.isArray(data)) setMyTickets(data); }).catch(() => {});
       return;
     }
+    // เริ่ม fetch categories ทันที ไม่รอ liff.init()
+    const categoriesPromise = fetch("/api/liff/categories").then(r => r.json()).catch(() => []);
+
     liff.init({ liffId: LIFF_ID })
       .then(async () => {
         if (!liff.isLoggedIn()) { liff.login(); return; }
-        const p = await liff.getProfile();
+        const [p, data] = await Promise.all([liff.getProfile(), categoriesPromise]);
         setProfile(p);
         setForm(f => ({ ...f, name: p.displayName }));
-        const res = await fetch("/api/liff/categories");
-        const data = await res.json();
         setCategories(data);
         setReady(true);
       })

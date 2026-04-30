@@ -83,13 +83,14 @@ export default function LiffBooking() {
         .then(r => r.json()).then(data => { if (Array.isArray(data)) setMyBookings(data); }).catch(() => {});
       return;
     }
+    // เริ่ม fetch rooms ทันที ไม่รอ liff.init()
+    const roomsPromise = fetch("/api/liff/rooms").then(r => r.json()).catch(() => []);
+
     liff.init({ liffId: LIFF_ID }).then(async () => {
       if (!liff.isLoggedIn()) { liff.login(); return; }
-      const p = await liff.getProfile();
+      const [p, data] = await Promise.all([liff.getProfile(), roomsPromise]);
       setProfile(p);
       setName(p.displayName || "");
-      const res = await fetch("/api/liff/rooms");
-      const data = await res.json();
       setRooms(data);
       if (data.length) setRoomId(String(data[0].id));
       setReady(true);
