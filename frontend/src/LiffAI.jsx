@@ -10,7 +10,7 @@ export default function LiffAI() {
   ]);
   const [input, setInput]       = useState("");
   const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState("");
+  const [lastUserMsg, setLastUserMsg] = useState("");
   const bottomRef               = useRef(null);
 
   useEffect(() => {
@@ -23,21 +23,23 @@ export default function LiffAI() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  async function send() {
-    const text = input.trim();
+  async function send(overrideText) {
+    const text = (overrideText ?? input).trim();
     if (!text || loading) return;
     setInput("");
-    setError("");
 
-    const updated = [...messages, { role: "user", content: text }];
+    // ลบ error bubble ก่อนหน้า (ถ้ามี) แล้วใส่ข้อความ user ใหม่
+    const base = messages.filter(m => m.type !== "error");
+    const updated = [...base, { role: "user", content: text }];
     setMessages(updated);
+    setLastUserMsg(text);
     setLoading(true);
 
     try {
-      // ตัด greeting ของ bot ออก (ต้องเริ่มด้วย user เสมอ)
       const apiMessages = updated
-        .filter((m, i) => !(i === 0 && m.role === "assistant"))
+        .filter((m, i) => !(i === 0 && m.role === "assistant") && m.type !== "error")
         .map(m => ({ role: m.role, content: m.content }));
+
       const res = await fetch("/api/liff/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -46,8 +48,9 @@ export default function LiffAI() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "เกิดข้อผิดพลาด");
       setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
-    } catch (err) {
-      setError(err.message);
+    } catch {
+      // แสดง error เป็น bot bubble แทน ไม่เปิดเผย technical detail
+      setMessages(prev => [...prev, { role: "assistant", type: "error" }]);
     }
     setLoading(false);
   }
@@ -81,16 +84,35 @@ export default function LiffAI() {
             {m.role === "assistant" && (
               <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#1a3a5c", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, marginRight: 8, flexShrink: 0, alignSelf: "flex-end" }}>🤖</div>
             )}
-            <div style={{
-              maxWidth: "72%", padding: "10px 14px", borderRadius: m.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-              background: m.role === "user" ? "#1a3a5c" : "#fff",
-              color: m.role === "user" ? "#fff" : "#1a1a2e",
-              fontSize: 14, lineHeight: 1.6,
-              boxShadow: "0 1px 3px #0001",
-              whiteSpace: "pre-wrap",
-            }}>
-              {m.content}
-            </div>
+            {m.type === "error" ? (
+              <div style={{ maxWidth: "80%", padding: "12px 14px", borderRadius: "18px 18px 18px 4px", background: "#fff", boxShadow: "0 1px 3px #0001" }}>
+                <div style={{ fontSize: 14, color: "#888", marginBottom: 10, lineHeight: 1.6 }}>
+                  ขออภัยครับ ตอนนี้ผมไม่สามารถตอบได้ชั่วคราว 🙏
+                  <br />กรุณาลองใหม่ หรือแจ้ง Ticket ให้ทีม IT ช่วยได้เลยครับ
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => send(lastUserMsg)}
+                    style={{ fontSize: 12, padding: "6px 14px", borderRadius: 20, background: "#1a3a5c", color: "#fff", border: "none", cursor: "pointer", fontWeight: 600 }}>
+                    🔄 ลองใหม่
+                  </button>
+                  <button onClick={openTicket}
+                    style={{ fontSize: 12, padding: "6px 14px", borderRadius: 20, background: "#e63946", color: "#fff", border: "none", cursor: "pointer", fontWeight: 600 }}>
+                    🎫 แจ้ง Ticket
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                maxWidth: "72%", padding: "10px 14px", borderRadius: m.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+                background: m.role === "user" ? "#1a3a5c" : "#fff",
+                color: m.role === "user" ? "#fff" : "#1a1a2e",
+                fontSize: 14, lineHeight: 1.6,
+                boxShadow: "0 1px 3px #0001",
+                whiteSpace: "pre-wrap",
+              }}>
+                {m.content}
+              </div>
+            )}
           </div>
         ))}
 
@@ -107,7 +129,6 @@ export default function LiffAI() {
           </div>
         )}
 
-        {error && <p style={{ color: "#e63946", fontSize: 13, textAlign: "center" }}>{error}</p>}
         <div ref={bottomRef} />
       </div>
 
@@ -129,7 +150,7 @@ export default function LiffAI() {
           disabled={loading}
           style={{ flex: 1, border: "1px solid #ddd", borderRadius: 24, padding: "10px 16px", fontSize: 14, outline: "none", background: "#f9f9f9" }}
         />
-        <button onClick={send} disabled={loading || !input.trim()} style={{
+        <button onClick={() => send()} disabled={loading || !input.trim()} style={{
           width: 42, height: 42, borderRadius: "50%", background: input.trim() && !loading ? "#1a3a5c" : "#ddd",
           border: "none", cursor: input.trim() && !loading ? "pointer" : "default",
           display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0,
