@@ -251,7 +251,11 @@ async function aiChat(req, res) {
         body: JSON.stringify({ model, max_tokens: 1024, system: systemPrompt, messages }),
       });
       const data = await r.json();
-      if (!r.ok) throw new Error(data.error?.message || "Anthropic API error");
+      if (!r.ok) {
+        const err = new Error(data.error?.message || "Anthropic API error");
+        err.retryable = r.status !== 429; // 529=overloaded=retryable, 429=quota=not retryable
+        throw err;
+      }
       reply = data.content?.[0]?.text || "";
     } else if (provider === "openai") {
       const r = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -260,7 +264,11 @@ async function aiChat(req, res) {
         body: JSON.stringify({ model, max_tokens: 1024, messages: [{ role: "system", content: systemPrompt }, ...messages] }),
       });
       const data = await r.json();
-      if (!r.ok) throw new Error(data.error?.message || "OpenAI API error");
+      if (!r.ok) {
+        const err = new Error(data.error?.message || "OpenAI API error");
+        err.retryable = r.status !== 429;
+        throw err;
+      }
       reply = data.choices?.[0]?.message?.content || "";
     } else if (provider === "gemini") {
       const geminiModel = model || "gemini-2.0-flash";
@@ -276,14 +284,19 @@ async function aiChat(req, res) {
         body: JSON.stringify(geminiBody),
       });
       const data = await r.json();
-      if (!r.ok) throw new Error(data.error?.message || "Gemini API error");
+      if (!r.ok) {
+        const err = new Error(data.error?.message || "Gemini API error");
+        err.retryable = r.status !== 429; // RESOURCE_EXHAUSTED = 429 = quota
+        throw err;
+      }
       reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     }
 
     res.json({ reply });
   } catch (err) {
     console.error("AI chat error:", err.message);
-    res.status(500).json({ error: "ขณะนี้ AI ไม่พร้อมใช้งานครับ กรุณาลองใหม่อีกครั้ง" });
+    const retryable = err.retryable !== false; // network errors default to retryable
+    res.status(retryable ? 503 : 429).json({ error: err.message, retryable });
   }
 }
 

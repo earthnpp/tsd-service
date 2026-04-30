@@ -11,6 +11,7 @@ export default function LiffAI() {
   const [input, setInput]       = useState("");
   const [loading, setLoading]   = useState(false);
   const [lastUserMsg, setLastUserMsg] = useState("");
+  const [retrying, setRetrying] = useState(0); // 0 = not retrying, 1-2 = auto-retry attempt
   const bottomRef               = useRef(null);
 
   useEffect(() => {
@@ -23,36 +24,58 @@ export default function LiffAI() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  async function send(overrideText) {
+  async function send(overrideText, attempt = 0, preparedMsgs = null) {
     const text = (overrideText ?? input).trim();
     if (!text || loading) return;
-    setInput("");
 
-    // ลบ error bubble ก่อนหน้า (ถ้ามี) แล้วใส่ข้อความ user ใหม่
-    const base = messages.filter(m => m.type !== "error");
-    const updated = [...base, { role: "user", content: text }];
-    setMessages(updated);
-    setLastUserMsg(text);
-    setLoading(true);
+    let apiMessages;
 
-    try {
-      const apiMessages = updated
+    if (attempt === 0) {
+      setInput("");
+      const base = messages.filter(m => m.type !== "error");
+      // Guard against re-adding the same user message when retrying manually
+      const lastMsg = base[base.length - 1];
+      const alreadyAdded = lastMsg?.role === "user" && lastMsg?.content === text;
+      const updated = alreadyAdded ? base : [...base, { role: "user", content: text }];
+      setMessages(updated);
+      setLastUserMsg(text);
+      setLoading(true);
+      setRetrying(0);
+      apiMessages = updated
         .filter((m, i) => !(i === 0 && m.role === "assistant") && m.type !== "error")
         .map(m => ({ role: m.role, content: m.content }));
+    } else {
+      // Auto-retry: reuse pre-computed messages, just update retry counter
+      apiMessages = preparedMsgs;
+      setRetrying(attempt);
+    }
 
+    try {
       const res = await fetch("/api/liff/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: apiMessages }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "เกิดข้อผิดพลาด");
+      if (!res.ok) {
+        const err = new Error(data.error || "เกิดข้อผิดพลาด");
+        err.retryable = data.retryable !== false;
+        throw err;
+      }
       setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
-    } catch {
-      // แสดง error เป็น bot bubble แทน ไม่เปิดเผย technical detail
-      setMessages(prev => [...prev, { role: "assistant", type: "error" }]);
+      setLoading(false);
+      setRetrying(0);
+    } catch (err) {
+      const canRetry = err.retryable !== false;
+      if (canRetry && attempt < 2) {
+        // Auto-retry with backoff (1.5s, 3s)
+        setTimeout(() => send(text, attempt + 1, apiMessages), 1500 * (attempt + 1));
+      } else {
+        setMessages(prev => [...prev, { role: "assistant", type: "error" }]);
+        setLoading(false);
+        setRetrying(0);
+      }
     }
-    setLoading(false);
   }
 
   function openTicket() {
@@ -117,15 +140,20 @@ export default function LiffAI() {
         ))}
 
         {loading && (
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
-            <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#1a3a5c", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🤖</div>
-            <div style={{ background: "#fff", borderRadius: "18px 18px 18px 4px", padding: "10px 16px", boxShadow: "0 1px 3px #0001" }}>
-              <span style={{ display: "inline-flex", gap: 4 }}>
-                {[0, 1, 2].map(n => (
-                  <span key={n} style={{ width: 6, height: 6, borderRadius: "50%", background: "#aaa", display: "inline-block", animation: `bounce 1s ${n * 0.2}s infinite` }} />
-                ))}
-              </span>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#1a3a5c", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🤖</div>
+              <div style={{ background: "#fff", borderRadius: "18px 18px 18px 4px", padding: "10px 16px", boxShadow: "0 1px 3px #0001" }}>
+                <span style={{ display: "inline-flex", gap: 4 }}>
+                  {[0, 1, 2].map(n => (
+                    <span key={n} style={{ width: 6, height: 6, borderRadius: "50%", background: "#aaa", display: "inline-block", animation: `bounce 1s ${n * 0.2}s infinite` }} />
+                  ))}
+                </span>
+              </div>
             </div>
+            {retrying > 0 && (
+              <div style={{ fontSize: 11, color: "#aaa", paddingLeft: 36 }}>กำลังลองใหม่... ({retrying}/2)</div>
+            )}
           </div>
         )}
 
