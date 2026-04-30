@@ -14,7 +14,16 @@ function loadSession() {
   const token = localStorage.getItem(STORAGE_KEY);
   const raw = localStorage.getItem(STORAGE_USER);
   if (!token || !raw) return null;
-  try { return { token, ...JSON.parse(raw) }; } catch { return null; }
+  try {
+    // ตรวจ JWT expiry ฝั่ง client (decode payload ไม่ verify signature)
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(STORAGE_USER);
+      return null;
+    }
+    return { token, ...JSON.parse(raw) };
+  } catch { return null; }
 }
 function clearSession() {
   localStorage.removeItem(STORAGE_KEY);
@@ -146,7 +155,10 @@ export default function PortalApp() {
     fetch("/api/portal/cards", {
       headers: { "x-portal-token": user.token },
     })
-      .then(r => r.json())
+      .then(r => {
+        if (r.status === 401) { clearSession(); setUser(null); return null; }
+        return r.json();
+      })
       .then(data => { if (Array.isArray(data)) setCards(data); })
       .catch(() => {})
       .finally(() => setLoadingCards(false));
