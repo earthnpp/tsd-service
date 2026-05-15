@@ -38,6 +38,10 @@ model Ticket {
 
   @@index([lineUserId])
   @@index([status])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([email])
+  @@index([category])
+  @@index([assignee])
 }
 
 model Assignee {
@@ -125,6 +129,8 @@ model RoomBooking {
   @@index([roomId])
   @@index([lineUserId])
   @@index([startAt])
+  @@index([status])
+  @@index([roomId, status, startAt])
 }
 
 model BookingCounter {

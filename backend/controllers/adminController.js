@@ -6,8 +6,7 @@ const audit = require("../services/auditService");
 const notify = require("../services/notifyService");
 const { assignedCard, completedWithRatingCard, pendingCard, bookingCancelledCard } = require("../views/flex/statusMessages");
 
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const prisma = require("../prisma/client");
 const line = require("@line/bot-sdk");
 
 const client = new line.messagingApi.MessagingApiClient({

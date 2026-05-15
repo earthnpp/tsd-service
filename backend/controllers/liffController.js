@@ -1,4 +1,4 @@
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../prisma/client");
 const line = require("@line/bot-sdk");
 const jwt = require("jsonwebtoken");
 const ticketService = require("../services/ticketService");
@@ -8,8 +8,6 @@ const ticketConfirm = require("../views/flex/ticketConfirm");
 const { bookingSuccess } = require("../views/flex/bookingViews");
 const notifyService = require("../services/notifyService");
 const audit = require("../services/auditService");
-
-const prisma = new PrismaClient();
 const client = new line.messagingApi.MessagingApiClient({
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
 });

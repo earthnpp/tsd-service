@@ -1,5 +1,4 @@
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const prisma = require("../prisma/client");
 
 async function generateTicketNo() {
   const counter = await prisma.ticketCounter.update({
@@ -108,7 +107,14 @@ async function getStats({ dateFrom, dateTo } = {}) {
     }
   }
 
-  const [total, pending, inProgress, completed, ratings, faqRaw, activeAssignees] = await Promise.all([
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+
+  const [
+    total, pending, inProgress, completed, ratings, faqRaw, activeAssignees,
+    categoryRaw, trendTickets, resolvedWithTime,
+  ] = await Promise.all([
     prisma.ticket.count({ where: dateFilter }),
     prisma.ticket.count({ where: { ...dateFilter, status: "pending" } }),
     prisma.ticket.count({ where: { ...dateFilter, status: "in_progress" } }),
@@ -119,6 +125,19 @@ async function getStats({ dateFrom, dateTo } = {}) {
     }),
     prisma.faqItem.aggregate({ _sum: { viewCount: true, resolvedCount: true } }),
     prisma.assignee.findMany({ where: { isActive: true }, select: { name: true } }),
+    prisma.ticket.groupBy({
+      by: ["category"],
+      where: dateFilter,
+      _count: { id: true },
+    }),
+    prisma.ticket.findMany({
+      where: { createdAt: { gte: sevenDaysAgo } },
+      select: { createdAt: true },
+    }),
+    prisma.ticket.findMany({
+      where: { ...dateFilter, status: "completed", completedAt: { not: null } },
+      select: { createdAt: true, completedAt: true },
+    }),
   ]);
 
   const avgRating =
@@ -128,18 +147,12 @@ async function getStats({ dateFrom, dateTo } = {}) {
 
   const activeNames = activeAssignees.map((a) => a.name);
 
-  // Category breakdown
-  const categoryRaw = await prisma.ticket.groupBy({
-    by: ["category"],
-    where: dateFilter,
-    _count: { id: true },
-  });
   const byCategory = categoryRaw.map((r) => ({
     category: r.category,
     count: r._count.id,
   }));
 
-  // Assignee workload — only active staff
+  // Assignee workload — only active staff (depends on activeNames, runs after Promise.all)
   const assigneeRaw = await prisma.ticket.groupBy({
     by: ["assignee"],
     where: { ...dateFilter, assignee: { not: null, in: activeNames } },
@@ -152,14 +165,6 @@ async function getStats({ dateFrom, dateTo } = {}) {
     avgRating: r._avg.rating ? Number(r._avg.rating).toFixed(1) : null,
   }));
 
-  // Daily trend — last 7 days (fixed window, not affected by dateFilter)
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-  sevenDaysAgo.setHours(0, 0, 0, 0);
-  const trendTickets = await prisma.ticket.findMany({
-    where: { createdAt: { gte: sevenDaysAgo } },
-    select: { createdAt: true },
-  });
   const dailyTrend = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
@@ -169,12 +174,6 @@ async function getStats({ dateFrom, dateTo } = {}) {
       label: d.toLocaleDateString("th-TH", { month: "short", day: "numeric" }),
       count: trendTickets.filter(t => t.createdAt.toISOString().slice(0, 10) === key).length,
     };
-  });
-
-  // Avg resolution time (hours)
-  const resolvedWithTime = await prisma.ticket.findMany({
-    where: { ...dateFilter, status: "completed", completedAt: { not: null } },
-    select: { createdAt: true, completedAt: true },
   });
   const avgResolutionHours = resolvedWithTime.length > 0
     ? Math.round(resolvedWithTime.reduce((s, t) => s + (new Date(t.completedAt) - new Date(t.createdAt)) / 3600000, 0) / resolvedWithTime.length)

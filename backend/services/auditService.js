@@ -1,23 +1,18 @@
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const prisma = require("../prisma/client");
 
-async function log({ actor, actorType = "admin", action, resourceType, resourceId, detail, ipAddress, userAgent }) {
-  try {
-    await prisma.auditLog.create({
-      data: {
-        actor: actor || "system",
-        actorType,
-        action,
-        resourceType: resourceType || null,
-        resourceId: resourceId ? String(resourceId) : null,
-        detail: detail || null,
-        ipAddress: ipAddress || null,
-        userAgent: userAgent ? userAgent.substring(0, 500) : null,
-      },
-    });
-  } catch (err) {
-    console.error("Audit log error:", err.message);
-  }
+function log({ actor, actorType = "admin", action, resourceType, resourceId, detail, ipAddress, userAgent }) {
+  prisma.auditLog.create({
+    data: {
+      actor: actor || "system",
+      actorType,
+      action,
+      resourceType: resourceType || null,
+      resourceId: resourceId ? String(resourceId) : null,
+      detail: detail || null,
+      ipAddress: ipAddress || null,
+      userAgent: userAgent ? userAgent.substring(0, 500) : null,
+    },
+  }).catch(err => console.error("Audit log error:", err.message));
 }
 
 function fromReq(req) {

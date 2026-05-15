@@ -1,3 +1,4 @@
+const prisma = require("../prisma/client");
 const line = require("@line/bot-sdk");
 const sessionService = require("../services/sessionService");
 const ticketService = require("../services/ticketService");
@@ -628,9 +629,7 @@ async function onPostback(event, userId) {
   }
 
   if (action === "contact_it") {
-    const { PrismaClient } = require("@prisma/client");
-    const _prisma = new PrismaClient();
-    const rows = await _prisma.systemConfig.findMany();
+    const rows = await prisma.systemConfig.findMany();
     const cfg = Object.fromEntries(rows.map(r => [r.key, r.value]));
 
     const name   = cfg.contact_name  || "ทีม IT Support";

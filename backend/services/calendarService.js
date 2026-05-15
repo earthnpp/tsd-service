@@ -3,30 +3,25 @@ const fs = require("fs");
 
 const CREDENTIALS_PATH = path.join(__dirname, "../config/google-credentials.json");
 
-function getCredentials() {
-  // 1) Environment variable (สำหรับ Docker/Portainer)
+function loadCredentials() {
   const raw = process.env.GOOGLE_CREDENTIALS;
   if (raw) {
-    console.log(`[Calendar] GOOGLE_CREDENTIALS found, length=${raw.length}, starts=${raw.slice(0, 20)}`);
     try {
       const parsed = JSON.parse(raw);
       console.log(`[Calendar] credentials loaded (JSON), client_email=${parsed.client_email}`);
       return parsed;
     } catch {
-      // อาจเป็น base64
       try {
-        const decoded = Buffer.from(raw, "base64").toString();
-        const parsed = JSON.parse(decoded);
+        const parsed = JSON.parse(Buffer.from(raw, "base64").toString());
         console.log(`[Calendar] credentials loaded (base64), client_email=${parsed.client_email}`);
         return parsed;
       } catch (e) {
-        console.error("[Calendar] GOOGLE_CREDENTIALS parse failed (both JSON and base64):", e.message);
+        console.error("[Calendar] GOOGLE_CREDENTIALS parse failed:", e.message);
       }
     }
   } else {
     console.warn("[Calendar] GOOGLE_CREDENTIALS not set in environment");
   }
-  // 2) File fallback (local dev)
   if (fs.existsSync(CREDENTIALS_PATH)) {
     try {
       const parsed = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, "utf-8"));
@@ -38,8 +33,11 @@ function getCredentials() {
   return null;
 }
 
+// Cache calendar client — credentials don't change at runtime
+let _calendar = null;
 function getCalendar() {
-  const credentials = getCredentials();
+  if (_calendar) return _calendar;
+  const credentials = loadCredentials();
   if (!credentials) return null;
   try {
     const { google } = require("googleapis");
@@ -47,7 +45,8 @@ function getCalendar() {
       credentials,
       scopes: ["https://www.googleapis.com/auth/calendar"],
     });
-    return google.calendar({ version: "v3", auth });
+    _calendar = google.calendar({ version: "v3", auth });
+    return _calendar;
   } catch (err) {
     console.error("calendarService init error:", err.message);
     return null;

@@ -1,9 +1,7 @@
 const { OAuth2Client } = require("google-auth-library");
 const jwt = require("jsonwebtoken");
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../prisma/client");
 const audit = require("../services/auditService");
-
-const prisma = new PrismaClient();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const ALLOWED_DOMAIN = process.env.ALLOWED_EMAIL_DOMAIN || "@thestandard.co";

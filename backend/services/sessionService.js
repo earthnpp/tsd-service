@@ -1,5 +1,4 @@
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const prisma = require("../prisma/client");
 
 async function getSession(lineUserId) {
   let session = await prisma.userSession.findUnique({ where: { lineUserId } });

@@ -1,14 +1,15 @@
-import { StrictMode, useState } from "react";
+import { StrictMode, useState, lazy, Suspense } from "react";
 import "./index.css";
 import { createRoot } from "react-dom/client";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import App from "./App";
-import LiffApp from "./LiffApp";
-import LiffBooking from "./LiffBooking";
-import LiffCalendar from "./LiffCalendar";
-import LiffAI from "./LiffAI";
 import LoginPage from "./LoginPage";
-import PortalApp from "./PortalApp";
+
+const App         = lazy(() => import("./App"));
+const LiffApp     = lazy(() => import("./LiffApp"));
+const LiffBooking = lazy(() => import("./LiffBooking"));
+const LiffCalendar = lazy(() => import("./LiffCalendar"));
+const LiffAI      = lazy(() => import("./LiffAI"));
+const PortalApp   = lazy(() => import("./PortalApp"));
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
@@ -56,13 +57,15 @@ function AdminRoot() {
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      {isLiffCalendar ? <LiffCalendar />
-        : isLiffBooking ? <LiffBooking />
-        : isLiffAI ? <LiffAI />
-        : isLiff ? <LiffApp />
-        : isAdmin ? <AdminRoot />
-        : <PortalApp />
-      }
+      <Suspense fallback={<div className="page-spinner"><div className="page-spinner__ring" /></div>}>
+        {isLiffCalendar ? <LiffCalendar />
+          : isLiffBooking ? <LiffBooking />
+          : isLiffAI ? <LiffAI />
+          : isLiff ? <LiffApp />
+          : isAdmin ? <AdminRoot />
+          : <PortalApp />
+        }
+      </Suspense>
     </GoogleOAuthProvider>
   </StrictMode>
 );

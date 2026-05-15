@@ -1,5 +1,4 @@
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const prisma = require("../prisma/client");
 
 async function listAuditLogs(req, res) {
   const { page = 1, limit = 50, actor, action, actorType, from, to, search } = req.query;
