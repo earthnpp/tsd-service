@@ -4,6 +4,7 @@ const sessionService = require("../services/sessionService");
 const ticketService = require("../services/ticketService");
 const categoryService = require("../services/categoryService");
 const bookingService = require("../services/bookingService");
+const notifyService = require("../services/notifyService");
 const mainMenu = require("../views/flex/mainMenu");
 const { categoryMenu } = require("../views/flex/categoryMenu");
 const { subcategoryMenu } = require("../views/flex/subcategoryMenu");
@@ -591,7 +592,8 @@ async function onPostback(event, userId) {
   if (action === "confirm_cancel") {
     const bookingId = Number(params.get("bookingId"));
     try {
-      await bookingService.cancelBooking(bookingId, userId);
+      const booking = await bookingService.cancelBooking(bookingId, userId);
+      notifyService.notifyBookingCancelled(booking).catch(() => {});
       return client.replyMessage({
         replyToken,
         messages: [{ type: "text", text: "✅ ยกเลิกการจองเรียบร้อยแล้วครับ" }],
