@@ -162,7 +162,9 @@ export default function LiffBooking() {
       if (endDate < iso) setEndDate(iso);
       setStartTime(""); setEndTime("");
     } else {
-      setEndDate(iso);
+      const maxEnd = new Date(startDate + "T00:00:00");
+      maxEnd.setDate(maxEnd.getDate() + 10);
+      setEndDate(iso > toISO(maxEnd) ? toISO(maxEnd) : iso);
       setEndTime("");
     }
     setShowCal(null);
@@ -196,8 +198,10 @@ export default function LiffBooking() {
   }
 
   const isMultiDay = startDate !== endDate;
+  const maxEndDate = (() => { const d = new Date(startDate + "T00:00:00"); d.setDate(d.getDate() + 10); return toISO(d); })();
   const endSlots = SLOTS.filter(h => {
     if (!isMultiDay && h <= startTime) return false;
+    if (isMultiDay && h < startTime) return false; // ข้ามวัน: endTime ต้อง >= startTime
     return true;
   });
 
@@ -208,9 +212,12 @@ export default function LiffBooking() {
     if (!department.trim()) { setError("กรุณาใส่ฝ่าย/แผนก"); return; }
     if (!startDate || !startTime || !endTime) { setError("กรุณาเลือกวันและเวลา"); return; }
     if (!roomId) { setError("กรุณาเลือกห้อง"); return; }
+    const diffDays = (new Date(endDate) - new Date(startDate)) / 86400000;
+    if (diffDays > 10) { setError("จองได้สูงสุด 10 วัน"); return; }
     const startAt = new Date(`${startDate}T${startTime}:00+07:00`);
     const endAt   = new Date(`${endDate}T${endTime}:00+07:00`);
     if (endAt <= startAt) { setError("เวลาสิ้นสุดต้องหลังจากเวลาเริ่มต้น"); return; }
+    if (isMultiDay && endTime < startTime) { setError("เวลาสิ้นสุดต้องไม่น้อยกว่าเวลาเริ่มต้น"); return; }
     setSubmitting(true); setError("");
     try {
       const headers = { "Content-Type": "application/json" };
@@ -470,7 +477,7 @@ export default function LiffBooking() {
                   <label style={s.deskLabel}>วันสิ้นสุด</label>
                   <input type="date" value={endDate}
                     onChange={e => { setEndDate(e.target.value); setEndTime(""); }}
-                    min={startDate} style={s.deskInput} />
+                    min={startDate} max={maxEndDate} style={s.deskInput} />
                 </div>
                 <div>
                   <label style={s.deskLabel}>เวลาเริ่มต้น</label>

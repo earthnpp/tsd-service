@@ -85,9 +85,9 @@ function endDateQuickReply(startDate) {
     },
   });
 
-  // Next 5 days
+  // Next 9 days (same day + 9 = 10 days max)
   const start = new Date(`${startDate}T00:00:00`);
-  for (let i = 1; i <= 5; i++) {
+  for (let i = 1; i <= 9; i++) {
     const nd = new Date(start);
     nd.setDate(nd.getDate() + i);
     const yyyy = nd.getFullYear();
@@ -113,10 +113,11 @@ function endDateQuickReply(startDate) {
 }
 
 // Time quick reply
-function timeQuickReply(phase, startTime = null) {
+function timeQuickReply(phase, startTime = null, isMultiDay = false) {
   let minHour = 8;
   if (phase === "end" && startTime) {
-    minHour = parseInt(startTime.split(":")[0]) + 1;
+    const sh = parseInt(startTime.split(":")[0]);
+    minHour = isMultiDay ? sh : sh + 1; // multi-day: >= startHour; same-day: > startHour
   }
   const maxHour = 20;
 

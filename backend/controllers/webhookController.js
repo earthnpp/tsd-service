@@ -484,7 +484,7 @@ async function onPostback(event, userId) {
     if (phase === "end") {
       data.endDate = date;
       await sessionService.setState(userId, "book_select_endtime", data);
-      return client.replyMessage({ replyToken, messages: [timeQuickReply("end", data.startTime)] });
+      return client.replyMessage({ replyToken, messages: [timeQuickReply("end", data.startTime, data.startDate !== date)] });
     }
   }
 
@@ -520,7 +520,17 @@ async function onPostback(event, userId) {
     const startAt = new Date(`${data.startDate}T${data.startTime}:00+07:00`);
     const endAt = new Date(`${data.endDate}T${data.endTime}:00+07:00`);
     if (endAt <= startAt) {
+      await sessionService.clearSession(userId);
       return client.replyMessage({ replyToken, messages: [{ type: "text", text: "❌ เวลาสิ้นสุดต้องหลังจากเวลาเริ่มต้นครับ กรุณาเริ่มใหม่" }] });
+    }
+    const diffDays = (new Date(data.endDate) - new Date(data.startDate)) / 86400000;
+    if (diffDays > 10) {
+      await sessionService.clearSession(userId);
+      return client.replyMessage({ replyToken, messages: [{ type: "text", text: "❌ จองได้สูงสุด 10 วันครับ กรุณาเริ่มใหม่" }] });
+    }
+    if (data.endDate !== data.startDate && data.endTime < data.startTime) {
+      await sessionService.clearSession(userId);
+      return client.replyMessage({ replyToken, messages: [{ type: "text", text: "❌ เวลาสิ้นสุดต้องไม่น้อยกว่าเวลาเริ่มต้นครับ\nเช่น เริ่ม 16:00 ต้องจบ 16:00 ขึ้นไป\nกรุณาเริ่มใหม่" }] });
     }
     const profile = await client.getProfile(userId).catch(() => null);
     try {

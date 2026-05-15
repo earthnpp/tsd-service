@@ -186,6 +186,13 @@ async function createBooking(req, res) {
     if (endAt <= startAt) {
       return res.status(400).json({ error: "เวลาสิ้นสุดต้องหลังจากเวลาเริ่มต้น" });
     }
+    const diffDays = (new Date(endDate) - new Date(startDate)) / 86400000;
+    if (diffDays > 10) {
+      return res.status(400).json({ error: "จองได้สูงสุด 10 วัน" });
+    }
+    if (endDate !== startDate && endTime < startTime) {
+      return res.status(400).json({ error: "เวลาสิ้นสุดต้องไม่น้อยกว่าเวลาเริ่มต้น (เช่น เริ่ม 16:00 ต้องจบ 16:00 ขึ้นไป)" });
+    }
 
     const booking = await bookingService.createBooking({
       roomId: Number(roomId),
